@@ -1,0 +1,61 @@
+{# Hub of one rashi: its five permanent period pages, in the tree's language (app/web/rashifal.py `rashi_hub`). #}
+{% extends "base.html" %}
+{% import "_copy_blocks.html" as blocks %}
+
+{% block title %}{{ copy.title }} | {{ site_name }}{% endblock %}
+{% block meta_description %}{{ copy.meta_description }}{% endblock %}
+
+{% block main %}
+<section class="hero hero--rashifal">
+  <div class="wrap">
+    <nav class="breadcrumbs" aria-label="{{ ui.breadcrumb_aria }}">
+      {% for name, path in crumbs %}<a href="{{ path }}">{{ name }}</a>{% if not loop.last %} <span aria-hidden="true">›</span> {% endif %}{% endfor %}
+    </nav>
+    <h1>{{ copy.h1 }}</h1>
+    <p class="hero__intro">{{ copy.intro }}</p>
+  </div>
+</section>
+
+<div class="wrap">
+  <ul class="tool-cards">
+    {% for card in cards %}
+    <li class="card tool-card">
+      <h2><a href="{{ card.path }}">{{ card.title }}</a></h2>
+      <p><span class="muted small">{{ card.range }}</span>{% if card.headline %}<br>{{ card.headline }}{% endif %}</p>
+      <a class="btn btn--primary" href="{{ card.path }}" aria-label="{{ labels.read_more }}: {{ card.title }}">{{ card.label }}</a>
+    </li>
+    {% endfor %}
+  </ul>
+
+  <section class="block" aria-labelledby="saturn-heading">
+    <h2 id="saturn-heading">{{ labels.saturn_heading }}</h2>
+    {% for line in saturn_lines %}<p>{{ line }}</p>{% endfor %}
+    <p><a href="{{ href('sade-sati') }}">{{ labels.saturn_link }}</a></p>
+  </section>
+
+  <div class="cta-pair">
+    <aside class="cta"><h3>{{ labels.cta_kundali_title }}</h3>
+      <p>{{ labels.cta_kundali_text }}</p>
+      <a class="btn btn--cta" href="{{ href('kundali') }}">{{ labels.cta_kundali_button }}</a></aside>
+    <aside class="cta"><h3>{{ labels.cta_chat_title }}</h3>
+      <p>{{ labels.cta_chat_text }}</p>
+      <a class="btn btn--cta" href="{{ href('consultation') }}">{{ labels.cta_chat_button }}</a></aside>
+  </div>
+
+  <nav class="block" aria-labelledby="others-heading">
+    <h2 id="others-heading">{{ labels.others_heading }}</h2>
+    <ul class="link-grid">
+      {% for other in others %}<li><a href="{{ other.path }}">{{ other.label }} <span class="muted small">{{ other.sub }}</span></a></li>{% endfor %}
+    </ul>
+    <p><a href="{{ href('rashifal-hub') }}">{{ labels.hub_link }}</a> · <a href="{{ href('rashifal-weekly') }}">{{ labels.weekly_link }}</a></p>
+  </nav>
+  <p class="disclaimer" id="rashifal-disclaimer">{{ disclaimer }}</p>
+</div>
+
+{# The written body of THIS rashi (pages.RashiBody, keyed by rashi): twelve different essays per language,
+   not one essay with the sign's name swapped in. #}
+<article class="wrap content">
+  {{ blocks.sections(copy) }}
+  {{ blocks.faq(copy, ui.faq_heading) }}
+</article>
+{% endblock %}

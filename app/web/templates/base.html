@@ -1,0 +1,134 @@
+{# Layout of every page. Language, canonical, hreflang, nav, footer and switcher come from routes.page_context();
+   internal links are never spelled here - `href("page-key")` gives the path in the current language. #}
+<!DOCTYPE html>
+<html lang="{{ html_lang }}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}{{ site_name }}{% endblock %}</title>
+  <meta name="description" content="{% block meta_description %}{% endblock %}">
+  <link rel="canonical" href="{{ canonical }}">
+  {% for alt in alternates %}
+  <link rel="alternate" hreflang="{{ alt.hreflang }}" href="{{ alt.href }}">
+  {% endfor %}
+  <meta property="og:type" content="{% block og_type %}website{% endblock %}">
+  <meta property="og:site_name" content="{{ site_name }}">
+  <meta property="og:title" content="{{ self.title() }}">
+  <meta property="og:description" content="{{ self.meta_description() }}">
+  <meta property="og:url" content="{{ canonical }}">
+  <meta property="og:locale" content="{{ og_locale }}">
+  {% for item in switcher if not item.current and alternates %}
+  <meta property="og:locale:alternate" content="{{ item.lang }}_IN">
+  {% endfor %}
+  <meta name="twitter:card" content="summary">
+  <meta name="theme-color" content="#241B54">
+  {# The SVG comes first so a modern browser takes it: it is drawn for the size rather than downscaled to it.
+     The PNGs are the fallback; /favicon.ico, /apple-touch-icon.png and /site.webmanifest are ALSO served from
+     the root by app/main.py, because a browser asks for those before it has parsed any of this. The manifest
+     carries no ?v= - its URL is its identity to the install prompt. #}
+  <link rel="icon" href="/static/favicon.svg?v={{ static_version }}" type="image/svg+xml">
+  <link rel="icon" href="/static/icons/favicon-32.png?v={{ static_version }}" sizes="32x32" type="image/png">
+  <link rel="icon" href="/static/icons/favicon-16.png?v={{ static_version }}" sizes="16x16" type="image/png">
+  <link rel="apple-touch-icon" href="/static/icons/apple-touch-icon-180.png?v={{ static_version }}">
+  <link rel="manifest" href="/site.webmanifest">
+  <link rel="stylesheet" href="/static/css/site.css?v={{ static_version }}">
+  {# Google Analytics 4, one property for all three language trees. It is here in base.html and nowhere else,
+     so every page carries it exactly once. The measurement ID is spelled once, on the first tag, and reaches
+     static/js/analytics.js through the data attribute; that file holds what Google's own snippet puts inline,
+     because the CSP forbids inline scripts (see the comment at the top of it). Both tags are async, so neither
+     costs any render time and their order does not matter: window.dataLayer is a queue, and whichever runs
+     first either fills it or drains it. The loader is the only third-party request in the site's HTML, and
+     its host is named in the CSP in app/hardening.py. #}
+  {% set ga_measurement_id = "G-FYQ4092WMP" %}
+  <script src="/static/js/analytics.js?v={{ static_version }}" async data-ga-id="{{ ga_measurement_id }}"></script>
+  <script async src="https://www.googletagmanager.com/gtag/js?id={{ ga_measurement_id }}"></script>
+  {% for block in json_ld|default([]) %}
+  <script type="application/ld+json">
+{{ block }}
+  </script>
+  {% endfor %}
+  {% block head_extra %}{% endblock %}
+</head>
+<body>
+  <a class="skip-link" href="#main">{{ ui.skip }}</a>
+  <header class="site-header">
+    <div class="wrap site-header__inner">
+      <div class="site-header__top">
+        {# The lockup holds the wordmark alone now: the poetic brand line used to sit under it on every page
+           and, stacked above the trust line, it made the chrome read as two competing subtitles. It is a
+           one-time flourish in the home hero instead. The lockup stays because it is what keeps the language
+           switcher on the wordmark's row rather than on a row of its own. #}
+        <div class="brand-lockup">
+        <a class="brand" href="{{ home_path }}">
+          {# The EMBLEM, not the full logo: the full artwork has a kundali lattice inside the planet, and at
+             32 CSS px on a 1x screen that lattice does not read as a faint chart - it reads as dirt on the
+             gold. The emblem is the same mark without it and is clean at every density, so one asset serves
+             all of them. The full logo belongs on surfaces with the pixels to show the grid.
+             alt="" on purpose: the wordmark beside it already names the link, and a screen reader should not
+             hear the site name twice. Width and height are set so the row reserves its space before the image
+             loads and the header cannot jump. #}
+          <img class="brand__mark" src="/static/brand/emblem-96.png?v={{ static_version }}" alt=""
+               width="32" height="32" decoding="async">
+          <span>{{ site_name }}</span>
+        </a>
+        </div>
+        {# Language switcher: one tap to the SAME page in the other languages (SEO map §2). #}
+        <nav class="lang-switch" aria-label="{{ ui.lang_aria }}">
+          <ul>
+            {% for item in switcher %}
+            <li><a href="{{ item.path }}" hreflang="{{ item.hreflang }}" lang="{{ item.hreflang }}" data-lang="{{ item.lang }}"{% if item.current %} aria-current="true"{% endif %}>{{ item.label }}</a></li>
+            {% endfor %}
+          </ul>
+        </nav>
+      </div>
+      {# Trust line (a trust requirement): the calculation engine is named in the chrome of every page,
+         so the nav's own "AI astrologer" entry is never the only thing a visitor reads about how this works. #}
+      <p class="site-tagline">{{ site_tagline }}</p>
+      {# The nav was a horizontal scroller, which put a visible bar under it on any desktop that does not use
+         overlay scrollbars. It is a wrapping list now, collapsed behind a disclosure on narrow screens by
+         static/js/nav.js. Without JavaScript the toggle stays hidden and the full list is simply visible and
+         wrapped - longer, never scrolling, never overflowing. #}
+      <nav class="site-nav" aria-label="{{ ui.nav_aria }}">
+        <button type="button" class="site-nav__toggle" hidden aria-expanded="false" aria-controls="site-nav-list">
+          <span class="site-nav__bars" aria-hidden="true"></span>{{ ui.menu }}
+        </button>
+        <ul id="site-nav-list">
+          {% for item in nav %}
+          <li><a href="{{ item.path }}"{% if item.current %} aria-current="page"{% endif %}>{{ item.label }}</a></li>
+          {% endfor %}
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <main id="main">
+    {% block main %}{% endblock %}
+  </main>
+
+  <footer class="site-footer">
+    <div class="wrap">
+      <nav aria-label="{{ ui.footer_aria }}">
+        <ul class="site-footer__links">
+          <li><a href="{{ home_path }}">{{ ui.home }}</a></li>
+          {% for item in nav %}
+          <li><a href="{{ item.path }}">{{ item.label }}</a></li>
+          {% endfor %}
+          <li><a href="{{ href('rashifal-weekly') }}">{{ weekly_label }}</a></li>
+        </ul>
+        <ul class="site-footer__links site-footer__links--policies"{% if lang != "en" %} lang="en"{% endif %}>
+          {% for policy in policy_links %}
+          <li><a href="{{ policy.path }}"{% if lang != "en" %} hreflang="en"{% endif %}>{{ policy.label }}</a></li>
+          {% endfor %}
+        </ul>
+      </nav>
+      <p class="site-footer__trust">{{ ui.footer_trust }}</p>
+      <p class="disclaimer"><strong>{{ ui.disclaimer_label }}</strong> {{ disclaimer }}</p>
+      {# AGPL §13: the site links pyswisseph, so network users are offered its source. #}
+      <p class="site-footer__meta">{{ ui.footer_meta }} &copy; {{ site_name }} &middot;
+        <a href="{{ source_path }}"{% if lang != "en" %} hreflang="en"{% endif %}>{{ ui.source_link }}</a></p>
+    </div>
+  </footer>
+  <script src="/static/js/nav.js?v={{ static_version }}" defer></script>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

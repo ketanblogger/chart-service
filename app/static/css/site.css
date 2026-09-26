@@ -1,0 +1,972 @@
+/* Single stylesheet for all public pages. Mobile-first, system fonts, no external assets.
+   Colours: the brand palette. The ten --color-* tokens below are shared with the PDF report - keep them in
+   step. Two rules are enforced by tests/test_brand_css.py rather than by memory:
+     1. never white or cream text on a gold background (2.19:1);
+     2. the caution colour is --color-warning - never saffron, never a plain red. */
+
+:root {
+  /* ---------- Brand palette. These ten names and values are the contract with the
+     PDF report (app/pdf/templates/print.css) - change one here and the PDF has to change with it. ---------- */
+  --color-primary: #241B54;   /* Deep Indigo - header, hero, footer */
+  --color-accent:  #E0A526;   /* Celestial Gold - the single CTA, chart lines, badges. TEXT ON GOLD IS ALWAYS INK:
+                                 gold + white is 2.19:1 and fails AA; gold + Ink is 7.65:1 (Brand §2). */
+  --color-saffron: #D2691E;   /* tags and festive accents only - never a large block, never paragraph text (3.6:1) */
+  --color-ink:     #1E1B2E;   /* body text: 15.8:1 on --color-bg */
+  --color-muted:   #5C5875;   /* captions and meta: 6.37:1 on --color-bg, 5.96:1 on --color-tint,
+                                6.76:1 on --color-surface. It was #6E6A8A (4.84 / 4.53 / 5.13), which
+                                passed AA and had nothing behind it: a ground darkened by 3% took the
+                                caption under 4.5 while body ink was still above 14. Captions are the
+                                token that decides what may ever sit behind text on this site. */
+  --color-bg:      #FBF8F1;   /* cream content background */
+  --color-card:    #2E2660;   /* indigo card, chat bubble, kundali chart background */
+  --color-tint:    #F3EFFA;   /* soft section background */
+  --color-success: #2E9E5B;   /* shubh. FILL, BORDER AND MARKS ONLY - 3.41:1 on white, so never text */
+  --color-warning: #A13D2B;   /* ashubh: active mangal dosha, active sade sati, caution windows.
+                                 6.53:1 on white, 6.15:1 on cream - readable as text and as a background. */
+
+  /* Derived from the ten above, so none of them has to be bent out of shape. */
+  --color-success-ink: #1F6E3F;  /* the text form of Success (5.89:1 on cream); Success itself cannot be text */
+  --color-success-bg:  #E8F5EC;
+  --color-warning-bg:  #FBEDE9;  /* Ink 14.7:1, Warning 5.72:1 */
+  --color-surface:     #FFFFFF;  /* white card face on the cream page */
+  --color-line:        #E3DEF0;  /* card and table rules */
+  --color-field:       #8E86A8;  /* input, combobox and chip borders: 3.43:1 on white (WCAG 1.4.11) */
+  --color-accent-dark: #C68A1C;  /* gold pressed / hovered on a light surface - still takes Ink, never white */
+  --color-accent-soft: #F0BE55;  /* gold hovered on a dark surface */
+  --color-on-dark:     #E7E4F4;  /* 12.36:1 on --color-primary, 10.75:1 on --color-card */
+  --color-meta-dark:   #C2BBE0;  /* meta text on those same two: 8.44:1 on Primary, 7.35:1 on Card */
+  --color-quiet-bg:    #EEEBF5;  /* the quietest badge, below --color-tint */
+  --color-quiet-ink:   #585470;  /* on --color-quiet-bg: 6.11:1. A badge is 12.5px bold, which is NOT
+                                    WCAG "large" (that needs 18.66px bold), so it takes the full 4.5. */
+
+  --radius: 10px;
+  --font: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", "Noto Sans Devanagari",
+          "Nirmala UI", "Kohinoor Devanagari", "Devanagari Sangam MN", Mangal, "Lohit Devanagari", sans-serif;
+}
+
+/* Devanagari: Noto Sans Devanagari first (Brand §3), and a little more line-height than the Latin tree. */
+html[lang="hi"], html[lang="mr"] {
+  --font: "Noto Sans Devanagari", "Nirmala UI", "Kohinoor Devanagari", "Devanagari Sangam MN", Mangal,
+          "Lohit Devanagari", system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", sans-serif;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; }
+body {
+  margin: 0; font-family: var(--font); font-size: 1rem; line-height: 1.6;
+  color: var(--color-ink); background: var(--color-bg);
+}
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+
+h1, h2, h3, h4 { line-height: 1.25; color: var(--color-primary); margin: 0 0 .5em; }
+h1 { font-size: 1.7rem; }
+h2 { font-size: 1.3rem; }
+h3 { font-size: 1.1rem; }
+h4 { font-size: 1rem; }
+p { margin: 0 0 1em; }
+ul { margin: 0 0 1em; padding-left: 1.25em; }
+li { margin-bottom: .35em; }
+a { color: var(--color-primary); }
+a:hover { color: var(--color-ink); text-decoration-thickness: 2px; }
+/* Indigo ring on the cream page (14.6:1); gold on the dark header, hero, footer and CTA panels (7:1). */
+:focus-visible { outline: 3px solid var(--color-primary); outline-offset: 2px; }
+.site-header :focus-visible, .site-footer :focus-visible, .hero :focus-visible, .cta :focus-visible,
+.chat__msg--user :focus-visible { outline-color: var(--color-accent); }
+[hidden] { display: none !important; }
+
+.wrap { width: 100%; max-width: 960px; margin: 0 auto; padding: 0 1rem; }
+.muted { color: var(--color-muted); font-weight: 400; }
+.small { font-size: .875rem; }
+.deva { font-size: .95em; color: var(--color-muted); font-weight: 400; white-space: nowrap; }
+.visually-hidden, .skip-link:not(:focus) {
+  position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap;
+}
+.skip-link:focus { position: absolute; left: .5rem; top: .5rem; z-index: 10; background: var(--color-surface);
+  color: var(--color-ink); padding: .5rem .75rem; border-radius: 6px; }
+
+/* ---------- the wide-screen ground ---------- */
+/* Past the 1240px breakpoint the 960px reading column leaves ~140px of empty cream on each side and the page
+   reads as unfinished rather than as a column. A faint star field fills the whole width, margins and column
+   alike, so a frosted surface put on top of it later has something to be frosted OVER. The column itself
+   does NOT widen: line length is the reason it is capped and a decoration is not a reason to uncap it.
+
+   Four things matter more than the effect, so they are structural rather than careful:
+
+   1. It costs one 836-byte inline SVG tile, measured at 359 bytes of marginal gzip inside a stylesheet the
+      page already fetches - no request, no raster, no font, no script. Most of this site's traffic is
+      mid-range Android and it should not pay for a decorative download on all 246 pages.
+   2. It is a background, so it can participate in no layout: there is no element, nothing reserves space,
+      nothing can shift. Measured rather than assumed - the page renders to the same pixel height with the
+      tile and without it, CLS stays 0, and LCP remains the hero paragraph in all three trees.
+   3. It IS behind text now, and that is the part with a number on it. The first background layer still
+      covers the middle 992px - the 960px column plus 16px of bleed either side - but it is an 80% veil of
+      --color-bg rather than an opaque one, so one fifth of the field reads through the column. Measured on
+      the rendered page, every tree, every page shape: the darkest gutter pixel is (197,193,202), 148 summed
+      across the channels, and the column shifts by 5.4% of the cream-to-indigo span - inside the 4-6% the
+      brief asks for, against a budget the gate puts at 26/255 on the tightest ground.
+
+      The two dials are INDEPENDENT and live in different places, which is the trap: the group's alpha sets
+      the margins, the veil's alpha sets the column. Raising the tile without the veil moved the column to
+      27.6/255 - over budget while caption text still measured 4.97:1 and looked perfectly fine. That gap is
+      the margin the darker caption token bought, and it is not there to be spent because a screenshot looks
+      acceptable. Change both or neither.
+
+      THE TILE HAS ONE OPACITY, ON A GROUP THAT HOLDS BOTH SHAPES, and that is a correctness device rather
+      than tidiness. Twelve of the thirteen stars are drawn on a constellation vertex. With an opacity on
+      each shape separately, a dot over a line composites to 1 - (1-l)(1-d) at those points - the earlier
+      .07 lines under .19 dots measured 24%, a third more than either number, at exactly the darkest spot
+      on the page. A group opacity flattens the shapes first and lays the result down once, so the declared
+      value IS the rendered peak and no arithmetic is needed to know it. That is also what makes the two
+      dials independent enough to set separately. And it means a check that can only resolve the dots bounds
+      the lines too: they are the same number by construction.
+
+      What makes 5% safe is the caption token, not the tile. --color-muted is 6.37:1 on cream and an indigo
+      field may darken that ground by 17.4% before AA fails; on --color-tint, which starts lower, by 14.5%.
+      At the old #6E6A8A the same budget was 3%, which is to say there was none: this effect was impossible
+      on the previous token and is comfortable on this one.
+
+      Only ONE ground under the column is actually darkened, and it was measured rather than assumed: the
+      bare page. .card, .faq details, the banners, thead and the tinted rows all paint an opaque hex, so
+      the field is behind them and they move by 0/255. That stops being true the moment any of those
+      surfaces goes translucent, which is exactly what the frosted work will do - and 14.5% on the tint is
+      the number that will govern then.
+
+      A browser without color-mix() drops the whole background-image declaration and gets plain cream. That
+      is the safe direction to fail in, which is why there is no fallback that keeps the field.
+   4. Nothing moves. There is no animation here to disable, which is why prefers-reduced-motion has no rule
+      below; prefers-contrast and forced-colors do, because to them a pattern is noise.
+
+   The tile's ink is --color-primary written out: a data URI cannot read a custom property. If the palette
+   moves, this hex moves with it. */
+@media (min-width: 1240px) {
+  /* The root takes the cream so body's background stops propagating to the canvas. A propagated background
+     is positioned against the ROOT's box, not body's, and the cream layer below is centred with calc(50%) -
+     it has to be painted in a box this rule can name. */
+  html { background-color: var(--color-bg); }
+  body {
+    /* The cream lives on the root here, not on body, so that a z-index:-1 pseudo-element can be SEEN.
+       Painting order inside the root's stacking context is: root background, then negative-z-index
+       descendants, then the in-flow blocks' own backgrounds - so an opaque colour on body hides anything
+       behind it, however low its z-index. The drifting grahas below are such an element, and with this line
+       they sit between the root's cream and body's star field, which is where the brief wants them. */
+    background-color: transparent;
+    /* Layer order is top-first: the column's veil, then the star field, then body's own cream underneath.
+       tile 25% x 0.20 pass-through = 5%. The test reads both ends back off the screen rather than
+       believing this comment. */
+    background-image:
+      linear-gradient(to right, transparent calc(50% - 496px),
+                      color-mix(in srgb, var(--color-bg) 80%, transparent) calc(50% - 496px),
+                      color-mix(in srgb, var(--color-bg) 80%, transparent) calc(50% + 496px),
+                      transparent calc(50% + 496px)),
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='320' height='320' viewBox='0 0 320 320'%3E%3Cg opacity='.25' fill='%23241B54'%3E%3Cg stroke='%23241B54' stroke-width='1' fill='none'%3E%3Cpath d='M24 58L78 22L120 96'/%3E%3Cpath d='M206 132L262 84L276 20'/%3E%3Cpath d='M96 214L150 268L232 244'/%3E%3C/g%3E%3Ccircle cx='24' cy='58' r='2.9'/%3E%3Ccircle cx='78' cy='22' r='2.2'/%3E%3Ccircle cx='120' cy='96' r='3.3'/%3E%3Ccircle cx='46' cy='140' r='2.4'/%3E%3Ccircle cx='168' cy='52' r='2.5'/%3E%3Ccircle cx='206' cy='132' r='2.9'/%3E%3Ccircle cx='262' cy='84' r='2.2'/%3E%3Ccircle cx='292' cy='192' r='2.6'/%3E%3Ccircle cx='96' cy='214' r='3.0'/%3E%3Ccircle cx='150' cy='268' r='2.4'/%3E%3Ccircle cx='232' cy='244' r='2.5'/%3E%3Ccircle cx='38' cy='292' r='2.2'/%3E%3Ccircle cx='276' cy='20' r='2.4'/%3E%3C/g%3E%3C/svg%3E");
+    background-repeat: no-repeat, repeat;
+    background-position: 0 0, 0 0;
+    /* Short pages (an error page) would otherwise end the field mid-screen: body's box is what is painted. */
+    min-height: 100vh;
+  }
+}
+/* To a reader who has asked for more contrast, or whose OS is picking the colours, a decorative pattern is
+   just noise in the margin. */
+@media (prefers-contrast: more) { body { background-image: none; } }
+@media (forced-colors: active) { body { background-image: none; } }
+
+/* ---------- the drifting grahas ---------- */
+/* The nine grahas as faint gold marks, drifting in the side gutters only, never entering the reading column.
+
+   THIS IS A DESKTOP-ONLY DECORATION ON A SITE WHOSE TRAFFIC IS MOSTLY MOBILE, and that is worth stating
+   rather than leaving to be rediscovered. The gutters only exist past 1240px, because that is where the
+   960px column stops filling the viewport:
+
+       1240px -> 124px a side      1440px -> 224px      1920px -> 464px      390px -> none at all
+
+   On a phone there is no gutter, so there is no element, no animation and no cost: the rule is inside the
+   media query and a phone never matches it. A performance check on a phone therefore has nothing to look
+   at, and the question that does apply is what this costs an idle low-end laptop. Nobody should later
+   "optimise" this for the mobile case it does not run in.
+
+   WHY TWO ELEMENTS AND NOT NINE. Nine continuously animated elements are nine compositor layers that never
+   settle, on every page, for as long as a tab is open - and unlike the star field, which paints once and is
+   then free, an animation is a cost that keeps being paid. All nine glyphs are drawn into one repeating
+   tile instead, and each gutter is a single pseudo-element that drifts as a whole: two layers for the whole
+   page. At this opacity and this speed the difference between nine independent drifts and two group drifts
+   is not something anyone can see, and it is eight layers of difference to the compositor.
+
+   The two sides run at different durations and in opposite directions, and the right one starts the tile at
+   a different offset, so they do not read as one mirrored pair.
+
+   ONLY `transform` IS ANIMATED - nothing that touches layout or paint per frame, which is the whole
+   difference between free and not. And only the Y axis: these elements are clipped to the gutter by their
+   own width, but a transform moves the ELEMENT, so an X component would carry the glyphs towards the
+   column. Vertical drift cannot.
+
+   `position: fixed` is for cost, not for effect: it keeps each layer the height of the viewport instead of
+   the height of the document, which on these pages is four times taller.
+
+   ON THE GOLD, measured because gold is the lightest thing in the palette and the brief asked for the check:
+   over cream at 8% it moves the ground by 25 summed across the channels, where the indigo star field at its
+   25% moves it by 148. So these are about a sixth as present as the stars they drift among - faint was the
+   ask, and this is very faint. The number is here so that raising it later is a decision rather than a
+   drift.
+
+   WHY z-index: -1 AND WHY body's BACKGROUND-COLOR MOVED TO THE ROOT. Painting order inside the root's
+   stacking context is: the root's background, then negative-z-index descendants, then the in-flow blocks'
+   own backgrounds, then content, then positioned descendants. So at -1 these sit under the header, the hero
+   and the footer - which is right, because the star field does not appear over those bands either - but
+   also under any opaque background on body, which is why the cream lives on html up there. At z-index 0 the
+   glyphs are visible without moving the cream, and they then paint OVER the header and hero: measured, gold
+   at this opacity reads far more strongly on the indigo bands than on cream, and it looked like the
+   decoration had escaped. -1 is the arrangement that matches the brief.
+
+   IT COSTS SUBPIXEL TEXT ANTIALIASING ON DESKTOP, and that is worth writing down because no check here can
+   see it. A negative-z-index layer under the page means the backdrop behind text is no longer known-opaque
+   at paint time, so Chromium falls back from LCD subpixel antialiasing to grayscale for the whole page. It
+   is the EXISTENCE of the layer that does this, not the animation, the opacity or the fixed position - all
+   four were measured separately and behave identically. What it is not is a legibility cost: card text
+   measured 6.53:1 with subpixel and 6.76:1 without, and 6.76 is the declared ratio exactly, so the page now
+   renders text the same way the contrast gate measures it. The change is sharpness and colour fringing on
+   1x displays, nothing more.
+
+   Measured again at the CAPTION register rather than on card text, the layer removes the penalty entirely:
+   with it present, caption runs measure 6.76:1 across the board - min, median and max - which is the
+   declared ratio to the digit. Absent, with subpixel AA active, the same runs measure 6.62 / 6.70 / 6.71.
+   The worst run improves by 0.14. The two variables were isolated separately - layer present or absent,
+   subpixel on or off, four combinations - and only the layer moves the number. Subpixel AA can only blur
+   ink toward its ground, never away from it, so it can never measure above the declared ratio; that is why
+   the direction here is a gain and not a trade. The gate cannot see any of this: it runs with
+   --disable-lcd-text, which is correct, because subpixel behaviour belongs to the reader's display and not
+   to the design - so this paragraph is the only record of it.
+
+   Nothing here goes near text: the gutters hold none, which is the whole reason the field may be stronger
+   there. There is no contrast budget to respect and no legibility claim being made. */
+@media (min-width: 1240px) {
+  body::before, body::after {
+    content: ""; position: fixed; z-index: -1; pointer-events: none;
+    /* Taller than the viewport by more than the drift, so the ends never come into view. */
+    top: -60px; height: calc(100vh + 120px);
+    width: calc(50% - 496px);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='720' viewBox='0 0 120 720'%3E%3Cg fill='none' stroke='%23E0A526' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cg transform='translate(34,45)'%3E%3Ccircle r='11'/%3E%3Ccircle r='2.6' fill='%23E0A526' stroke='none'/%3E%3C/g%3E%3Cg transform='translate(86,125)'%3E%3Cpath d='M5-12a13 13 0 1 0 0 24 10.5 10.5 0 1 1 0-24z' fill='%23E0A526' stroke='none'/%3E%3C/g%3E%3Cg transform='translate(30,205)'%3E%3Ccircle cx='-4' cy='4' r='9'/%3E%3Cpath d='M3-3l11-11M7-14h7v7'/%3E%3C/g%3E%3Cg transform='translate(84,285)'%3E%3Ccircle r='8'/%3E%3Cpath d='M-6-16a6 6 0 0 0 12 0M0 8v9M-5 14h10'/%3E%3C/g%3E%3Cg transform='translate(36,365)'%3E%3Cpath d='M-10-12a6 6 0 0 1 11 3c0 7-6 10-6 17M-8 11h15'/%3E%3C/g%3E%3Cg transform='translate(88,445)'%3E%3Ccircle cy='-5' r='9'/%3E%3Cpath d='M0 4v13M-6 11h12'/%3E%3C/g%3E%3Cg transform='translate(32,525)'%3E%3Cpath d='M-9-14v18M-14-8h10M-9 0c8-4 12 4 8 10s-8 4-10 2'/%3E%3C/g%3E%3Cg transform='translate(80,605)'%3E%3Cg id='r'%3E%3Cpath d='M-10 13c0-16 3-22 10-22s10 6 10 22'/%3E%3Ccircle cx='-10' cy='15' r='2.6' fill='%23E0A526' stroke='none'/%3E%3Ccircle cx='10' cy='15' r='2.6' fill='%23E0A526' stroke='none'/%3E%3C/g%3E%3C/g%3E%3Cg transform='translate(40,685)'%3E%3Cuse href='%23r' transform='rotate(180)'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+    /* repeat-Y only. Repeating on both axes tiles the glyph column every 120px, and a 464px gutter then
+       shows the same graha four times in a row, which reads as wallpaper rather than as nine wanderers.
+       One column per side, centred, however wide the gutter is. */
+    background-repeat: repeat-y;
+    background-position: center top;
+    /* One opacity on the element, for the same reason the star tile has one on its group: the declared
+       value is the rendered strength, with nothing compositing behind our backs. */
+    opacity: .08;
+    animation: graha-drift 45s ease-in-out infinite alternate;
+  }
+  body::before { left: 0; }
+  body::after { right: 0; background-position: center -230px;
+    animation-duration: 56s; animation-direction: alternate-reverse; }
+}
+/* 45s out and 45s back is a 90-second round trip, at about a third of a pixel a second. */
+@keyframes graha-drift {
+  from { transform: translate3d(0, -14px, 0); }
+  to   { transform: translate3d(0, 14px, 0); }
+}
+/* Asked not to be moved: the glyphs stay, in the position they start in. */
+@media (prefers-reduced-motion: reduce) { body::before, body::after { animation: none; } }
+/* Asked for more contrast, or having the colours chosen by the OS: a faint pattern is noise either way. */
+@media (prefers-contrast: more) { body::before, body::after { content: none; } }
+@media (forced-colors: active) { body::before, body::after { content: none; } }
+
+/* ---------- header / footer ---------- */
+.site-header { background: var(--color-primary); color: #fff; }
+.site-header__inner { display: flex; flex-direction: column; gap: .25rem; padding-top: .6rem; padding-bottom: .4rem; }
+.brand { display: inline-flex; align-items: center; gap: .5rem; color: #fff; text-decoration: none; font-weight: 700; font-size: 1.15rem; }
+.brand__mark { flex: none; width: 2rem; height: 2rem; object-fit: contain; }
+/* Wraps, never scrolls: a scrolling nav shows a bar on every desktop without overlay scrollbars, and a
+   scrolling child also hides its overflow from a document-width check, which is how that survived. */
+.site-nav ul { display: flex; flex-wrap: wrap; gap: .25rem; list-style: none; margin: 0; padding: 0 0 .2rem; }
+.site-nav__toggle { display: inline-flex; align-items: center; gap: .5rem; min-height: 40px;
+  padding: .35rem .7rem; margin: 0 0 .2rem; border: 1px solid rgba(255, 255, 255, .35); border-radius: 8px;
+  background: transparent; color: var(--color-on-dark); font: inherit; font-size: .95rem; cursor: pointer; }
+.site-nav__toggle[hidden] { display: none !important; }
+.site-nav__toggle:hover { background: rgba(255, 255, 255, .12); color: #fff; }
+/* Decorative, but it still declares its text colour: every gold surface does, which is what makes the
+   "no light text on gold" rule checkable without a selector allowlist. */
+.site-nav__bars { position: relative; width: 1.05rem; height: 2px; background: var(--color-accent);
+  color: var(--color-ink); box-shadow: 0 -6px 0 var(--color-accent), 0 6px 0 var(--color-accent); }
+.site-nav.is-collapsed > ul { display: none; }
+.site-nav.is-collapsed.is-open > ul { display: flex; flex-direction: column; gap: 0; width: 100%;
+  padding-top: .35rem; }
+.site-nav.is-collapsed.is-open > ul a { padding: .6rem .6rem; border-radius: 6px; }
+/* Shrinkable: `flex: none` pinned each item at max-content, so the link inside never got a narrower box
+   to wrap in and a single long label pushed the page instead. */
+.site-nav li { margin: 0; flex: 0 1 auto; min-width: 0; }
+/* No nowrap: with the row wrapping, an item only breaks when the item ALONE is wider than the line, which
+   is the case a scroller used to hide. Below that it simply moves to the next row intact. */
+.site-nav a { display: block; padding: .45rem .6rem; color: var(--color-on-dark); text-decoration: none;
+  border-radius: 6px; font-size: .95rem; overflow-wrap: break-word; }
+.site-nav a:hover { background: rgba(255, 255, 255, .12); color: #fff; }
+.site-nav a[aria-current="page"] { background: #fff; color: var(--color-primary); font-weight: 600; }
+/* The brand and the language switcher share one line, and they must never be able to push the page wider than
+   the viewport: how wide "RashiKundli" and the three language names render depends on which font the device
+   actually has, so a layout that only just fits on one machine overflows on another. flex-wrap is the
+   structural guarantee - if the two ever exceed the line the switcher drops below the wordmark instead of
+   overflowing - and the compaction below keeps them on one line across the whole common phone band anyway. */
+.site-header__top { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between;
+  gap: .35rem .75rem; min-width: 0; }
+.brand { min-width: 0; }
+/* The wordmark is one long word, so it has no natural break and cannot shrink: on a device whose fallback
+   font renders it wide (measured at 326px where the bundled stack gives 110px) it pushed the whole page
+   sideways. min-width lets the flex item shrink, overflow-wrap gives the word a last-resort break, and
+   because the row wraps the switcher moves off the line before the wordmark ever has to break. */
+.brand > span { min-width: 0; overflow-wrap: anywhere; }
+.lang-switch { min-width: 0; max-width: 100%; }
+.lang-switch ul { max-width: 100%; flex-wrap: wrap; }
+/* The wordmark's block. It held the poetic brand line too until that line moved to the home hero; it stays a
+   block because `flex: 1 1 auto` + `min-width: 0` is what lets the row shrink the wordmark instead of wrapping
+   the language switcher onto a row of its own - a header that eats a quarter of a phone screen before any
+   content is its own kind of bug. */
+.brand-lockup { display: flex; flex-direction: column; flex: 1 1 auto; min-width: 0; }
+/* The poetic brand line, once per visit rather than on every page: it lives in the home hero only, so the
+   chrome carries the engine trust line alone instead of two competing subtitles. */
+.hero__tagline { margin: 0 0 .35rem; font-size: .9rem; font-style: italic; letter-spacing: .02em;
+  color: var(--color-accent); }
+.chat__philosophy { margin: 0; font-size: .875rem; color: var(--color-muted);
+  border-left: 3px solid var(--color-accent); padding-left: .6rem; }
+.chat__philosophy span[lang="sa"] { color: var(--color-primary); font-weight: 600; }
+/* Trust line (a trust requirement): the calculation engine is named in the chrome of every page, which is what
+   keeps the nav's own "AI astrologer" entry from ever standing alone. */
+.site-tagline { margin: 0; font-size: .8rem; line-height: 1.35; color: var(--color-meta-dark); }
+.site-tagline b { color: var(--color-accent); font-weight: 600; }
+/* Language switcher: the same page in English / हिन्दी / मराठी, one tap away on every page. */
+.lang-switch ul { display: flex; gap: .15rem; list-style: none; margin: 0; padding: 2px; border: 1px solid rgba(255, 255, 255, .35); border-radius: 999px; }
+.lang-switch li { margin: 0; min-width: 0; }
+/* Same last-resort break as the nav: the switcher wraps between languages first, and only breaks a name
+   if that one name is wider than the line - which no real font does, but the header must not depend on
+   that being true of the reader's device. */
+.lang-switch a { display: block; min-height: 32px; padding: .2rem .6rem; border-radius: 999px;
+  color: var(--color-on-dark); text-decoration: none; font-size: .85rem; line-height: 1.75;
+  overflow-wrap: anywhere; }
+.lang-switch a:hover { background: rgba(255, 255, 255, .12); color: #fff; }
+.lang-switch a[aria-current="true"] { background: #fff; color: var(--color-primary); font-weight: 600; }
+/* 360-430 is where almost every phone sits and 390 is the most common of all, so the compact switcher covers
+   the whole band rather than stopping at 359 and leaving the commonest width unprotected. */
+@media (max-width: 430px) {
+  .brand { font-size: 1rem; }
+  .lang-switch a { padding: .2rem .35rem; font-size: .78rem; }
+  .site-header__top { gap: .25rem .5rem; }
+}
+@media (max-width: 359px) { .lang-switch a { padding: .2rem .35rem; } }
+.site-nav { min-width: 0; } /* the nav scrolls inside itself; it can never push the page wider */
+@media (min-width: 1240px) {
+  .site-header__inner { flex-direction: row; flex-wrap: wrap; align-items: center; gap: .15rem 1rem; padding-bottom: .5rem; }
+  .site-header__top { display: contents; }
+  .brand, .lang-switch { flex: none; }
+  /* The auto margin lives on the LAST item in the row: on the nav it would swallow every pixel of free
+     space and push the language switcher onto a line of its own. */
+  /* .wrap is 960px, and brand + nav + switcher + trust line do not fit on one line of it. So the row wraps
+     after the nav: brand and nav first, then the trust line with the switcher pushed to the right of it. The
+     auto margin has to sit on the LAST item - on the nav it swallows the free space and the switcher is left
+     stranded on a line of its own, and putting the trust line in the first row clips the last nav items. */
+  .site-nav { order: 2; }
+  .site-tagline { order: 3; margin: 0; }
+  .lang-switch { order: 4; margin-left: auto; }
+  .site-nav ul { padding-bottom: 0; }
+}
+
+.site-footer { margin-top: 3rem; padding: 1.75rem 0 2rem; background: var(--color-primary); color: var(--color-on-dark); font-size: .9rem; }
+.site-footer a { color: #fff; }
+.site-footer__links { display: flex; flex-wrap: wrap; gap: .25rem 1.25rem; list-style: none; padding: 0; margin: 0 0 1rem; }
+.site-footer__meta { margin: 0; color: var(--color-meta-dark); }
+.site-footer__trust { margin: 0 0 .6rem; color: var(--color-on-dark); }
+.site-footer__trust b { color: var(--color-accent); font-weight: 600; }
+.disclaimer { border-left: 3px solid var(--color-accent); padding-left: .75rem; }
+
+/* ---------- hero ---------- */
+/* Dark hero, continuous with the header (Brand §4): the cosmic band every page opens with. */
+.hero { background: var(--color-primary); color: var(--color-on-dark); padding: 1.5rem 0 1.6rem;
+  border-top: 1px solid rgba(255, 255, 255, .13); }
+.hero h1 { color: #fff; }
+.hero__intro { font-size: 1.05rem; color: var(--color-on-dark); max-width: 46rem; margin: 0; }
+.hero a { color: #fff; }
+.hero .breadcrumbs, .hero .rashifal-meta, .hero .muted { color: var(--color-meta-dark); }
+/* The hero trust line: accuracy leads, never the AI - a trust requirement. */
+.hero__trust { margin: .9rem 0 0; font-size: .95rem; color: var(--color-meta-dark); }
+.hero__trust b { color: var(--color-accent); font-weight: 600; }
+@media (min-width: 760px) { h1 { font-size: 2.2rem; } .hero { padding: 2.5rem 0 1.5rem; } }
+
+/* ---------- cards, form ---------- */
+.card { background: var(--color-surface); border: 1px solid var(--color-line); border-radius: var(--radius); padding: 1.1rem; box-shadow: 0 1px 2px rgba(36, 27, 84, .06); }
+@media (min-width: 760px) { .card { padding: 1.5rem; } }
+.tool { margin-top: .5rem; }
+
+fieldset.person { border: 0; padding: 0; margin: 0; min-width: 0; }
+.pair fieldset.person { border: 1px solid var(--color-line); border-radius: var(--radius); padding: .25rem 1rem .5rem; margin-bottom: 1rem; }
+.pair legend { font-weight: 700; color: var(--color-primary); padding: 0 .4rem; }
+@media (min-width: 760px) { .pair { display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; } }
+
+.field { margin-bottom: .9rem; min-width: 0; }
+.field-row { display: grid; grid-template-columns: 1fr 1fr; gap: .75rem; }
+@media (max-width: 479px) { .field-row { grid-template-columns: 1fr; gap: 0; } }
+label { display: block; font-weight: 600; margin-bottom: .3rem; font-size: .95rem; }
+.optional { font-weight: 400; color: var(--color-muted); }
+input[type="text"], input[type="date"], input[type="time"] {
+  display: block; width: 100%; min-height: 46px; padding: .55rem .7rem;
+  font: inherit; font-size: 1rem; /* >=16px: stops iOS zooming on focus */
+  color: var(--color-ink); background: var(--color-surface); border: 1px solid var(--color-field); border-radius: 8px; -webkit-appearance: none; appearance: none;
+}
+input:focus { border-color: var(--color-primary); outline: 3px solid rgba(36, 27, 84, .45); outline-offset: 0; }
+input[aria-invalid="true"] { border-color: var(--color-warning); background: #FDF6F4; }
+.field-hint { margin: .3rem 0 0; font-size: .85rem; color: var(--color-muted); }
+/* Fast year selection. Empty in the document and filled by app.js, so it occupies nothing and shows
+   nothing without JavaScript - `:empty` is what keeps it from leaving a gap in that case rather than a
+   rule somewhere else remembering to hide it. */
+/* BLOCK, not inline-block. As an inline-block it sits on the parent's text baseline, so its line box
+   carries a strut whose height comes from font metrics - and the rendered-pixel gate, which renders each
+   page twice and requires the two to be identical in size, caught that as a one-pixel difference in page
+   height between the two passes. A control on its own line has no business depending on a baseline. */
+.field__jump { display: block; margin: .35rem 0 0; }
+.field__jump:empty { display: none; }
+/* A FIXED height and an explicit line-height, not min-height and `normal`. A select sized by its own font
+   metrics is a control whose height the page cannot predict, and the rendered-pixel gate renders every page
+   twice and requires the two to match exactly - a single pixel of difference there is a red run. */
+.field__jump-select { height: 40px; line-height: 1.2; padding: .3rem .5rem;
+  border: 1px solid var(--color-field); border-radius: 8px; background: var(--color-surface);
+  color: var(--color-ink); font-family: inherit; font-size: .9rem; }
+/* The date read back in words. Not a hint and not an error: it is the value the server will use, so it gets
+   Ink on the soft tint rather than muted grey - a reader has to be able to notice it is wrong. */
+.field-echo { margin: .3rem 0 0; padding: .35rem .55rem; border-radius: 6px; font-size: .9rem;
+  background: var(--color-tint); color: var(--color-ink); }
+.field-echo[hidden] { display: none !important; }
+.field-echo b { font-weight: 700; }
+.field-error { margin: .3rem 0 0; font-size: .875rem; color: var(--color-warning); font-weight: 600; }
+.form-status { margin: 0 0 1rem; padding: .7rem .9rem; border-radius: 8px; }
+.form-status--error { background: var(--color-warning-bg); color: var(--color-warning); border: 1px solid #E8C6BD; }
+/* The busy row under the submit button: a spinner and a line saying what is being computed.
+   It reuses the payment flow's `pay-spin` keyframes deliberately - two loading states on one site that
+   drift apart look like two products - and it carries the SAME reduced-motion treatment, which is to slow
+   the rotation rather than stop it.
+   THAT IS NOT THE RULE THE REST OF THIS SHEET FOLLOWS, and the exception is the point: `animation: none`
+   on a spinner leaves a frozen ring on the screen, which reads as a page that has hung - the exact state
+   the request deadline in app.js exists to prevent. Stopping the only moving thing that means "still
+   working" communicates the opposite of what reduced motion is asking for. */
+.form-busy { display: flex; align-items: center; gap: .6rem; margin: .6rem 0 0; color: var(--color-muted);
+  font-size: .9rem; }
+.form-busy__spinner { flex: none; width: 1.1rem; height: 1.1rem; border: 2px solid #D6CDEE;
+  border-top-color: var(--color-primary); border-radius: 50%; animation: pay-spin 1s linear infinite; }
+@media (prefers-reduced-motion: reduce) { .form-busy__spinner { animation-duration: 4s; } }
+/* The result skeleton. Deliberately STATIC - no shimmer, no pulse. The spinner in the busy row is already
+   the thing that says "still working", and a second moving element would be two animations competing to
+   say one thing, on every slow request, on a site whose traffic is mostly mid-range Android. A still
+   placeholder next to a moving spinner reads correctly; the reverse would not.
+   The chart placeholder is square because the chart is - a 400x400 viewBox - so it occupies roughly the
+   space the reader is waiting on. */
+.result-skeleton { display: flex; flex-direction: column; gap: .7rem; max-width: 30rem; margin: 1.5rem 0 0; }
+.result-skeleton__bar { height: 1rem; border-radius: 6px; background: var(--color-line); }
+.result-skeleton__bar--wide { height: 1.6rem; }
+.result-skeleton__chart { aspect-ratio: 1 / 1; width: 100%; border-radius: 8px; background: var(--color-tint);
+  border: 1px solid var(--color-line); }
+.form-note { margin: .75rem 0 0; font-size: .85rem; color: var(--color-muted); }
+/* Trust lines. Gold rule, muted text: a statement of fact, not a sales badge. */
+.trust-line { margin: 0 0 1rem; font-size: .9rem; color: var(--color-muted);
+  border-left: 3px solid var(--color-accent); padding-left: .7rem; }
+.trust-line b, .chat__trust b { color: var(--color-primary); font-weight: 600; }
+
+.btn {
+  display: inline-block; min-height: 48px; padding: .7rem 1.4rem; border: 0; border-radius: 8px; cursor: pointer;
+  font: inherit; font-weight: 700; text-decoration: none; text-align: center; line-height: 1.4;
+}
+/* Brand §2, non-negotiable: a gold button always takes Ink. Gold + white is 2.19:1 and fails AA. */
+.btn--primary, .btn--cta { background: var(--color-accent); color: var(--color-ink); }
+.btn--primary:hover, .btn--cta:hover { background: var(--color-accent-dark); color: var(--color-ink); }
+.btn[disabled] { opacity: .65; cursor: progress; }
+.birth-form .btn--primary { width: 100%; }
+@media (min-width: 760px) { .birth-form .btn--primary { width: auto; min-width: 16rem; } }
+
+/* ---------- staged birth form ----------
+   Celestial carried into the form itself, not just the page chrome: each step opens with an indigo header
+   band, a gold numeral and a gold rule, and the fields below stay Ink on the light card. Until app.js adds
+   `is-staged` every step is visible, which is the no-JavaScript path. */
+.steps { margin: 0; }
+.step { border: 1px solid var(--color-line); border-radius: var(--radius); padding: 0 0 .9rem;
+  margin: 0 0 1rem; min-width: 0; background: var(--color-surface); }
+.step[hidden] { display: none !important; }
+.step__legend { float: left; width: 100%; margin: 0 0 .8rem; padding: .6rem .9rem;
+  background: var(--color-card); color: var(--color-on-dark);
+  border-radius: calc(var(--radius) - 1px) calc(var(--radius) - 1px) 0 0;
+  border-bottom: 2px solid var(--color-accent); display: flex; align-items: center; gap: .55rem; }
+.step__legend + * { clear: both; }
+.step__num { flex: none; display: inline-flex; align-items: center; justify-content: center;
+  width: 1.6rem; height: 1.6rem; border-radius: 50%; box-shadow: inset 0 0 0 1.5px var(--color-accent);
+  color: var(--color-accent); font-weight: 700; font-size: .9rem; }
+.step__icon { flex: none; color: var(--color-accent); font-size: 1rem; line-height: 1; }
+.step__title { font-weight: 700; font-size: 1.02rem; }
+.step__hint { margin: 0 .9rem .7rem; font-size: .875rem; color: var(--color-muted); }
+.step > .field, .step > .field-row, .step > fieldset.person { margin-left: .9rem; margin-right: .9rem; }
+.step[aria-current="step"] { box-shadow: 0 2px 10px rgba(36, 27, 84, .09); }
+/* The matching page groups by person, so its step already holds a whole person fieldset. */
+.step > fieldset.person { border: 0; padding: 0; }
+.pair.steps { display: block; }
+@media (min-width: 760px) {
+  .pair.steps { display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; align-items: start; }
+  .birth-form.is-staged .pair.steps { display: block; }
+}
+
+.step-nav { display: flex; flex-wrap: wrap; align-items: center; gap: .6rem; margin: 0 0 1rem; }
+.step-nav[hidden] { display: none !important; }
+.step-nav__count { color: var(--color-muted); font-size: .9rem; }
+.btn--ghost { background: transparent; color: var(--color-primary); box-shadow: inset 0 0 0 2px var(--color-primary); }
+.btn--ghost:hover { background: var(--color-tint); color: var(--color-primary); }
+
+/* ---------- "not sure of the exact time?" ----------
+   The note is in the Warning register on purpose: a preset is up to three hours wide and the lagna turns over
+   about every two hours, so this is a caution, not a hint. The full version appears in the result's caveat
+   block (render.js `accApprox`), which is the page's one caveat surface. */
+.presets { margin-top: .5rem; }
+.presets__toggle { background: none; border: 0; padding: 0; font: inherit; font-size: .875rem;
+  color: var(--color-primary); text-decoration: underline; cursor: pointer; }
+.presets__panel { margin-top: .5rem; padding: .7rem .8rem; border-radius: 8px;
+  background: var(--color-tint); border: 1px solid var(--color-line); }
+.presets__panel[hidden] { display: none !important; }
+.presets__lead { margin: 0 0 .5rem; font-size: .875rem; color: var(--color-ink); }
+.presets__list { display: flex; flex-wrap: wrap; gap: .4rem; list-style: none; margin: 0; padding: 0; }
+.presets__list li { margin: 0; }
+.presets__chip { min-height: 40px; font-size: .9rem; }
+.presets__note { margin: .6rem 0 0; padding: .5rem .65rem; border-radius: 6px; font-size: .85rem;
+  background: var(--color-warning-bg); color: var(--color-warning); border-left: 3px solid var(--color-warning); }
+
+/* ---------- "use my location" ----------
+   Deliberately not a dominant control: a text button under the city hint, because your current location is
+   your birth place only if you never moved. */
+.locate { margin: .4rem 0 0; font-size: .85rem; }
+.locate[hidden] { display: none !important; }
+.locate__go { background: none; border: 0; padding: 0; font: inherit; font-size: .85rem; font-weight: 600;
+  color: var(--color-primary); text-decoration: underline; cursor: pointer; }
+.locate__hint { display: block; margin-top: .2rem; color: var(--color-muted); }
+.locate__status { margin: .35rem 0 0; font-size: .85rem; color: var(--color-ink); }
+.locate__status[hidden] { display: none !important; }
+
+/* The disclaimer that sits with the offer rather than at the foot of the page. On the indigo CTA panel, so
+   it takes --color-on-dark; hue cannot carry tone on a dark ground. */
+.cta__disclaimer { margin: 1rem 0 0; font-size: .85rem; color: var(--color-meta-dark);
+  border-left: 3px solid var(--color-accent); padding-left: .7rem; }
+
+/* Progressive reveal: the result's blocks settle in as they come into view, so a long free result reads as a
+   sequence rather than a wall, and the free PDF and the paid tiers arrive at the end of it. Purely visual -
+   nothing is hidden from a reader without JavaScript, from a crawler, or from anyone who prefers no motion. */
+.reveal { opacity: 0; transform: translateY(10px); transition: opacity .45s ease, transform .45s ease; }
+.reveal.is-in { opacity: 1; transform: none; }
+@media (prefers-reduced-motion: reduce) { .reveal { opacity: 1; transform: none; transition: none; } }
+
+/* city combobox */
+.combo { position: relative; }
+.combo__list {
+  position: absolute; z-index: 5; left: 0; right: 0; top: calc(100% + 4px); max-height: 15rem; overflow-y: auto;
+  margin: 0; padding: .25rem; list-style: none; background: var(--color-surface); border: 1px solid var(--color-field);
+  border-radius: 8px; box-shadow: 0 8px 24px rgba(36, 27, 84, .18); overscroll-behavior: contain;
+}
+.combo__list li { margin: 0; padding: .65rem .6rem; border-radius: 6px; cursor: pointer; }
+.combo__list li[aria-selected="true"], .combo__list li[role="option"]:hover { background: var(--color-tint); }
+.combo__state { color: var(--color-muted); font-size: .85em; }
+.combo__empty { color: var(--color-muted); cursor: default !important; }
+
+/* ---------- result ---------- */
+.result { margin-top: 1.5rem; scroll-margin-top: 1rem; }
+.result:focus { outline: none; }
+.block { margin-top: 1.5rem; }
+.birth-line { margin-bottom: .9rem; }
+
+.facts { display: grid; grid-template-columns: 1fr; gap: .6rem; margin: 0 0 1rem; }
+@media (min-width: 560px) { .facts { grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr)); } }
+.fact { background: var(--color-surface); border: 1px solid var(--color-line); border-left: 4px solid var(--color-accent); border-radius: 8px; padding: .65rem .85rem; }
+.fact dt { font-size: .8rem; text-transform: uppercase; letter-spacing: .04em; color: var(--color-muted); }
+.fact dd { margin: .1rem 0 0; font-weight: 700; font-size: 1.05rem; color: var(--color-primary); }
+.fact__sub { display: block; font-weight: 400; font-size: .875rem; color: var(--color-muted); }
+/* The two verdict cards in the result summary. They share the fact card's shape so the block reads as one
+   row of cards, and differ only in the left rule - which is the one place tone is allowed to speak, because
+   these are the only two items on the page with a finding rather than a fact. The note is NOT optional
+   decoration: a caution badge with no statement of what it means is fear framing, so the markup emits the
+   two together and this styles them as one block. */
+.verdict { background: var(--color-surface); border: 1px solid var(--color-line); border-left: 4px solid var(--color-line);
+  border-radius: 8px; padding: .65rem .85rem; }
+.verdict dt { font-size: .8rem; text-transform: uppercase; letter-spacing: .04em; color: var(--color-muted); }
+.verdict dd { margin: .25rem 0 0; }
+/* The verdict chip carries a STATE, and in Hindi and Marathi that state can be two characters - "है",
+   "आहे". At the shared badge's padding a string that short makes width and height equal, so the pill
+   renders as a circle with the matras against its edge, where the same rule looks correct in English and in
+   the tables this badge was designed for. Scoped here rather than changed on `.badge`, because everywhere
+   else it is fine and this is the only place a two-character badge stands on its own line.
+
+   A fully round pill is what makes it read as a stray dot rather than a label, so here it is a tag: a
+   smaller radius and a floor on the width, which a two-character state fills without looking clipped and a
+   longer one simply exceeds. Padding alone was tried first and did not fix it - the shape was the problem,
+   not the spacing. */
+.verdict .badge { padding: .25rem .8rem; border-radius: 6px; min-width: 5rem; text-align: center; }
+.verdict--ok { border-left-color: var(--color-success); }
+.verdict--info { border-left-color: var(--color-primary); }
+.verdict--warn { border-left-color: var(--color-warning); }
+.verdict__note { display: block; margin-top: .35rem; font-size: .875rem; line-height: 1.45; color: var(--color-ink); }
+
+.banner { border-radius: var(--radius); padding: .9rem 1rem; margin-bottom: 1rem; border: 1px solid transparent; }
+.banner p { margin: 0; }
+.banner__title { font-weight: 700; font-size: 1.15rem; margin-bottom: .2rem !important; }
+/* Brand §5: shubh -> Success, ashubh/caution -> Warning. `warn` is the ONLY caution tone - never saffron,
+   never a plain red. It carries active mangal dosha, active sade sati and the caution windows. */
+.banner--ok { background: var(--color-success-bg); color: var(--color-success-ink); border-color: #BEE3CC; }
+.banner--info { background: var(--color-tint); color: var(--color-primary); border-color: #D6CDEE; }
+.banner--warn { background: var(--color-warning-bg); color: var(--color-warning); border-color: #E8C6BD; }
+
+.badge { display: inline-block; padding: .08rem .5rem; border-radius: 999px; font-size: .78rem; font-weight: 700; white-space: nowrap; vertical-align: middle; }
+.badge--ok { background: var(--color-success-bg); color: var(--color-success-ink); }
+.badge--info { background: var(--color-tint); color: var(--color-primary); }
+.badge--warn { background: var(--color-warning-bg); color: var(--color-warning); }
+.badge--muted { background: var(--color-quiet-bg); color: var(--color-quiet-ink); }
+.person-card .badge { white-space: normal; }
+
+.table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; border: 1px solid var(--color-line); border-radius: 8px; background: var(--color-surface); }
+table { width: 100%; border-collapse: collapse; font-size: .92rem; }
+th, td { padding: .55rem .65rem; text-align: left; vertical-align: top; border-bottom: 1px solid var(--color-line); }
+thead th { background: var(--color-tint); font-size: .8rem; text-transform: uppercase; letter-spacing: .03em; color: var(--color-muted); white-space: nowrap; }
+tbody th { font-weight: 600; }
+tbody tr:last-child th, tbody tr:last-child td { border-bottom: 0; }
+tr.is-current th, tr.is-current td { background: var(--color-tint); }
+/* A row the engine itself flagged as cautionary (Brand §5). A merely notable row uses .is-noted. */
+tr.is-flagged th, tr.is-flagged td { background: var(--color-warning-bg); }
+tr.is-noted th, tr.is-noted td { background: var(--color-tint); }
+tr.is-total th, tr.is-total td { background: var(--color-tint); font-size: 1rem; }
+.cell-sub { display: block; font-weight: 400; font-size: .8rem; color: var(--color-muted); }
+.table--positions { min-width: 36rem; }
+
+/* kundali chart */
+.chart-block { max-width: 30rem; }
+/* The chart has a legibility FLOOR, and the floor is set by Devanagari rather than by Latin: measured at a
+   320px viewport, where the SVG scales to 288px, the Latin abbreviations render 13-17px wide and hold up
+   while the Devanagari ones render 9-10px wide and 14px tall, and at that size the matras and the small
+   marks are what go first. The Brand section 3 weight bump does NOT apply to them, and that was worth
+   checking rather than assuming: that rule takes REGULAR text to medium, and .kundali__graha is already
+   700. Adding the chart to it measured as a change from 700 to 500 - the smallest Devanagari on the site
+   made lighter by a rule whose entire purpose is to make small Devanagari heavier. It is not in that list.
+
+   THE FLOOR IS 288px AND NOT MORE, AND THAT IS THE WHOLE DECISION. 288px is what a 320px phone - the
+   narrowest this site supports - gives a .wrap after its padding, so the chart never shrinks below what the
+   smallest real screen already shows, and the holder scrolls only for something narrower still. Raising it
+   to 320px was tried and measured: the chart then overflows a 320px phone and two houses sit off-screen
+   until the reader drags it. That is a bad trade for THIS graphic in particular - a North Indian chart is
+   read as one arrangement, and a house you cannot see next to its neighbours is not a smaller house, it is
+   a missing one. Anyone who cannot read the abbreviations at this size is better served by the positions
+   table below, which is why that table is always rendered and why the chart's aria-label points at it.
+   The holder scrolls INSIDE itself, like .table-wrap, so it can never widen the page. */
+.chart-holder { margin: .5rem 0; overflow-x: auto; -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain; }
+.kundali { min-width: 288px; }
+/* The signature visual (Brand §5). Every COLOUR here is the same token as app/pdf/templates/print.css,
+   because app/pdf/chart_svg.py and render.js emit one set of class names that both sheets paint - the
+   geometry cannot drift (tests/test_pdf.py pins the markup) but the colours silently could. That is what
+   test_the_kundali_chart_is_painted_identically_in_both_stylesheets is for. Stroke WIDTHS are allowed to
+   differ: a 76mm print chart and a 390px screen chart want different hairlines. */
+.kundali { display: block; width: 100%; height: auto; background: var(--color-card); border-radius: 6px; }
+.kundali__frame { fill: var(--color-card); stroke: var(--color-accent); stroke-width: 3; }
+.kundali__lines { fill: none; stroke: var(--color-accent); stroke-width: 1.6; }
+.kundali text { font-family: var(--font); text-anchor: middle; }
+.kundali__sign { font-size: 13px; fill: var(--color-meta-dark); }
+.kundali__graha { font-size: 15px; font-weight: 700; fill: var(--color-on-dark); }
+.kundali__graha--lagna { fill: var(--color-accent); }
+.kundali__retro { font-size: 9px; font-weight: 600; fill: var(--color-meta-dark); }
+.legend { display: flex; flex-wrap: wrap; gap: .15rem .8rem; margin: .5rem 0; font-size: .8rem; color: var(--color-muted); }
+.legend b { color: var(--color-primary); }
+.script-toggle { display: inline-flex; gap: .4rem; margin-bottom: .25rem; }
+.chip { min-height: 36px; padding: .3rem .8rem; font: inherit; font-size: .875rem; border: 1px solid var(--color-field); border-radius: 999px; background: var(--color-surface); color: var(--color-ink); cursor: pointer; }
+.chip[aria-pressed="true"] { background: var(--color-primary); border-color: var(--color-primary); color: #fff; }
+
+/* Matching page: "By birth details" / "By name" */
+.mode-toggle { display: flex; flex-wrap: wrap; gap: .4rem; margin: 0 0 1rem; scroll-margin-top: 5rem; }
+.mode-toggle .chip { min-height: 40px; padding: .4rem 1rem; font-size: .95rem; }
+.birth-form[data-mode="name"] .birth-only { display: none; }
+.name-candidates { margin-top: .6rem; padding-top: .6rem; border-top: 1px dashed var(--color-line); }
+.name-candidates p { margin: 0 0 .4rem; font-size: .9rem; }
+.chip-list { display: flex; flex-wrap: wrap; gap: .4rem; list-style: none; margin: 0; padding: 0; }
+.chip-list li { margin: 0; }
+.name-candidates .chip { min-height: 40px; text-align: left; }
+.name-candidates .chip .muted { font-size: .8rem; }
+.name-candidates .chip[aria-pressed="true"] .muted { color: var(--color-meta-dark); }
+.name-note { margin-top: 1rem; }
+.form-note--name { color: var(--color-ink); }
+
+/* dasha timeline */
+.timeline__item, .faq details { background: var(--color-surface); border: 1px solid var(--color-line); border-radius: 8px; margin-bottom: .5rem; }
+.timeline__item.is-current { border-color: var(--color-primary); box-shadow: inset 4px 0 0 var(--color-primary); }
+.timeline__item summary, .faq summary { cursor: pointer; padding: .7rem .9rem; font-weight: 600; }
+.timeline__item summary { display: flex; flex-wrap: wrap; gap: .1rem .75rem; justify-content: space-between; align-items: baseline; }
+.timeline__dates { font-weight: 400; font-size: .92rem; }
+.timeline__item .table-wrap { border-width: 1px 0 0; border-radius: 0 0 8px 8px; }
+
+/* matching */
+.score { text-align: center; border-radius: var(--radius); padding: 1.1rem 1rem; margin-bottom: 1rem; border: 1px solid var(--color-line); background: var(--color-surface); }
+.score p { margin: 0 0 .4rem; }
+.score__value { font-size: 1.3rem; color: var(--color-muted); }
+.score__total { font-size: 2.8rem; font-weight: 800; color: var(--color-primary); line-height: 1; }
+.score__unit { font-size: 1rem; }
+.meter { height: 12px; max-width: 24rem; margin: .5rem auto .7rem; background: #E6E1F2; border-radius: 999px; overflow: hidden; }
+.meter span { display: block; height: 100%; background: var(--color-accent); color: var(--color-ink); border-radius: 999px; }
+.score--ok .meter span { background: var(--color-success); }
+.score--info .meter span { background: var(--color-primary); }
+.people { display: grid; gap: .75rem; grid-template-columns: 1fr; }
+@media (min-width: 640px) { .people { grid-template-columns: 1fr 1fr; } }
+.person-card { background: var(--color-surface); border: 1px solid var(--color-line); border-radius: 8px; padding: .8rem .9rem; min-width: 0; }
+.person-card p:last-child { margin-bottom: 0; }
+ul.plain { list-style: none; padding: 0; }
+ul.plain li { margin-bottom: .7rem; }
+
+/* mangal dosha checks */
+.checks { list-style: none; padding: 0; }
+.check { display: flex; gap: .6rem; padding: .6rem .75rem; border: 1px solid var(--color-line); border-radius: 8px; background: var(--color-surface); margin-bottom: .45rem; }
+.check--yes { border-color: #BEE3CC; background: var(--color-success-bg); }
+.check__mark { flex: none; width: 1.4rem; font-weight: 800; color: var(--color-muted); }
+.check--yes .check__mark { color: var(--color-success-ink); }
+
+/* paid CTA */
+.cta { margin-top: 2rem; padding: 1.2rem; border-radius: var(--radius); background: var(--color-card); color: var(--color-on-dark); }
+.cta h3 { color: #fff; font-size: 1.2rem; }
+.cta ul { padding-left: 1.2em; }
+.cta .btn--cta { background: var(--color-accent); color: var(--color-ink); width: 100%; }
+.cta .btn--cta:hover { background: var(--color-accent-soft); color: var(--color-ink); }
+@media (min-width: 760px) { .cta { padding: 1.6rem; } .cta .btn--cta { width: auto; } }
+.cta__notice { margin: .8rem 0 0; padding: .6rem .8rem; border-radius: 8px; background: rgba(255, 255, 255, .14); }
+/* one buy button per tier (app/web/pages.py PURCHASE_OPTIONS): stacked on a phone, side by side from 760px. Each
+   option is its own box because pay.js inserts its payment panel right after the button that was pressed. */
+.cta__options { display: grid; gap: 1rem; margin-top: 1rem; }
+.cta__option { display: flex; flex-direction: column; }
+.cta__option .btn--cta { width: 100%; margin-top: auto; }
+.cta__gets { margin: 0 0 .5rem; font-size: .95rem; line-height: 1.45; }
+.cta__options--tiers .cta__option { padding: .9rem; border-radius: 10px; background: rgba(255, 255, 255, .08); }
+/* the cheaper tier is outlined, the deeper one filled: two buttons that cannot be mistaken for each other */
+.cta__option--lite { background: transparent !important; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .28); }
+.cta__option--lite > .btn--cta { background: transparent; color: #fff; box-shadow: inset 0 0 0 2px var(--color-accent); }
+.cta__option--lite > .btn--cta:hover { background: rgba(224, 165, 38, .22); color: #fff; }
+@media (min-width: 760px) {
+  .cta__options--tiers { grid-template-columns: 1fr 1fr; align-items: stretch; }
+  .cta__option .btn--cta { width: 100%; }
+}
+/* Accuracy caveats under the chart facts (render.js accuracyHtml). Calm, not alarming: the chart is correct
+   for the data given, and these say what would change it. Shown on ~6% of charts. */
+.accuracy { background: var(--color-warning-bg); border: 1px solid #E8C6BD; border-left: 4px solid var(--color-warning);
+  border-radius: var(--radius); padding: 1rem 1.1rem; color: var(--color-ink); }
+.accuracy h3 { margin: 0 0 .5rem; font-size: 1.05rem; color: var(--color-warning); }
+.accuracy p { margin: .5rem 0 0; }
+.accuracy p:first-of-type { margin-top: 0; }
+
+/* Free Basic Chart PDF, under the rendered chart. Deliberately NOT the indigo CTA panel: this is the free
+   thing, and it must not look like the paid one sitting below it. */
+.chart-download { margin-top: 1.5rem; padding: 1.1rem; border-radius: var(--radius);
+  background: var(--color-tint); border: 1px solid var(--color-line); }
+.chart-download__go { width: 100%; }
+@media (min-width: 560px) { .chart-download__go { width: auto; min-width: 16rem; } }
+.chart-download__note { margin: .8rem 0 0; font-size: .9rem; color: var(--color-muted); }
+/* A refused download is not an error state: the chart on the page is still there and still free. Reads as a
+   note, not a failure - India's mobile carriers run large-scale CGNAT, so the hourly limit lands on ordinary
+   visitors who did nothing wrong (app/pdf/routes.py DEFAULT_BASIC_HOURLY_LIMIT). */
+.chart-download__status { margin: .8rem 0 0; padding: .6rem .8rem; border-radius: 8px; font-size: .9rem;
+  background: var(--color-surface); border: 1px solid var(--color-line); color: var(--color-ink); }
+.chart-download__status[hidden] { display: none !important; }
+
+/* ---------- payments (static/js/pay.js) ---------- */
+.pay { margin-top: 1rem; }
+.pay:empty { display: none; }
+.pay__field { margin-bottom: .7rem; max-width: 26rem; }
+.pay__field label { display: block; font-weight: 600; font-size: .95rem; margin-bottom: .2rem; }
+.pay__field select, .pay__field input { width: 100%; padding: .6rem .7rem; font: inherit; border: 1px solid var(--color-line); border-radius: 8px; background: #fff; color: var(--color-ink); }
+.pay__hint { display: block; font-size: .85rem; opacity: .85; margin-top: .2rem; }
+.pay__go { margin-top: .3rem; }
+.pay__message { margin: .8rem 0 0; padding: .6rem .8rem; border-radius: 8px; background: rgba(255, 255, 255, .14); }
+.pay__message--error { background: var(--color-warning-bg); color: var(--color-warning); }
+.pay__message--ok { background: var(--color-success-bg); color: var(--color-success-ink); }
+.pay-status { border-radius: var(--radius); padding: 1rem; margin: 1rem 0; background: var(--color-tint); color: var(--color-ink); border: 1px solid #D6CDEE; }
+.pay-status p { margin: 0 0 .6rem; }
+.pay-status a:not(.btn) { color: var(--color-primary); word-break: break-all; }
+.pay-status__title { font-weight: 700; font-size: 1.15rem; color: var(--color-primary); }
+.pay-status--ready, .pay-status--credited { background: var(--color-success-bg); border-color: #BEE3CC; }
+.pay-status--delayed, .pay-status--unpaid { background: var(--color-warning-bg); border-color: #E8C6BD; }
+.pay-status__download { display: inline-block; margin: .2rem 0 .8rem; text-decoration: none; }
+.cta .pay-status .btn--cta, .pay-status .btn--cta { background: var(--color-accent); color: var(--color-ink); }
+.pay-status__id { opacity: .8; margin-bottom: 0 !important; }
+.pay-status__spinner { width: 1.6rem; height: 1.6rem; margin: .2rem 0 .8rem; border: 3px solid #D6CDEE; border-top-color: var(--color-primary); border-radius: 50%; animation: pay-spin 1s linear infinite; }
+@keyframes pay-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .pay-status__spinner { animation-duration: 4s; } }
+/* The waiting screen's stage list. It replaced a bare spinner, so the active row carries the motion:
+   same keyframes, smaller, and the reduced-motion rule below slows it like the spinner's. */
+.pay-stages { list-style: none; margin: .2rem 0 .9rem; padding: 0; }
+.pay-stages__step { display: flex; align-items: center; gap: .5rem; padding: .18rem 0; font-size: .95rem; }
+.pay-stages__mark { flex: 0 0 1.1rem; width: 1.1rem; height: 1.1rem; display: inline-flex; align-items: center;
+  justify-content: center; font-size: .85rem; font-weight: 700; color: var(--color-primary); }
+.pay-stages__step.is-done .pay-stages__label { opacity: .75; }
+.pay-stages__step.is-waiting { opacity: .55; }
+.pay-stages__step.is-waiting .pay-stages__mark::before { content: ""; width: .4rem; height: .4rem; border-radius: 50%; background: #B9AEDA; }
+.pay-stages__step.is-active { font-weight: 600; }
+.pay-stages__step.is-active .pay-stages__mark::before { content: ""; width: .85rem; height: .85rem; border-radius: 50%;
+  border: 2px solid #D6CDEE; border-top-color: var(--color-primary); animation: pay-spin 1s linear infinite; }
+@media (prefers-reduced-motion: reduce) { .pay-stages__step.is-active .pay-stages__mark::before { animation-duration: 4s; } }
+.pay-status__email { opacity: .9; }
+.pay-banner { margin-top: 1rem; padding: .7rem 1rem; border-radius: var(--radius); background: var(--color-success-bg); color: var(--color-success-ink); border: 1px solid #BEE3CC; }
+.order { padding-top: 1.5rem; padding-bottom: 2rem; }
+.order__facts { margin-bottom: 1rem; }
+
+/* ---------- long-form content ---------- */
+.content { margin-top: 2.5rem; max-width: 760px; }
+.content section { margin-bottom: 2rem; }
+.content h2 { margin-top: 0; padding-top: .25rem; }
+.faq details p { padding: 0 .9rem .8rem; margin: 0; }
+.tool-links { padding-left: 1.1em; }
+
+/* home */
+.tool-cards { list-style: none; padding: 0; margin: 1rem 0 0; display: grid; gap: 1rem; grid-template-columns: 1fr; }
+@media (min-width: 640px) { .tool-cards { grid-template-columns: 1fr 1fr; } }
+.tool-card { display: flex; flex-direction: column; margin: 0; }
+.tool-card h2 a { color: var(--color-primary); text-decoration: none; }
+.tool-card h2 a:hover { text-decoration: underline; }
+.tool-card p { flex: 1; color: var(--color-muted); }
+.tool-card .btn { align-self: flex-start; }
+
+@media print {
+  .site-header, .site-footer, .tool__form, .cta, .content, .script-toggle { display: none; }
+  body { background: #fff; }
+}
+
+/* ---------- AI consultation chat (/consultation) ---------- */
+.chat__panel { display: flex; flex-direction: column; gap: .75rem; margin-top: 1rem; }
+.chat__log { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: .6rem;
+  max-height: 60vh; overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; }
+.chat__msg { margin: 0; max-width: 88%; padding: .6rem .8rem; border-radius: 14px; line-height: 1.5; overflow-wrap: anywhere; }
+.chat__msg p { margin: 0 0 .5em; }
+.chat__msg p:last-child { margin-bottom: 0; }
+.chat__msg--user { align-self: flex-end; background: var(--color-card); color: var(--color-on-dark); border-bottom-right-radius: 4px; }
+.chat__msg--assistant { align-self: flex-start; background: var(--color-tint); color: var(--color-ink); border-bottom-left-radius: 4px; }
+.chat__msg--hint { background: var(--color-tint); }
+.chat__typing { margin: 0; color: var(--color-muted); font-size: .9rem; }
+.chat__dots { display: inline-flex; gap: 3px; margin-right: .35rem; vertical-align: middle; }
+.chat__dots i { width: 6px; height: 6px; border-radius: 50%; background: var(--color-accent); color: var(--color-ink); animation: chat-dot 1.2s infinite ease-in-out; }
+.chat__dots i:nth-child(2) { animation-delay: .2s; }
+.chat__dots i:nth-child(3) { animation-delay: .4s; }
+@keyframes chat-dot { 0%, 80%, 100% { opacity: .25; } 40% { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .chat__dots i { animation: none; } }
+.chat__form { display: flex; gap: .5rem; align-items: flex-end; }
+.chat__form textarea { flex: 1; min-width: 0; min-height: 3rem; max-height: 9rem; resize: vertical; font: inherit; font-size: 1rem;
+  padding: .6rem .7rem; border: 1px solid var(--color-field); border-radius: 10px; background: var(--color-surface); color: var(--color-ink); }
+.chat__form textarea:focus { border-color: var(--color-primary); outline: 3px solid rgba(36, 27, 84, .45); outline-offset: 0; }
+.chat__form .btn { flex: none; min-width: 4.5rem; }
+.chat__trust { margin: 0; font-size: .875rem; color: var(--color-muted);
+  border-left: 3px solid var(--color-accent); padding-left: .6rem; }
+.chat__quota { margin: 0; font-size: .85rem; color: var(--color-muted); }
+.chat__paywall { margin: 0; }
+.chat__disclaimer { margin: 0; color: var(--color-muted); border-left: 3px solid var(--color-accent); padding-left: .6rem; }
+.chat__reset { background: none; border: 0; padding: 0; font: inherit; color: var(--color-primary); text-decoration: underline; cursor: pointer; }
+
+/* ---------- rashifal (/rashifal, /rashifal/{rashi}, /rashifal/{rashi}/{period}) ---------- */
+.breadcrumbs { font-size: .875rem; margin-bottom: .5rem; color: var(--color-muted); }
+.rashifal-meta { display: flex; flex-wrap: wrap; gap: .15rem 1.25rem; margin: 0 0 .75rem; color: var(--color-muted); font-size: .95rem; }
+.lang-toggle { display: inline-flex; flex-wrap: wrap; gap: .4rem; }
+.lang-toggle a { display: inline-block; min-height: 40px; padding: .4rem .9rem; border: 1px solid var(--color-field); border-radius: 999px; background: var(--color-surface); color: var(--color-ink); text-decoration: none; font-size: .95rem; line-height: 1.5; }
+.lang-toggle a[aria-current="true"] { background: var(--color-primary); border-color: var(--color-primary); color: #fff; font-weight: 600; }
+.rashifal { margin-top: 1rem; }
+.rashifal > .card { margin-bottom: 1.25rem; }
+.reading { max-width: 46rem; }
+.reading__range { margin: 0 0 .4rem; font-size: .85rem; text-transform: uppercase; letter-spacing: .04em; color: var(--color-muted); }
+.reading__overview { font-size: 1.05rem; }
+.reading section { margin-top: 1.25rem; }
+.reading__tip { background: var(--color-tint); border-left: 4px solid var(--color-accent); border-radius: 8px; padding: .8rem 1rem; }
+.reading__tip p { margin: 0; }
+.key-dates { list-style: none; padding: 0; margin: 0; }
+.key-dates li { padding: .6rem 0; border-bottom: 1px solid var(--color-line); }
+.key-dates li:last-child { border-bottom: 0; }
+.key-dates__event { color: var(--color-muted); }
+.key-dates__event::before { content: "- "; }
+.key-dates__note { display: block; }
+.day-facts .fact dl { margin: 0; }
+.day-facts .fact dd + dt { margin-top: .5rem; }
+.day-facts .fact p { margin: .4rem 0 0; }
+.swatch { display: inline-block; width: .9em; height: .9em; margin-right: .4em; border-radius: 50%; border: 1px solid rgba(0, 0, 0, .25); vertical-align: -.05em; }
+.swatch--orange { background: #f08a24; } .swatch--white { background: #fff; } .swatch--red { background: #c62828; }
+.swatch--green { background: #2e7d32; } .swatch--yellow { background: #f4c20d; } .swatch--cream { background: #f6ecd2; }
+.swatch--dark-blue { background: #1a2a6c; }
+.link-grid { list-style: none; padding: 0; margin: 0; display: grid; gap: .5rem; grid-template-columns: repeat(auto-fill, minmax(9.5rem, 1fr)); }
+.link-grid li { margin: 0; }
+.link-grid a { display: block; min-height: 44px; padding: .55rem .75rem; background: var(--color-surface); border: 1px solid var(--color-line); border-radius: 8px; text-decoration: none; font-weight: 600; color: var(--color-primary); }
+.link-grid a:hover { border-color: var(--color-accent); }
+.cta-pair { display: grid; gap: 1rem; grid-template-columns: 1fr; margin-top: 2rem; }
+.cta-pair .cta { margin-top: 0; }
+@media (min-width: 760px) { .cta-pair { grid-template-columns: 1fr 1fr; } }
+.rashi-strip { margin-top: 2rem; }
+.rashi-grid { list-style: none; padding: 0; margin: 1.5rem 0 0; display: grid; gap: 1rem; grid-template-columns: 1fr; }
+@media (min-width: 560px) { .rashi-grid { grid-template-columns: 1fr 1fr; } }
+@media (min-width: 900px) { .rashi-grid { grid-template-columns: 1fr 1fr 1fr; } }
+/* Rashifal cards (Brand §5): the card's HEADER carries the indigo ground and the gold rashi name; the reading
+   itself stays on the light face, because Brand §4 wants the actual reading read on cream. Gold on #2E2660 is
+   6.13:1; Ink on gold would be the only other way to read §5, and Ink on #2E2660 is 1.2:1. */
+.rashi-card { margin: 0; padding: 0 0 .9rem; overflow: hidden; }
+/* h1-h4 default to --color-primary, which on --color-card is 1.04:1. Every child here sets its own
+   colour, but the heading must not be one stray text node away from being invisible. */
+.rashi-card > h2 { margin: 0 0 .7rem; padding: .6rem .9rem; background: var(--color-card);
+  color: var(--color-on-dark); font-size: 1.2rem; }
+.rashi-card > h2 a { color: var(--color-accent); text-decoration: none; }
+.rashi-card > h2 a:hover { color: var(--color-accent-soft); text-decoration: underline; }
+.rashi-card > h2 .muted { color: var(--color-meta-dark); }
+.rashi-card > :not(h2) { margin-left: .9rem; margin-right: .9rem; }
+.rashi-card > p { margin-bottom: .6rem; }
+.rashi-card > p:last-child { margin-bottom: 0; }
+.period-links { list-style: none; padding: 0; margin: 0; display: flex; flex-wrap: wrap; gap: .4rem; }
+.period-links li { margin: 0; }
+.period-links a { display: inline-block; min-height: 40px; padding: .4rem .7rem; border: 1px solid var(--color-line); border-radius: 999px; background: var(--color-bg); text-decoration: none; font-size: .9rem; line-height: 1.5; }
+.period-links a:hover { border-color: var(--color-accent); }
+.period-list { list-style: none; padding: 0; display: grid; gap: .3rem; }
+/* Ad placeholders: empty and hidden until an ad network is wired in. Give them a min-height when enabling (no layout shift). */
+.ad-slot { margin: 1.25rem 0; }
+@media print { .ad-slot, .lang-toggle, .lang-switch, .mode-toggle, .cta-pair, .breadcrumbs { display: none; } }
+
+/* ---------- policy pages + footer policy links (Phase 8) ---------- */
+.site-footer__links--policies { font-size: .9rem; opacity: .9; padding-top: .6rem; border-top: 1px solid rgba(255, 255, 255, .15); }
+.policy h2 { margin-top: 1.6rem; }
+.policy li { margin-bottom: .5em; }
+
+/* ---------- Devanagari weight (Brand §3) ----------
+   What a 390px screenshot actually shows: Ink / Indigo Devanagari at regular weight on the Soft Tint is NOT
+   washed out - at 13-15:1 the strokes hold up as well as they do on white, and 400 vs 500 there is a hair's
+   difference. What WAS visibly thin, when that screenshot was taken, is Devanagari in the muted grey - then
+   #6E6A8A at 4.53:1 on the tint: the matras and the small marks lost definition, and there the bump to medium
+   was a real improvement. So both go to medium - the tinted surfaces because the guidelines ask for it, and
+   the grey captions because that is where the problem the guidelines were pointing at actually lived.
+   --color-muted has since been darkened to #5C5875 (5.96:1 on the tint) for headroom reasons that have
+   nothing to do with weight; the medium stays, because a matra losing definition is about stroke width and
+   is not something a darker grey fixes. */
+html[lang="hi"] .banner, html[lang="mr"] .banner,
+html[lang="hi"] .badge, html[lang="mr"] .badge,
+html[lang="hi"] .accuracy, html[lang="mr"] .accuracy,
+html[lang="hi"] .reading__tip, html[lang="mr"] .reading__tip,
+html[lang="hi"] .chat__msg--assistant, html[lang="mr"] .chat__msg--assistant,
+html[lang="hi"] .chat__msg--hint, html[lang="mr"] .chat__msg--hint,
+html[lang="hi"] .pay-status, html[lang="mr"] .pay-status,
+html[lang="hi"] .pay-banner, html[lang="mr"] .pay-banner,
+html[lang="hi"] .form-status, html[lang="mr"] .form-status,
+html[lang="hi"] thead th, html[lang="mr"] thead th,
+html[lang="hi"] tr.is-current td, html[lang="mr"] tr.is-current td,
+html[lang="hi"] tr.is-flagged td, html[lang="mr"] tr.is-flagged td,
+html[lang="hi"] tr.is-noted td, html[lang="mr"] tr.is-noted td,
+html[lang="hi"] tr.is-total th, html[lang="mr"] tr.is-total th,
+html[lang="hi"] tr.is-total td, html[lang="mr"] tr.is-total td,
+html[lang="hi"] .check--yes, html[lang="mr"] .check--yes { font-weight: 500; }
+/* Devanagari also wants a little more room between lines than the Latin tree. */
+html[lang="hi"] body, html[lang="mr"] body { line-height: 1.72; }
+
+/* The grey caption family. `.muted` sets font-weight: 400 explicitly, so inheriting 500 from a tinted
+   container does not reach it - each of these has to be named. */
+html[lang="hi"] .muted, html[lang="mr"] .muted,
+html[lang="hi"] .deva, html[lang="mr"] .deva,
+html[lang="hi"] .small, html[lang="mr"] .small,
+html[lang="hi"] .fact dt, html[lang="mr"] .fact dt,
+html[lang="hi"] .fact__sub, html[lang="mr"] .fact__sub,
+html[lang="hi"] .cell-sub, html[lang="mr"] .cell-sub,
+html[lang="hi"] .field-hint, html[lang="mr"] .field-hint,
+html[lang="hi"] .form-note, html[lang="mr"] .form-note,
+html[lang="hi"] .trust-line, html[lang="mr"] .trust-line,
+html[lang="hi"] .chat__trust, html[lang="mr"] .chat__trust,
+html[lang="hi"] .chat__quota, html[lang="mr"] .chat__quota,
+html[lang="hi"] .chat__disclaimer, html[lang="mr"] .chat__disclaimer,
+html[lang="hi"] .breadcrumbs, html[lang="mr"] .breadcrumbs,
+html[lang="hi"] .rashifal-meta, html[lang="mr"] .rashifal-meta,
+html[lang="hi"] .reading__range, html[lang="mr"] .reading__range,
+html[lang="hi"] .key-dates__event, html[lang="mr"] .key-dates__event,
+html[lang="hi"] .legend, html[lang="mr"] .legend,
+html[lang="hi"] .combo__state, html[lang="mr"] .combo__state,
+html[lang="hi"] .site-tagline, html[lang="mr"] .site-tagline,
+html[lang="hi"] .hero__trust, html[lang="mr"] .hero__trust { font-weight: 500; }

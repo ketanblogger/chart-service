@@ -1,0 +1,51 @@
+{# Language home: `/`, `/hi/`, `/mr/`. Words: copy = pages.get("home", lang); cards come from the nav registry. #}
+{% extends "base.html" %}
+{% import "_copy_blocks.html" as blocks %}
+
+{% block title %}{{ copy.title }} | {{ site_name }}{% endblock %}
+{% block meta_description %}{{ copy.meta_description }}{% endblock %}
+
+{% block main %}
+<section class="hero">
+  <div class="wrap">
+    <p class="hero__tagline">{{ ui.brand_tagline }}</p>
+    <h1>{{ copy.h1 }}</h1>
+    <p class="hero__intro">{{ copy.intro }}</p>
+    {# The hero leads with accuracy, never with the AI - a trust requirement. #}
+    <p class="hero__trust">{{ copy.extra.hero_trust }}</p>
+  </div>
+</section>
+
+<div class="wrap">
+  <ul class="tool-cards">
+    {% for item in nav %}
+    <li class="card tool-card">
+      {% if item.key == "rashifal-hub" %}
+      <h2><a href="{{ item.path }}">{{ copy.extra.card_rashifal_title }}</a></h2>
+      <p>{{ copy.extra.card_rashifal_text }}</p>
+      <a class="btn btn--primary" href="{{ item.path }}">{{ copy.extra.card_rashifal_button }}</a>
+      {% else %}
+      <h2><a href="{{ item.path }}">{{ item.label }}</a></h2>
+      <p>{{ item.blurb }}</p>
+      <a class="btn btn--primary" href="{{ item.path }}" aria-label="{{ copy.extra.card_open_aria|replace('{name}', item.label) }}">{{ copy.extra.card_chat_button if item.key == "consultation" else copy.extra.card_open }}</a>
+      {% endif %}
+    </li>
+    {% endfor %}
+  </ul>
+</div>
+
+<section class="wrap rashi-strip" aria-labelledby="rashi-strip-heading">
+  <h2 id="rashi-strip-heading">{{ copy.extra.strip_heading }}</h2>
+  <ul class="link-grid">
+    {% for rashi in rashis %}
+    <li><a href="{{ rashi.path }}">{{ rashi.label }} <span class="muted small">{{ rashi.sub }}</span></a></li>
+    {% endfor %}
+  </ul>
+  <p><a href="{{ href('rashifal-weekly') }}">{{ copy.extra.strip_weekly }}</a></p>
+</section>
+
+<article class="wrap content">
+  {{ blocks.sections(copy) }}
+  {{ blocks.faq(copy, ui.faq_heading) }}
+</article>
+{% endblock %}

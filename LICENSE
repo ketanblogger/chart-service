@@ -1,0 +1,42 @@
+# Licence of this project
+
+**This project is distributed under the GNU Affero General Public License, version 3 or later
+(AGPL-3.0-or-later), for as long as it uses the Swiss Ephemeris.**
+
+## Why
+
+The astrological calculations are done with the Swiss Ephemeris (through `pyswisseph`), by Astrodienst AG,
+Zurich. The Swiss Ephemeris is dual-licensed (https://www.astro.com/swisseph/swephinfo_e.htm):
+
+1. the **GNU Affero General Public License** - free of charge, but everything that links it must itself be
+   AGPL, and users who interact with it **over a network** must be offered its complete source; or
+2. the **Swiss Ephemeris Professional License** from Astrodienst AG - a one-time fee
+   (https://www.astro.com/swisseph/swephprice_e.htm), which removes that obligation and is the normal
+   choice for a closed-source commercial service.
+
+We launch under option 1. That is a deliberate, temporary position:
+
+- **The repository is public at launch and the deployed site offers its source.** `/about` carries the offer
+  and the address of that repository (`SOURCE_URL` in the environment; see `app/web/site.py`). AGPL section 13
+  asks for this, and a placeholder address is not an offer: `python -m app.hardening` **refuses to start the
+  app in production** while `SOURCE_URL` still holds one, exactly as it refuses a missing `SESSION_SECRET`.
+- **The position changes when the professional licence is bought.** It is bought within one week of the
+  first real paid order. `app/payments/first_sale.py`
+  records that moment (log at CRITICAL, `var/first_live_sale.json`, a row in the database);
+  `scripts/first_sale_status.py` prints it. **From then on the source is no longer required to be published**:
+  the repository may be made private and this notice, the `/about` section and the checklist item are updated
+  together. Nothing else in the code depends on which licence is in force, and nothing that was already
+  published under the AGPL can be un-published - that is what the licence granted to whoever took a copy.
+
+## What is not ours
+
+- **Swiss Ephemeris / pyswisseph** - Astrodienst AG, dual-licensed as above.
+- **Noto Sans and Noto Sans Devanagari** (`app/pdf/fonts/`) - SIL Open Font License 1.1,
+  `app/pdf/fonts/OFL.txt`. Embedding them in generated PDFs is expressly permitted.
+- Everything else under `app/`, `scripts/`, `tests/` and `deploy/` is this project's own work.
+
+The full text of the AGPL-3.0 is at https://www.gnu.org/licenses/agpl-3.0.txt.
+
+> This file states which licence the project ships under and why. It is not legal advice: the choice between
+> the two Swiss Ephemeris licences, and the wording of the source offer on the site, are worth a lawyer's
+> five minutes before launch.

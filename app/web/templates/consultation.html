@@ -1,0 +1,100 @@
+{# AI consultation chat (Phase 5), in any language. Reuses the birth form + app.js (validation, city combobox, POST to
+   /api/consultation/start with the page language); static/js/chat.js takes over when app.js announces the result
+   (`tool:result`). Words: copy = pages.get("consultation", lang); the offer numbers come from the chat settings. #}
+{% extends "base.html" %}
+
+{% from "_person_fields.html" import person_fields with context %}
+{% import "_copy_blocks.html" as blocks %}
+
+{% block title %}{{ copy.title }} | {{ site_name }}{% endblock %}
+{% block meta_description %}{{ copy.meta_description }}{% endblock %}
+
+{% block main %}
+<section class="hero">
+  <div class="wrap">
+    <h1>{{ copy.h1 }}</h1>
+    <p class="hero__intro">{{ copy.intro }}</p>
+  </div>
+</section>
+
+<div class="wrap tool">
+  <section class="card tool__form" id="chat-start" aria-labelledby="form-heading">
+    <h2 id="form-heading">{{ copy.form_heading }}</h2>
+    <p class="trust-line">{{ ui.trust_form }}</p>
+    <form id="tool-form" class="birth-form birth-form--single" novalidate data-mode="birth"
+          data-form="single" data-endpoint="{{ endpoint }}" data-renderer="consultation" data-lang="{{ lang }}">
+      {{ person_fields("self") }}
+      <p class="form-status" id="form-status" role="alert" hidden></p>
+      <button type="submit" class="btn btn--primary" id="submit-btn">{{ copy.submit_label }}</button>
+      <p class="form-note">{{ copy.extra.form_note }}</p>
+      <noscript><p class="form-status form-status--error">{{ copy.extra.noscript }}</p></noscript>
+    </form>
+  </section>
+
+  <section class="result chat" id="result" aria-labelledby="result-heading" tabindex="-1" hidden>
+    <h2 id="result-heading">{{ copy.result_heading }}</h2>
+    <div id="result-body"></div>
+
+    <div class="card chat__panel" id="chat" data-free-messages="{{ chat_free_messages }}">
+      {# Before the first message (a trust requirement): what the chat is reading, and what it is not. #}
+      <p class="chat__trust" id="chat-trust">{{ copy.extra.chat_trust }}</p>
+      <ol class="chat__log" id="chat-log" aria-live="polite" aria-label="{{ copy.extra.log_aria }}"></ol>
+      <p class="chat__typing" id="chat-typing" role="status" hidden>
+        <span class="chat__dots" aria-hidden="true"><i></i><i></i><i></i></span> {{ copy.extra.typing }}
+      </p>
+      <p class="form-status form-status--error" id="chat-error" role="alert" hidden></p>
+
+      <form class="chat__form" id="chat-form" novalidate>
+        <label class="visually-hidden" for="chat-input">{{ copy.extra.input_label }}</label>
+        <textarea id="chat-input" name="message" rows="2" maxlength="1000" required enterkeyhint="send"
+                  placeholder="{{ copy.extra.input_placeholder }}"></textarea>
+        <button type="submit" class="btn btn--primary" id="chat-send">{{ copy.extra.send }}</button>
+      </form>
+      <p class="chat__quota" id="chat-quota" role="status"></p>
+      {# Gita 2.47 says yours is the right to action alone. It says nothing about astrology, so the verse is
+         quoted and translated on its own line and our application of it follows separately - the same rule
+         the policy pages already hold for the Bhrigu Samhita: inspiration, never a cited source. #}
+      <p class="chat__philosophy"><span lang="sa">{{ copy.extra.philosophy_verse }}</span>
+        {{ copy.extra.philosophy_gloss }}</p>
+
+      {# Paywall: shown instead of the input when no messages are left. Every tier is "N questions + a
+         Kundali PDF" - there is no chat-only pack; the two differ in WHICH report they bundle, and the prices and ids
+         come from the catalogue (pages.purchase_offers). Each button fires the same cancelable `product:purchase`
+         event as the tool pages, with detail.sessionId (chat.js sets data-session-id on every one of them); after
+         crediting, pay.js dispatches `consultation:credited` and the chat reloads. `chat-buy` is the entry tier: the
+         browser checks and chat.js address it by that id. #}
+      <aside class="cta chat__paywall" id="chat-paywall" aria-labelledby="paywall-heading" hidden>
+        <h3 id="paywall-heading">{{ copy.extra.paywall_heading }}</h3>
+        <p>{{ copy.extra.paywall_text }}</p>
+        <div class="cta__options{% if options | length > 1 %} cta__options--tiers{% endif %}">
+          {% for option in options %}
+          <div class="cta__option{% if options | length > 1 and loop.first %} cta__option--lite{% endif %}">
+            {% if option.blurb %}<p class="cta__gets">{{ option.blurb }}</p>{% endif %}
+            <button type="button" class="btn btn--cta"{% if loop.first %} id="chat-buy"{% endif %}
+                    data-product="{{ option.product }}" data-price-inr="{{ option.price_inr }}"
+                    data-notice="{{ copy.extra.paywall_notice }}">{{ option.label }}</button>
+          </div>
+          {% endfor %}
+        </div>
+        <p class="cta__notice" id="cta-notice" role="status" hidden></p>
+      </aside>
+
+      <p class="chat__disclaimer small">{{ copy.extra.chat_disclaimer }}</p>
+      <p class="small"><button type="button" class="chat__reset" id="chat-reset">{{ copy.extra.reset }}</button></p>
+    </div>
+  </section>
+</div>
+
+<article class="wrap content">
+  {{ blocks.sections(copy) }}
+  {{ blocks.faq(copy, ui.faq_heading) }}
+  {{ blocks.tool_links(more_tools, copy.extra.more_heading) }}
+</article>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/js/render.js?v={{ static_version }}" defer></script>
+<script src="/static/js/app.js?v={{ static_version }}" defer></script>
+<script src="/static/js/chat.js?v={{ static_version }}" defer></script>
+<script src="/static/js/pay.js?v={{ static_version }}" defer data-pay data-enabled="{{ '1' if payments_enabled else '0' }}"></script>
+{% endblock %}

@@ -1,0 +1,30 @@
+{# Trust / policy pages (app/web/policies.py): English only. Business details come from app/web/site.py. #}
+{% extends "base.html" %}
+
+{% block title %}{{ page.title }} | {{ site_name }}{% endblock %}
+{% block meta_description %}{{ page.meta_description }}{% endblock %}
+
+{% block main %}
+<section class="hero">
+  <div class="wrap">
+    <h1>{{ h1 }}</h1>
+    <p class="hero__intro">{{ intro }}</p>
+  </div>
+</section>
+<article class="wrap content policy">
+  {% for section in sections %}
+  <section>
+    <h2>{{ section.heading }}</h2>
+    {% for block in section.blocks %}
+      {% if block is string %}
+      <p>{{ block }}</p>
+      {% else %}
+      <ul>
+        {% for item in block %}<li>{{ item }}</li>{% endfor %}
+      </ul>
+      {% endif %}
+    {% endfor %}
+  </section>
+  {% endfor %}
+</article>
+{% endblock %}

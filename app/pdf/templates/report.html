@@ -1,0 +1,231 @@
+{# The book (app/pdf/book.py). All text is autoescaped; only our own SVG / CSS are marked safe.
+   EVERY heading here carries an id, in document order - app/pdf/render.py:heading_ids() reads them back
+   out and app/pdf/browser.py zips them against the PDF outline to number the contents page. #}
+{% macro cell(value) -%}
+  {%- if value is mapping -%}
+    {%- for line in value.lines %}<span class="line">{{ line }}</span>{% endfor -%}
+  {%- elif value is string -%}
+    {{ value }}
+  {%- else -%}
+    {{ value[0] }}{% if value[1] %}<span class="cell-sub">{{ value[1] }}</span>{% endif %}
+  {%- endif -%}
+{%- endmacro %}
+
+{% macro data_table(block) %}
+<figure class="data-table {{ 'keep' if block.keep else '' }}">
+  {% if block.title %}<p class="figure-title">{{ block.title }}</p>{% endif %}
+  <table class="{{ block.cls }}">
+    <thead><tr>{% for column in block.columns %}<th scope="col">{{ column }}</th>{% endfor %}</tr></thead>
+    <tbody>
+    {% for row in block.rows %}
+      <tr class="{{ row.cls }}">{% for value in row.cells %}{% if loop.first %}<th scope="row">{{ cell(value) }}</th>{% else %}<td>{{ cell(value) }}</td>{% endif %}{% endfor %}</tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% if block.note %}<p class="note">{{ block.note }}</p>{% endif %}
+</figure>
+{% endmacro %}
+
+{% macro render_block(block) %}
+  {% if block.type == "facts" %}
+    <dl class="facts">
+    {% for label, value, sub in block['items'] %}
+      <div class="fact"><dt>{{ label }}</dt><dd>{{ value }}{% if sub %}<span class="fact-sub">{{ sub }}</span>{% endif %}</dd></div>
+    {% endfor %}
+    </dl>
+  {% elif block.type == "table" %}
+    {{ data_table(block) }}
+  {% elif block.type == "chart" %}
+    <figure class="chart {{ 'chart--small' if block.small else '' }}">
+      {% if block.title %}<p class="figure-title figure-title--center">{{ block.title }}</p>{% endif %}
+      {{ block.svg }}
+      <p class="legend">{% for abbr, name in block.legend %}<span><b>{{ abbr }}</b> {{ name }}</span> {% endfor %}<span><b class="retro-key">R</b> {{ block.retro }}</span></p>
+      {% if block.note %}<p class="note">{{ block.note }}</p>{% endif %}
+    </figure>
+  {% elif block.type == "columns" %}
+    {% if block.title %}<p class="figure-title">{{ block.title }}</p>{% endif %}
+    <div class="columns">{% for inner in block.blocks %}<div class="column">{{ render_block(inner) }}</div>{% endfor %}</div>
+  {% elif block.type == "banner" %}
+    <div class="banner banner--{{ block.tone }}"><p class="banner-title">{{ block.title }}</p>{% if block.text %}<p>{{ block.text }}</p>{% endif %}</div>
+  {% elif block.type == "score" %}
+    <div class="score">
+      <p class="score-value"><span class="score-total">{{ block.total }}</span> / {{ block.max }} <span class="score-unit">{{ block.unit }}</span></p>
+      <div class="meter"><span style="width: {{ block.percent }}%"></span></div>
+      <p class="score-verdict">{{ block.percent_text }} · {{ block.verdict }}</p>
+    </div>
+  {% elif block.type == "note" %}
+    <p class="note">{{ block.text }}</p>
+  {% elif block.type == "trust" %}
+    <section class="trust">
+      <p class="trust-title">{{ block.title }}</p>
+      {% for paragraph in block.paragraphs %}<p>{{ paragraph }}</p>{% endfor %}
+    </section>
+  {% elif block.type == "caveats" %}
+    <section class="caveats">
+      <p class="caveats-title">{{ block.title }}</p>
+      {% for paragraph in block.paragraphs %}<p>{{ paragraph }}</p>{% endfor %}
+    </section>
+  {% elif block.type == "prose" %}
+    {% for paragraph in block.paragraphs %}<p>{{ paragraph }}</p>{% endfor %}
+  {% elif block.type == "bullets" %}
+    <div class="bullets">
+      {% if block.title %}<p class="bullets-title">{{ block.title }}</p>{% endif %}
+      <ul>{% for item in block['items'] %}<li>{{ item }}</li>{% endfor %}</ul>
+    </div>
+  {% elif block.type == "subsections" %}
+    {% for sub in block['items'] %}
+    <section class="subsec">
+      <h3 id="{{ sub.id }}">{{ sub.heading }}</h3>
+      {% for paragraph in sub.paragraphs %}<p>{{ paragraph }}</p>{% endfor %}
+    </section>
+    {% endfor %}
+  {% elif block.type == "windows" %}
+    {% for window in block['items'] %}
+    <section class="window">
+      <h3 id="{{ window.id }}"><span class="window-range">{{ window.label }}</span>{% if window.headline %}<span class="window-headline">{{ window.headline }}</span>{% endif %}</h3>
+      {% if window.sub %}<p class="window-sub">{{ window.sub }}</p>{% endif %}
+      {% for paragraph in window.paragraphs %}<p>{{ paragraph }}</p>{% endfor %}
+      {% if window.areas %}<p class="tags">{% for area in window.areas %}<span class="tag">{{ area }}</span>{% endfor %}</p>{% endif %}
+      {% if window.area_lines %}<p class="note">{% if window.areas_heading %}<span class="line">{{ window.areas_heading }}</span>{% endif %}{% for item in window.area_lines %}<span class="line"><strong>{{ item.label }}</strong> {{ item.text }}</span>{% endfor %}</p>{% endif %}
+      {% if window.transits %}<p class="note">{% for line in window.transits %}<span class="line">{{ line }}</span>{% endfor %}</p>{% endif %}
+    </section>
+    {% endfor %}
+  {% elif block.type == "highlights" %}
+    <div class="highlights">
+    {% for item in block['items'] %}
+      <section class="highlight">
+        <p class="highlight-title">{{ item.heading }}</p>
+        {% for inner in item.blocks %}{{ render_block(inner) }}{% endfor %}
+        {% if item.lines %}<ul>{% for line in item.lines %}<li>{{ line }}</li>{% endfor %}</ul>{% endif %}
+      </section>
+    {% endfor %}
+    </div>
+  {% elif block.type == "remedies" %}
+    {% for remedy in block['items'] %}
+    <article class="remedy">
+      <h3 id="{{ remedy.id }}"><span class="remedy-type">{{ remedy.type }}</span> {{ remedy.title }}</h3>
+      {% if remedy.description %}<p>{{ remedy.description }}</p>{% endif %}
+      <dl>
+        {% if remedy.how_to %}<div><dt>{{ L.how_to }}</dt><dd>{{ remedy.how_to }}</dd></div>{% endif %}
+        {% if remedy.frequency %}<div><dt>{{ L.when }}</dt><dd>{{ remedy.frequency }}</dd></div>{% endif %}
+      </dl>
+    </article>
+    {% endfor %}
+  {% elif block.type == "dasha_grid" %}
+    <section class="dasha-grid-wrap">
+      <p class="figure-title">{{ block.title }}</p>
+      <div class="dasha-grid">
+      {% for card in block.cards %}
+        <table class="dasha-card {{ 'is-current' if card.current else '' }}">
+          <thead><tr><th colspan="3">{{ card.title }}<span class="cell-sub">{{ card.dates }}</span></th></tr></thead>
+          <tbody>{% for lord, start, end in card.rows %}<tr><th scope="row">{{ lord }}</th><td>{{ start }}</td><td>{{ end }}</td></tr>{% endfor %}</tbody>
+        </table>
+      {% endfor %}
+      </div>
+      {% if block.note %}<p class="note">{{ block.note }}</p>{% endif %}
+    </section>
+  {% elif block.type == "pagebreak" %}
+    <div class="pagebreak"></div>
+  {% endif %}
+{% endmacro %}
+<!DOCTYPE html>
+<html lang="{{ lang }}">
+<head>
+<meta charset="utf-8">
+<title>{{ title }}</title>
+<meta name="generator" content="{{ L.site_name }}">
+<style>{{ css }}
+{{ page_css }}</style>
+</head>
+<body class="size-{{ page_size }}">
+
+<section class="cover">
+  <div class="cover-frame">
+    <span class="cover-corner cover-corner--tl">{{ cover.corner }}</span>
+    <span class="cover-corner cover-corner--tr">{{ cover.corner }}</span>
+    <span class="cover-corner cover-corner--bl">{{ cover.corner }}</span>
+    <span class="cover-corner cover-corner--br">{{ cover.corner }}</span>
+    <header class="cover-head">
+      <p class="cover-site">{{ cover.site }}</p>
+      <p class="cover-tagline">{{ cover.tagline }}</p>
+    </header>
+    <div class="cover-art">{{ cover.rosette }}</div>
+    <div class="cover-main">
+      <h1 class="cover-title" id="{{ cover.anchor }}">{{ cover.title }}</h1>
+      <p class="cover-product">{{ cover.product_name }}</p>
+      {{ cover.divider }}
+      {% if cover.name %}<p class="cover-for">{{ cover.prepared_for }}</p><p class="cover-name">{{ cover.name }}</p>{% endif %}
+      {% for person in cover.people %}
+      <dl class="cover-birth">
+        {% if person.title %}<div class="cover-birth-title"><dt></dt><dd>{{ person.title }}</dd></div>{% endif %}
+        {% for label, value in person.rows %}<div><dt>{{ label }}</dt><dd>{{ value }}</dd></div>{% endfor %}
+      </dl>
+      {% endfor %}
+      {% if cover.facts %}
+      <ul class="cover-facts">{% for label, value in cover.facts %}<li><b>{{ label }}</b> {{ value }}</li>{% endfor %}</ul>
+      {% endif %}
+    </div>
+    <footer class="cover-foot">
+      <p>{{ cover.report_date }}</p>
+      <p>{{ cover.note }}</p>
+    </footer>
+  </div>
+</section>
+
+{# Front matter: what this report says, and how it was made. It carries no heading element, so the
+   contents page and the PDF outline are unchanged by it (app/pdf/render.py:heading_ids). #}
+<section class="frontmatter">
+  {% if summary %}<div class="epigraph"><p>{{ summary }}</p></div>{% endif %}
+  {{ render_block(front.trust) }}
+  {% if front.caveats %}{{ render_block(front.caveats) }}{% endif %}
+</section>
+
+<section class="contents">
+  <h1 class="contents-title" id="{{ contents_anchor }}">{{ toc.heading }}</h1>
+  {{ divider }}
+  <ol class="toc">
+  {% for entry in toc.entries %}
+    <li class="toc-entry toc-entry--{{ entry.level }}">
+      <span class="toc-text">{% if entry.kicker %}<span class="toc-kicker">{{ entry.kicker }}</span>{% endif %}{{ entry.text }}</span>
+      <span class="toc-dots"></span>
+      <span class="toc-page {{ 'is-blank' if not entry.page }}">{{ entry.page }}</span>
+    </li>
+  {% endfor %}
+  </ol>
+</section>
+
+{% for part in parts %}
+<section class="part">
+  <header class="part-open">
+    <p class="part-kicker">{{ L.part }} {{ part.letter }}</p>
+    <h1 class="part-title" id="{{ part.anchor }}">{{ part.heading }}</h1>
+    {{ divider }}
+    {% if part.intro %}<p class="part-intro">{{ part.intro }}</p>{% endif %}
+  </header>
+  {% for block in part.blocks %}{{ render_block(block) }}{% endfor %}
+  {% for chapter in part.chapters %}
+  <section class="chapter">
+    {% if chapter.kicker %}<p class="chapter-kicker">{{ chapter.kicker }}</p>{% endif %}
+    <h2 id="{{ chapter.anchor }}">{{ chapter.title or chapter.heading }}</h2>
+    {% for block in chapter.blocks %}{{ render_block(block) }}{% endfor %}
+  </section>
+  {% endfor %}
+  {% for block in part.after_blocks %}{{ render_block(block) }}{% endfor %}
+</section>
+{% endfor %}
+
+<section class="closing">
+  <h2 id="{{ closing.anchor }}">{{ L.disclaimer }}</h2>
+  <div class="disclaimer"><p>{{ disclaimer }}</p></div>
+  <p class="note">{{ calc_note }}</p>
+  <p class="note">{{ L.report_id }}: <span class="report-id">{{ report_id }}</span></p>
+  {# The verse, its meaning and OUR application, in three elements. Never one string: see labels.py. #}
+  <p class="philosophy">
+    <span class="philosophy__verse" lang="sa">{{ L.verse }}</span>
+    {% if L.verse_translit %}<span class="philosophy__translit">{{ L.verse_translit }}</span>{% endif %}
+    <span class="philosophy__gloss">{{ L.verse_gloss }}</span>
+    <span class="philosophy__ours">{{ L.verse_ours }}</span>
+  </p>
+</section>
+</body>
+</html>

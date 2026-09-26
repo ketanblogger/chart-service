@@ -1,0 +1,42 @@
+{# Long-form SEO content + FAQ of a PageCopy (tool pages, consultation, home, rashifal hubs). #}
+{% macro sections(copy) %}
+  {% for section in copy.sections %}
+  <section{% if section.anchor %} id="about-{{ section.anchor }}"{% endif %}>
+    <h2>{{ section.heading }}</h2>
+    {% for block in section.blocks %}
+      {% if block is string %}
+      <p>{{ block }}</p>
+      {% else %}
+      <ul>
+        {% for item in block %}<li>{{ item }}</li>{% endfor %}
+      </ul>
+      {% endif %}
+    {% endfor %}
+  </section>
+  {% endfor %}
+{% endmacro %}
+
+{% macro faq(copy, heading) %}
+  {% if copy.faqs %}
+  <section class="faq" id="faq" aria-labelledby="faq-heading">
+    <h2 id="faq-heading">{{ heading }}</h2>
+    {% for question, answer in copy.faqs %}
+    <details{% if loop.first %} open{% endif %}>
+      <summary>{{ question }}</summary>
+      <p>{{ answer }}</p>
+    </details>
+    {% endfor %}
+  </section>
+  {% endif %}
+{% endmacro %}
+
+{% macro tool_links(items, heading) %}
+  <section class="more-tools" aria-labelledby="more-heading">
+    <h2 id="more-heading">{{ heading }}</h2>
+    <ul class="tool-links">
+      {% for item in items %}
+      <li><a href="{{ item.path }}">{{ item.label }}</a> &ndash; {{ item.blurb }}</li>
+      {% endfor %}
+    </ul>
+  </section>
+{% endmacro %}

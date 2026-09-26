@@ -1,0 +1,187 @@
+{# One rashifal reading page, in the language of its tree (/horoscope/..., /hi/rashifal/..., /mr/rashi-bhavishya/...).
+   Everything here comes from the content store and the engine brief (app/web/rashifal.py) - no AI call happens on a
+   page view. Links come from the registry; the language switcher in the header leads to the same reading in the
+   other languages. #}
+{% extends "base.html" %}
+
+{% block title %}{{ title }} | {{ site_name }}{% endblock %}
+{% block meta_description %}{{ meta_description }}{% endblock %}
+{% block og_type %}article{% endblock %}
+
+{% block main %}
+<section class="hero hero--rashifal">
+  <div class="wrap">
+    <nav class="breadcrumbs" aria-label="{{ ui.breadcrumb_aria }}">
+      {% for name, path in crumbs %}<a href="{{ path }}">{{ name }}</a>{% if not loop.last %} <span aria-hidden="true">›</span> {% endif %}{% endfor %}
+    </nav>
+    <h1>{{ h1 }}</h1>
+    <p class="rashifal-meta">
+      <span><strong>{{ range_label }}:</strong> <span id="period-range">{{ current_range }}</span></span>
+      {% if reading %}<span><strong>{{ t.updated }}:</strong> <time id="last-updated">{{ reading.updated }}</time></span>{% endif %}
+    </p>
+  </div>
+</section>
+
+<div class="wrap rashifal">
+  {# AD SLOT (empty placeholder - no ad network code yet). Un-hide and fill when ads are wired in Phase 8+. #}
+  <div class="ad-slot" data-ad-slot="{{ ad_slots[0] }}" hidden></div>
+
+  {% if reading %}
+  <article class="reading card" id="reading" aria-labelledby="reading-headline">
+    {% if stale %}<p class="banner banner--info" id="stale-note">{{ t.stale_note.format(range=reading.range) }}</p>{% endif %}
+    <p class="reading__range">{{ t.reading_for }}: {{ reading.range }}</p>
+    <h2 id="reading-headline">{{ reading.headline }}</h2>
+    <p class="reading__overview">{{ reading.overview }}</p>
+    {% for section in reading.sections %}
+    <section id="{{ section.id|replace('_', '-') }}">
+      <h3>{{ section.heading }}</h3>
+      {% for paragraph in section.paragraphs %}<p>{{ paragraph }}</p>{% endfor %}
+    </section>
+    {% endfor %}
+    {% if reading.key_dates %}
+    <section id="key-dates">
+      <h3>{{ t.key_dates }}</h3>
+      <ul class="key-dates">
+        {% for item in reading.key_dates %}
+        <li><strong>{{ item.date }}</strong> <span class="key-dates__event">{{ item.event }}</span>
+          <span class="key-dates__note">{{ item.note }}</span></li>
+        {% endfor %}
+      </ul>
+    </section>
+    {% endif %}
+    <section id="tip" class="reading__tip">
+      <h3>{{ t.tip }}</h3>
+      <p>{{ reading.tip }}</p>
+    </section>
+  </article>
+  {% else %}
+  <section class="card" id="pending" aria-labelledby="pending-heading">
+    <h2 id="pending-heading">{{ t.pending_title }}</h2>
+    <p>{{ t.pending_text.format(rashi=rashi_label) }}</p>
+  </section>
+  {% endif %}
+
+  {% if facts.lucky or facts.panchang or facts.moon %}
+  <div class="facts day-facts">
+    {% if facts.lucky %}
+    <section class="fact" id="lucky" aria-label="{{ t.lucky_heading }}">
+      <dl>
+        <dt>{{ t.lucky_colour }}</dt><dd><span class="swatch swatch--{{ facts.lucky.colour_key }}" aria-hidden="true"></span>{{ facts.lucky.colour }}</dd>
+        <dt>{{ t.lucky_number }}</dt><dd>{{ facts.lucky.number }}</dd>
+      </dl>
+      <p class="fact__sub">{{ facts.lucky.why }}</p>
+    </section>
+    {% endif %}
+    {% if facts.panchang %}
+    <section class="fact" id="panchang" aria-label="{{ t.panchang_heading }}">
+      <dl>
+        <dt>{{ t.panchang_heading }}</dt>
+        <dd>{{ facts.panchang.vara }} · {{ facts.panchang.tithi }} <span class="fact__sub">{{ facts.panchang.tithi_until }}</span></dd>
+        <dt>{{ t.nakshatra }}</dt>
+        <dd>{{ facts.panchang.nakshatra }} <span class="fact__sub">{{ facts.panchang.nakshatra_until }}</span></dd>
+      </dl>
+      <p class="fact__sub">{{ t.sunrise }} {{ facts.panchang.sunrise }}. {{ facts.panchang.note }}</p>
+    </section>
+    {% endif %}
+    {% if facts.moon %}
+    <section class="fact" id="moon" aria-label="{{ t.moon_heading }}">
+      <dl><dt>{{ t.moon_heading }}</dt><dd>{{ facts.moon.bala }}</dd></dl>
+      <p class="fact__sub">{{ facts.moon.line }}</p>
+    </section>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  <div class="ad-slot" data-ad-slot="{{ ad_slots[1] }}" hidden></div>
+
+  <section class="block" id="transit-facts" aria-labelledby="facts-heading">
+    <h2 id="facts-heading">{{ facts_heading }}</h2>
+    <p class="muted small">{{ facts.as_of }}</p>
+    <div class="table-wrap">
+      <table class="table--positions">
+        <thead><tr><th>{{ t.col_graha }}</th><th>{{ t.col_sign }}</th><th>{{ t.col_nakshatra }}</th><th>{{ house_heading }}</th><th>{{ t.col_motion }}</th></tr></thead>
+        <tbody>
+          {% for row in facts.positions %}
+          <tr{% if row.retrograde %} class="is-noted"{% endif %}><th scope="row">{{ row.graha }}</th><td>{{ row.sign }}</td><td>{{ row.nakshatra }}</td><td>{{ row.house }}</td><td>{{ row.motion }}</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="block" id="transit-events" aria-labelledby="events-heading">
+    <h2 id="events-heading">{{ t.events_heading }}</h2>
+    {% if facts.events %}
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>{{ t.col_date }}</th><th>{{ t.col_event }}</th></tr></thead>
+        <tbody>
+          {% for row in facts.events %}
+          <tr><th scope="row">{{ row.date }} <span class="cell-sub">{{ row.time }} {{ t.ist }}</span></th><td>{{ row.text }}</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <p>{{ t.no_events }}</p>
+    {% endif %}
+  </section>
+
+  {% if facts.stays %}
+  <section class="block" id="slow-grahas" aria-labelledby="stays-heading">
+    <h2 id="stays-heading">{{ t.stays_heading }}</h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>{{ t.col_graha }}</th><th>{{ t.col_sign }}</th><th>{{ house_heading }}</th><th>{{ t.col_from }}</th><th>{{ t.col_to }}</th></tr></thead>
+        <tbody>
+          {% for row in facts.stays %}
+          <tr><th scope="row">{{ row.graha }}</th><td>{{ row.sign }}</td><td>{{ row.house }}</td><td>{{ row.from }}</td><td>{{ row.to }}</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+  {% endif %}
+
+  <section class="block" id="saturn-status" aria-labelledby="saturn-heading">
+    <h2 id="saturn-heading">{{ t.saturn_heading }}</h2>
+    {% for line in facts.saturn %}<p>{{ line }}</p>{% endfor %}
+  </section>
+
+  <div class="cta-pair">
+    <aside class="cta" aria-labelledby="cta-kundali">
+      <h3 id="cta-kundali">{{ labels.cta_kundali_title }}</h3>
+      <p>{{ labels.cta_kundali_text }}</p>
+      <a class="btn btn--cta" href="{{ href('kundali') }}">{{ labels.cta_kundali_button }}</a>
+    </aside>
+    <aside class="cta" aria-labelledby="cta-chat">
+      <h3 id="cta-chat">{{ labels.cta_chat_title }}</h3>
+      <p>{{ labels.cta_chat_text }}</p>
+      <a class="btn btn--cta" href="{{ href('consultation') }}">{{ labels.cta_chat_button }}</a>
+    </aside>
+  </div>
+
+  <nav class="block" aria-labelledby="other-periods-heading">
+    <h2 id="other-periods-heading">{{ labels.periods_heading }}</h2>
+    <ul class="link-grid">
+      {% for link in other_periods %}<li><a href="{{ link.path }}">{{ rashi_label }} · {{ link.label }}</a></li>{% endfor %}
+    </ul>
+  </nav>
+
+  <nav class="block" aria-labelledby="other-rashis-heading">
+    <h2 id="other-rashis-heading">{{ labels.others_period_heading|replace('{period}', period_label) }}</h2>
+    <ul class="link-grid">
+      {% for link in other_rashis %}<li><a href="{{ link.path }}">{{ link.label }} <span class="muted small">{{ link.sub }}</span></a></li>{% endfor %}
+    </ul>
+    <p><a href="{{ all_signs.path }}">{{ all_signs.label }}</a></p>
+  </nav>
+
+  <div class="ad-slot" data-ad-slot="{{ ad_slots[2] }}" hidden></div>
+
+  <section class="block content" aria-labelledby="about-heading">
+    <h2 id="about-heading">{{ labels.about_heading }}</h2>
+    <p>{{ labels.about_text }}</p>
+    <p class="disclaimer" id="rashifal-disclaimer">{{ labels.reading_disclaimer }}</p>
+  </section>
+</div>
+{% endblock %}

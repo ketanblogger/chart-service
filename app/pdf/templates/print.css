@@ -1,0 +1,431 @@
+/* Print stylesheet for the paid report BOOK (A5 by default, A4 on request; headless Chromium).
+ *
+ * Fonts are the bundled Noto files only, under private family names, so no system font with the same
+ * name can ever be picked instead. The Devanagari face comes first and is limited by unicode-range, so
+ * Latin text and digits always fall through to Noto Sans. No italics are used (there is no italic face
+ * bundled, and Devanagari has no italic tradition).
+ *
+ * Page geometry, the running head and the page numbers are @page rules appended by render.py, which also
+ * sets the body class (size-a5 / size-a4). Everything that differs between the two sizes is a variable
+ * in that class - nothing else in this file knows which paper it is on.
+ *
+ * Nothing may be wider than the page content box: Chromium lays the whole document out in the FIRST page's
+ * content box and silently shrinks EVERYTHING - every type size in the book - to fit whatever sticks out.
+ * So no cell is `white-space: nowrap` (dates carry non-breaking spaces inside instead, app/pdf/labels.py)
+ * and a cell breaks a long word rather than push its table wide. app/pdf/browser.py checks this on every render.
+ *
+ * Book rules that matter for print: every PART starts a new page; headings never end a page (break-after:
+ * avoid + orphans/widows); charts, fact tiles, banners and remedy cards never split; long tables repeat
+ * their header row; the contents page reserves a fixed-width column for the page number so that filling
+ * the real number in on the second pass cannot move a single line (app/pdf/browser.py).
+ */
+@font-face { font-family: "Report Devanagari"; font-weight: 400; font-style: normal;
+  src: url("fonts/NotoSansDevanagari-Regular.ttf") format("truetype");
+  unicode-range: U+0900-097F, U+1CD0-1CFF, U+200C-200D, U+20B9, U+25CC, U+A830-A839, U+A8E0-A8FF; }
+@font-face { font-family: "Report Devanagari"; font-weight: 700; font-style: normal;
+  src: url("fonts/NotoSansDevanagari-Bold.ttf") format("truetype");
+  unicode-range: U+0900-097F, U+1CD0-1CFF, U+200C-200D, U+20B9, U+25CC, U+A830-A839, U+A8E0-A8FF; }
+@font-face { font-family: "Report Sans"; font-weight: 400; font-style: normal;
+  src: url("fonts/NotoSans-Regular.ttf") format("truetype"); }
+@font-face { font-family: "Report Sans"; font-weight: 700; font-style: normal;
+  src: url("fonts/NotoSans-Bold.ttf") format("truetype"); }
+
+:root {
+  /* ---------- the brand palette, in the NAMES app/static/css/site.css uses ----------
+     site.css calls these ten "the contract with the PDF report", so they are spelled here exactly as
+     they are spelled there: same names, same values, and tests/test_pdf.py compares the two files
+     token by token so neither sheet can be edited alone.
+
+     Three of the rules are load-bearing enough to be asserted on the rendered pixels too:
+       - GOLD NEVER CARRIES LIGHT TEXT. White on gold is 2.19:1; Ink on gold is 7.65:1. Every gold
+         surface below sets `color` on the same rule, so the pairing travels with the paint.
+       - WARNING is for an ACTIVE dosha, an ACTIVE sade sati and a caution window. Not saffron, not red.
+       - SUCCESS CANNOT BE TEXT (3.41:1 on white), and neither can Saffron on this paper (3.43:1 on
+         cream). They are fills, rules and marks; the words beside them are --color-success-ink and
+         Ink. Saffron survives in this sheet only as the guna-milan meter and its tint - every place
+         this book used to set saffron TEXT is now Indigo, Grey or a gold rule. */
+  --color-primary: #241B54;   /* Deep Indigo - cover, headings */
+  --color-accent:  #E0A526;   /* Celestial Gold - dividers, thin rules, small badges. Ink text, never white */
+  --color-saffron: #D2691E;   /* fills only, sparingly: the guna meter */
+  --color-ink:     #1E1B2E;   /* body text: 15.8:1 on --color-bg */
+  --color-muted:   #5C5875;   /* captions, notes, secondary cells: 6.37:1 on --color-bg */
+  --color-bg:      #FBF8F1;   /* cream content background */
+  --color-card:    #2E2660;   /* table heads, the kundali ground, the rule over a fact tile */
+  --color-tint:    #F3EFFA;   /* soft section background */
+  --color-success: #2E9E5B;   /* shubh. FILL, BORDER AND MARKS ONLY - never text */
+  --color-warning: #A13D2B;   /* ashubh: active mangal dosha, active sade sati, caution windows */
+
+  /* Derived, and also shared with site.css. */
+  --color-success-ink: #1F6E3F;
+  --color-success-bg:  #E8F5EC;
+  --color-warning-bg:  #FBEDE9;
+  --color-surface:     #FFFFFF;
+  --color-line:        #E3DEF0;
+  --color-on-dark:     #E7E4F4;  /* 12.36:1 on --color-primary, 10.75:1 on --color-card */
+  --color-meta-dark:   #C2BBE0;  /* meta text on those same two: 8.44:1 on Primary, 7.35:1 on Card */
+
+  /* Print-only, and nothing on the web needs them: the two status rules, and the warm tint behind the
+     guna-milan score card and the disclaimer - the one place Saffron is allowed to be a surface. */
+  --color-success-line: #BEE3CC;
+  --color-warning-line: #E8C6BD;
+  --saffron-tint: #FAEEE3;
+  --fonts: "Report Devanagari", "Report Sans";
+}
+
+
+/* --page-box is the printable height of one page: paper height minus the top and bottom @page margins
+   (render.py owns those margins; keep the two in step). The cover fills exactly that box - a page-wide
+   bleed is not possible here, because Chromium lays every page out in the FIRST page's content box and
+   silently shrinks the whole document to fit anything wider. A framed cover is also the right choice for
+   a book people print at home: no desktop printer can print to the paper edge anyway. */
+body.size-a5 { --page-box: 180mm; --base: 10.2pt; --chart: 76mm; --grid-cols: 2;
+               --h1: 16pt; --h2: 12.5pt; --h3: 10.6pt; --small: 8.2pt; --table: 8.6pt; }
+body.size-a4 { --page-box: 255mm; --base: 11pt;   --chart: 98mm; --grid-cols: 3;
+               --h1: 20pt; --h2: 14.5pt; --h3: 12pt;   --small: 9pt;   --table: 9.5pt; }
+
+*, *::before, *::after { box-sizing: border-box; }
+html { font-family: var(--fonts); color: var(--color-ink); font-synthesis: none;
+       -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+body { margin: 0; font-size: var(--base); line-height: 1.62; }
+html:lang(hi) body, html:lang(mr) body { line-height: 1.78; }  /* room for matras above and below the line */
+
+h1, h2, h3 { color: var(--color-primary); line-height: 1.28; margin: 0 0 .45em; font-weight: 700;
+             break-after: avoid; page-break-after: avoid; }
+h2 { font-size: var(--h2); }
+h3 { font-size: var(--h3); }
+p { margin: 0 0 .7em; orphans: 3; widows: 3; text-align: left; }
+ul { margin: 0 0 .8em; padding-left: 1.25em; }
+li { margin-bottom: .28em; break-inside: avoid; }
+dl, dd, figure { margin: 0; }
+.note { font-size: var(--small); color: var(--color-muted); line-height: 1.5; margin: .4em 0 .9em; }
+.note .line { display: block; }
+.pagebreak { break-before: page; height: 0; }
+
+/* ---------- cover ---------- */
+.cover { page: cover; break-after: page; height: var(--page-box); overflow: hidden;
+         background: var(--color-primary); color: var(--color-on-dark); border-radius: 1.5mm; }
+.cover-frame { position: relative; height: 100%; margin: 0; padding: 10mm 9mm 8mm; text-align: center;
+               display: flex; flex-direction: column; }
+/* the base rule sets `text-align: left` on every p, and a rule on the element beats what it inherits -
+   so without this the cover's site name, tagline and "prepared for" line sit left while the title, an
+   h1, is centred. (Same reason .sheet-head needs its own copy.) */
+.cover-frame p { text-align: center; }
+.cover-frame::before { content: ""; position: absolute; inset: 4mm; border: 0.6pt solid rgba(224, 165, 38, .55);
+                       border-radius: 1mm; pointer-events: none; }
+.cover-corner { position: absolute; width: 9mm; height: 9mm; color: var(--color-accent); }
+.cover-corner svg { width: 100%; height: 100%; }
+.cover-corner--tl { top: 2.6mm; left: 2.6mm; }
+.cover-corner--tr { top: 2.6mm; right: 2.6mm; transform: scaleX(-1); }
+.cover-corner--bl { bottom: 2.6mm; left: 2.6mm; transform: scaleY(-1); }
+.cover-corner--br { bottom: 2.6mm; right: 2.6mm; transform: scale(-1); }
+.corner__line, .corner__line2 { fill: none; stroke: currentColor; stroke-width: 1.1; }
+.corner__line2 { stroke-width: .6; opacity: .7; }
+.corner__star { fill: currentColor; }
+
+.cover-site { margin: 0; font-size: 11pt; font-weight: 700; letter-spacing: .16em; color: var(--color-accent); }
+.cover-tagline { margin: 1.5mm 0 0; font-size: var(--small); color: var(--color-meta-dark); letter-spacing: .02em; }
+.cover-art { margin: 4mm auto 2mm; width: 34mm; height: 34mm; color: var(--color-accent); }
+.cover-art svg { width: 100%; height: 100%; }
+.rosette__petals path { fill: rgba(224, 165, 38, .16); stroke: rgba(224, 165, 38, .85); stroke-width: .7; }
+.rosette__petals-inner path { fill: rgba(224, 165, 38, .28); stroke: rgba(224, 165, 38, .9); stroke-width: .6; }
+.rosette__rings circle { fill: none; stroke: rgba(224, 165, 38, .55); stroke-width: .7; }
+.rosette__dots circle { fill: rgba(224, 165, 38, .8); }
+.rosette__star { fill: var(--color-accent); }
+.rosette__core { fill: var(--color-primary); }
+
+.cover-main { flex: 1 1 auto; display: flex; flex-direction: column; justify-content: center; }
+.cover-title { color: var(--color-surface); font-size: calc(var(--h1) + 3pt); line-height: 1.3; margin: 0 0 2mm; }
+.cover-product { margin: 0; font-size: 10.5pt; color: var(--color-accent); letter-spacing: .04em; }
+.cover-main .divider { display: block; width: 44mm; height: 5mm; margin: 4mm auto; color: var(--color-accent); }
+.cover-for { margin: 0; font-size: var(--small); color: var(--color-meta-dark); letter-spacing: .08em; }
+.cover-name { margin: 1mm 0 3mm; font-size: 14pt; font-weight: 700; color: var(--color-surface); }
+.cover-birth { margin: 0 auto; display: grid; grid-template-columns: auto auto; gap: .8mm 4mm;
+               font-size: var(--small); color: var(--color-on-dark); text-align: left; }
+.cover-birth > div { display: contents; }
+.cover-birth dt { color: var(--color-meta-dark); text-align: right; }
+.cover-birth dd { margin: 0; font-weight: 700; color: var(--color-surface); }
+.cover-birth-title dd { grid-column: 1 / -1; color: var(--color-accent); }
+.cover-facts { list-style: none; margin: 5mm 0 0; padding: 0; font-size: var(--small); color: var(--color-on-dark); }
+.cover-facts li { margin: 0 0 1.2mm; }
+.cover-facts b { color: var(--color-meta-dark); font-weight: 400; }
+.cover-foot { margin-top: auto; padding-top: 4mm; border-top: 0.4pt solid rgba(224, 165, 38, .35); }
+.cover-foot p { margin: 0; font-size: 7pt; color: var(--color-meta-dark); text-align: center; }
+
+.divider { display: block; height: 4mm; margin: 3mm auto 4mm; width: 40mm; color: var(--color-accent); }
+.divider__rule { stroke: currentColor; stroke-width: .7; opacity: .75; }
+.divider__star { fill: currentColor; }
+/* Ink, not Cream: a light dot in the middle of the gold star is a (tiny) light mark on a gold surface,
+   which is the one pairing Brand section 2 forbids - and the pixel check in tests/test_pdf.py reads it
+   exactly as literally as a reviewer should. */
+.divider__dot { fill: var(--color-ink); }
+
+/* ---------- front matter (the page between the cover and the contents) ---------- */
+.frontmatter { break-after: page; padding-top: 6mm; }
+.frontmatter .epigraph { margin: 0 0 7mm; }
+
+/* ---------- contents ---------- */
+.contents { page: contents; break-after: page; }
+.contents-title { font-size: var(--h1); margin: 0; text-align: center; }
+.contents .divider { color: var(--color-accent); }
+.toc { list-style: none; margin: 0; padding: 0; }
+.toc-entry { display: flex; align-items: baseline; gap: 1.5mm; margin: 0 0 1.1mm; break-inside: avoid; }
+.toc-text { flex: 0 1 auto; }
+.toc-dots { flex: 1 1 auto; border-bottom: 0.4pt dotted var(--color-line); transform: translateY(-1mm); min-width: 4mm; }
+.toc-page { flex: 0 0 9mm; text-align: right; font-variant-numeric: tabular-nums; color: var(--color-muted); }
+.toc-entry--1 { margin-top: 3mm; font-weight: 700; color: var(--color-primary); }
+.toc-entry--1 .toc-page { color: var(--color-primary); }
+.toc-kicker { color: var(--color-muted); margin-right: 2mm; font-size: var(--small); letter-spacing: .06em; }
+.toc-entry--2 { padding-left: 6mm; font-size: calc(var(--base) - .6pt); }
+.epigraph { margin: 8mm 0 0; padding: 4mm 5mm; background: var(--color-bg); border-left: 1mm solid var(--color-accent);
+            border-radius: 1mm; break-inside: avoid; }
+.epigraph p { margin: 0; }
+
+/* ---------- parts and chapters ---------- */
+.part-open { break-before: page; break-inside: avoid; margin: 0 0 6mm; text-align: center; }
+.part-kicker { margin: 0; font-size: var(--small); letter-spacing: .22em; color: var(--color-muted); font-weight: 700; }
+.part-title { font-size: var(--h1); margin: 2mm 0 0; }
+.part-open .divider { color: var(--color-accent); }
+.part-intro { margin: 0 auto; max-width: 105mm; color: var(--color-muted); }
+.chapter { margin: 0 0 6mm; }
+.chapter > h2 { border-left: 1.1mm solid var(--color-accent); padding-left: 3mm; margin-bottom: 3mm; }
+/* A timeline chapter is headed by the span it covers plus its theme. The span is set above the title,
+   small and quiet, so it does not read as a second date line against the first window's own range. */
+.chapter-kicker { margin: 0 0 1mm; padding-left: 3mm; font-size: var(--small); letter-spacing: .04em;
+                  color: var(--color-muted); break-after: avoid; }
+.chapter-kicker + h2 { break-before: avoid; }
+.chapter > h2 + .window { margin-top: 1mm; }
+.subsec { margin: 0 0 3mm; }
+.subsec h3 { color: var(--color-card); margin-top: 3mm; }
+
+/* ---------- windows (the dated timeline sections) ---------- */
+.window { margin: 0 0 4.5mm; padding-left: 4mm; border-left: 0.4pt solid var(--color-line); }
+.window h3 { margin-bottom: 1mm; }
+.window-range { color: var(--color-muted); }
+.window-headline { display: block; color: var(--color-primary); }
+.window-sub { margin: 0 0 1.5mm; font-size: var(--small); color: var(--color-muted); letter-spacing: .02em; }
+.tags { margin: 0 0 1mm; }
+.tag { display: inline-block; font-size: 7pt; color: var(--color-primary); background: var(--color-tint);
+       border-radius: 1mm; padding: .2mm 1.6mm; margin: 0 1.2mm 1mm 0; }
+
+/* ---------- highlights (Part A) ---------- */
+.highlights { margin: 0 0 4mm; }
+.highlight .facts { grid-template-columns: repeat(3, 1fr); gap: 2mm; margin-bottom: 2.5mm; }
+.highlight .fact dd { font-size: var(--base); }
+.highlight { break-inside: avoid; margin: 0 0 3.5mm; padding: 0 0 0 4mm; border-left: 1mm solid var(--color-accent); }
+.highlight-title { margin: 0 0 1.5mm; font-weight: 700; color: var(--color-primary); font-size: var(--h3); }
+.highlight ul { margin: 0; }
+.highlight .facts, .highlight .banner { margin-bottom: 2mm; }
+
+/* ---------- facts, banners, score ---------- */
+.facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(38mm, 1fr)); gap: 2.5mm; margin: 0 0 4mm;
+         break-inside: avoid; }
+.fact { border: 0.4pt solid var(--color-line); border-top: 0.8mm solid var(--color-card); border-radius: 1.2mm;
+        padding: 2mm 2.6mm; background: var(--color-surface); }
+.fact dt { font-size: var(--small); color: var(--color-muted); }
+.fact dd { font-weight: 700; font-size: calc(var(--base) + 1pt); color: var(--color-primary); }
+.fact-sub { display: block; font-weight: 400; font-size: var(--small); color: var(--color-muted); }
+
+.banner { border-radius: 1.2mm; padding: 2.6mm 3.4mm; margin: 0 0 3.5mm; break-inside: avoid; }
+.banner p { margin: 0; }
+.banner-title { font-weight: 700; font-size: calc(var(--base) + .6pt); }
+.banner { border: 0.4pt solid var(--color-line); border-left: 1mm solid var(--color-line); }
+.banner--ok { background: var(--color-success-bg); color: var(--color-success-ink);
+              border-color: var(--color-success-line); border-left-color: var(--color-success); }
+.banner--info { background: var(--color-tint); color: var(--color-primary);
+                border-color: var(--color-line); border-left-color: var(--color-card); }
+.banner--warn { background: var(--color-warning-bg); color: var(--color-warning);
+                border-color: var(--color-warning-line); border-left-color: var(--color-warning); }
+
+.bullets { background: var(--color-bg); border-radius: 1.2mm; padding: 2.6mm 3.4mm 1.6mm; margin: 0 0 3.5mm;
+           break-inside: avoid; }
+.bullets-title { margin: 0 0 1.2mm; font-weight: 700; color: var(--color-primary); font-size: var(--h3); }
+.bullets ul { margin: 0; padding-left: 4.5mm; }
+
+.score { text-align: center; padding: 4mm; margin: 0 0 5mm; border: 0.4pt solid var(--color-line); border-radius: 2mm;
+         background: var(--saffron-tint); break-inside: avoid; }
+.score p { margin: 0; text-align: center; }
+.score-value { font-size: 12pt; color: var(--color-primary); }
+.score-total { font-size: 24pt; font-weight: 700; }
+.score-unit { font-size: 9.5pt; color: var(--color-muted); }
+.meter { height: 2.4mm; background: var(--color-surface); border: 0.4pt solid var(--color-line); border-radius: 2mm; overflow: hidden;
+         margin: 2mm auto; width: 70%; }
+.meter span { display: block; height: 100%; background: var(--color-saffron); }
+.score-verdict { font-weight: 700; }
+
+/* ---------- charts ---------- */
+.figure-title { font-weight: 700; color: var(--color-primary); font-size: var(--h3); margin: 0 0 1.6mm;
+                break-after: avoid; }
+.figure-title--center { text-align: center; }
+.chart { text-align: center; margin: 0 0 4mm; break-inside: avoid; }
+.kundali { width: var(--chart); height: var(--chart); display: block; margin: 0 auto 2mm; }
+.chart--small .kundali { width: calc(var(--chart) * .82); height: calc(var(--chart) * .82); }
+/* The signature visual, and it is the brand's: Card ground, Gold frame and house lines, Gold
+   lagna marker. The grahas - the part a reader actually reads - are Cream at 12.67:1, and the sign
+   numbers are a quiet lavender, so the three gold elements stay structure and marker, not noise. */
+.kundali__frame { fill: var(--color-card); stroke: var(--color-accent); stroke-width: 2; }
+.kundali__lines { fill: none; stroke: var(--color-accent); stroke-width: 1.4; }
+.kundali text { font-family: "Report Devanagari", "Report Sans"; text-anchor: middle; }
+.kundali__sign { font-size: 12px; fill: var(--color-meta-dark); font-weight: 400; }
+.kundali__graha { font-size: 15px; fill: var(--color-on-dark); font-weight: 700; }
+.kundali--deva .kundali__graha { font-size: 16px; }
+.kundali__graha--lagna { fill: var(--color-accent); }
+.kundali__retro { font-size: 8px; fill: var(--color-meta-dark); font-weight: 400; }
+.legend { font-size: var(--small); color: var(--color-muted); margin: 0 0 1mm; line-height: 1.7; text-align: center; }
+.legend span { white-space: nowrap; margin-right: 2.2mm; }
+.legend b { color: var(--color-ink); }
+.retro-key { font-size: 7pt; }
+.chart .note { text-align: center; }
+
+/* ---------- tables ---------- */
+.data-table { margin: 0 0 4.5mm; }
+.data-table.keep { break-inside: avoid; }
+table { width: 100%; border-collapse: collapse; font-size: var(--table); line-height: 1.42; }
+thead { display: table-header-group; }  /* repeats on every page when a long table breaks */
+tr { break-inside: avoid; }
+th, td { text-align: left; vertical-align: top; padding: 1.5mm 2mm; border-bottom: 0.4pt solid var(--color-line);
+          overflow-wrap: break-word; }  /* a monster token breaks instead of pushing the table wide;
+                                           `anywhere` would instead let a column shrink to one letter */
+thead th { background: var(--color-card); color: var(--color-on-dark); font-weight: 700; font-size: calc(var(--table) - .4pt);
+           border-bottom: none; }
+tbody th { font-weight: 700; color: var(--color-primary); }
+tbody tr:nth-child(even) { background: var(--color-bg); }
+tr.is-current, tr.is-current:nth-child(even) { background: var(--color-tint); }
+tr.is-current th, tr.is-lagna th { color: var(--color-primary); box-shadow: inset 1mm 0 0 var(--color-accent); }
+tr.is-flagged td:last-child { font-weight: 700; color: var(--color-warning); }
+tr.is-ok td:last-child { font-weight: 700; color: var(--color-success-ink); }
+tr.is-muted td:last-child { color: var(--color-muted); }
+tr.is-total, tr.is-total:nth-child(even) { background: var(--color-tint); font-weight: 700; }
+.cell-sub { display: block; font-weight: 400; font-size: calc(var(--table) - 1pt); color: var(--color-muted); }
+thead .cell-sub { color: var(--color-meta-dark); }
+.line { display: block; }
+.t-compact, .t-rules, .t-past { font-size: calc(var(--table) - .3pt); }
+.t-grahas { font-size: calc(var(--table) - .5pt); }          /* the widest table in the book: 8 columns */
+.t-grahas th, .t-grahas td { padding: 1.2mm 1.2mm; }
+body.size-a5 .t-grahas th, body.size-a5 .t-grahas td { padding: 1.1mm .9mm; }
+.t-rules td:last-child { width: 24mm; }
+.t-outlook, .t-ai { font-size: calc(var(--table) - .5pt); }
+.t-outlook th:first-child { width: 11mm; }
+.t-outlook td { width: 50%; }
+
+/* Two things side by side (the two dasha tables, the two charts of a matching report). At A5 there is not
+   enough width for a pair of date tables - a grid item never shrinks below its content, so it would stick
+   out of the page and Chromium would shrink the whole book - so at A5 they simply stack. */
+.columns { display: grid; grid-template-columns: repeat(auto-fit, minmax(52mm, 1fr)); gap: 4mm;
+           align-items: start; break-inside: avoid; }
+.column { min-width: 0; }
+body.size-a5 .columns { grid-template-columns: 1fr; gap: 2mm; }
+.column > .data-table, .column > .chart, .column > .bullets { margin-bottom: 2.5mm; }
+
+.dasha-grid-wrap { break-before: page; }
+/* the caption explains the table above it (which 120-year cycle it is), so it must not be left alone on
+   the next page - it travels with the last row of cards */
+.dasha-grid-wrap > .note { break-before: avoid; }
+.dasha-grid { display: grid; grid-template-columns: repeat(var(--grid-cols), 1fr); gap: 3.5mm; align-items: start; }
+.dasha-card { font-size: 6.9pt; break-inside: avoid; border: 0.4pt solid var(--color-line); }
+.dasha-card th, .dasha-card td { padding: .7mm 1.2mm; }
+.dasha-card thead th { font-size: 8pt; }
+.dasha-card.is-current thead th { background: var(--color-accent); color: var(--color-ink); }
+
+/* ---------- remedies and closing ---------- */
+.remedy { border: 0.4pt solid var(--color-line); border-left: 1.1mm solid var(--color-card); border-radius: 1.2mm;
+          padding: 2.6mm 3.4mm; margin: 0 0 3mm; break-inside: avoid; }
+.remedy h3 { margin-bottom: 1.4mm; }
+.remedy p { margin-bottom: 1.4mm; }
+.remedy-type { display: inline-block; font-size: 7.5pt; font-weight: 700; color: var(--color-ink); background: var(--color-accent);
+               border-radius: 1mm; padding: 0 1.8mm; margin-right: 1.4mm; vertical-align: 1pt; }
+.remedy dl > div { display: flex; gap: 2mm; font-size: calc(var(--base) - .6pt); }
+.remedy dt { flex: 0 0 20mm; color: var(--color-muted); font-weight: 700; }
+
+/* The closing is 89-105mm in the three languages, so it always fits one page - and keeping it whole is
+   what stops a sheet that happens to end near a page bottom from pushing the philosophy line alone onto
+   a page of its own. `break-before: avoid` does not do this: Chromium largely ignores it. */
+.closing { break-before: page; break-inside: avoid; }
+.closing > h2 { border-left: 1.1mm solid var(--color-accent); padding-left: 3mm; }
+.disclaimer { border: 0.6pt solid var(--color-accent); background: var(--saffron-tint); border-radius: 1.5mm;
+              padding: 3.5mm 4.5mm; margin-bottom: 3mm; break-inside: avoid; }
+.disclaimer p { margin: 0; font-size: calc(var(--base) - .4pt); }
+.report-id { font-variant-ligatures: none; letter-spacing: .02em; }
+
+/* The closing philosophy line. Set BELOW the disclaimer and in a lighter register, because the disclaimer
+   is the compliance statement and this is brand voice - if the eye reaches only one of them it must reach
+   that one. The three spans are laid out as separate lines so the verse, its own meaning and our
+   application read as three things, which is the whole point of keeping them in three fields. */
+.philosophy { margin: 5mm 0 0; padding-top: 2.5mm; border-top: 0.4pt solid var(--color-line);
+              text-align: center; break-inside: avoid; }
+.philosophy span { display: block; }
+.philosophy__verse { font-size: calc(var(--base) + 1pt); color: var(--color-primary); letter-spacing: .02em; }
+.philosophy__translit { font-size: var(--small); color: var(--color-muted); letter-spacing: .06em; }
+.philosophy__gloss { margin-top: 1mm; font-size: var(--small); color: var(--color-muted); }
+.philosophy__ours { margin-top: 2mm; font-size: calc(var(--base) - .5pt); color: var(--color-ink); }  /* hex ids contain ff / fi: keep them copyable */
+
+/* ---------- shared by both documents: the trust box and the accuracy caveats ----------
+ *
+ * The TRUST BOX (a trust requirement) is on the first page of every PDF this
+ * product makes. It is a quiet, factual card - Soft Tint with a thin gold rule - not a banner: a reader
+ * who is being reassured about where the dates came from should not be shouted at.
+ *
+ * The CAVEATS card is deliberately NOT Warning. The brand palette reserves Warning for an active
+ * dosha, an active sade sati and a caution window, and says not to tint everything or the
+ * signal stops meaning anything. A near-cusp lagna is not bad news - the note itself ends by saying
+ * what does not move - so it is set in the neutral Indigo/Cream register the web page uses. */
+.trust, .caveats { border-radius: 1.2mm; padding: 2.4mm 3.2mm; margin: 0 0 3mm; }
+.caveats { break-inside: avoid; }
+/* The trust box is the one block in either document that may split across a page break. It has to BEGIN
+   on the first page (a trust requirement), and at A5 - in Hindi or Marathi, under a chart that
+   also carries accuracy caveats - it is occasionally a few millimetres too tall to fit whole. Splitting
+   it keeps it where it belongs; `break-inside: avoid` would silently move the whole box to page two,
+   which is the one outcome the guideline rules out. orphans/widows keep the split from being ugly. */
+.trust { break-inside: auto; }
+.trust { background: var(--color-tint); border-top: 0.8mm solid var(--color-accent); }
+.caveats { background: var(--color-warning-bg); border: 0.4pt solid var(--color-warning-line);
+            border-left: 1mm solid var(--color-warning); color: var(--color-ink); }
+.trust p, .caveats p { margin: 0 0 .45em; font-size: calc(var(--base) - 1pt); line-height: 1.5; }
+html:lang(hi) .trust p, html:lang(hi) .caveats p,
+html:lang(mr) .trust p, html:lang(mr) .caveats p { line-height: 1.66; }
+.trust p:last-child, .caveats p:last-child { margin-bottom: 0; }
+.trust-title { margin: 0 0 1.2mm; font-weight: 700; color: var(--color-primary); font-size: var(--h3); }
+.caveats-title { margin: 0 0 1.2mm; font-weight: 700; color: var(--color-warning); font-size: var(--h3); }
+
+/* ---------- the free Basic Chart PDF only (templates/basic.html) ----------
+ *
+ * No full-bleed indigo cover here. The free chart is a handful of A5 sheets people print at home, and a
+ * solid indigo page would cost more toner than the whole rest of the document; a banded head gives the
+ * brand its page without that. It is also the honest signal that this is not the book.
+ *
+ * The measurements below are tight on purpose. Page one has to hold the identity band, the birth details,
+ * the three key facts, the accuracy caveats AND the trust box, because the trust rules put
+ * the trust box on the first page and the caveats belong beside the lagna they are about. At A5 that is
+ * about 175mm of a 180mm box, so a millimetre here is what keeps the trust box off a page of its own. */
+.sheet-head { position: relative; background: var(--color-primary); color: var(--color-on-dark); border-radius: 1.5mm;
+              padding: 4mm 6mm 3.5mm; margin: 0 0 3.5mm; text-align: center; break-after: avoid; }
+/* the base rule sets `text-align: left` on every p, which beats the centring inherited from here */
+.sheet-head p { text-align: center; }
+/* A 60-character name is one unbroken word, and one unbroken word wider than the page makes Chromium
+   shrink the WHOLE document to fit it - every type size on every sheet. It breaks instead. */
+.sheet-head, .sheet-name, .sheet-title { overflow-wrap: break-word; }
+.sheet-corner { position: absolute; top: 2mm; left: 2mm; width: 7mm; height: 7mm; color: var(--color-accent); }
+.sheet-corner svg { width: 100%; height: 100%; }
+.sheet-site { margin: 0; font-size: 9pt; font-weight: 700; letter-spacing: .16em; color: var(--color-accent); }
+.sheet-title { color: var(--color-surface); font-size: calc(var(--h1) - 1.5pt); margin: 1.5mm 0 .5mm; }
+.sheet-product { margin: 0; font-size: var(--small); color: var(--color-accent); letter-spacing: .04em; }
+.sheet-name { margin: 2mm 0 0; font-size: 11.5pt; font-weight: 700; color: var(--color-surface); }
+.sheet-tagline { margin: 1.8mm 0 0; font-size: var(--small); color: var(--color-meta-dark); }
+.sheet-section { margin: 0 0 4mm; }
+body.basic .facts { margin-bottom: 3mm; }
+.sheet-section > h2 { border-left: 1.1mm solid var(--color-accent); padding-left: 3mm; margin-bottom: 3mm; }
+.pagebreak-before { break-before: page; }
+.closing--basic { break-before: auto; }
+
+.birth { display: grid; grid-template-columns: repeat(auto-fit, minmax(42mm, 1fr)); gap: 1mm 4mm;
+         margin: 0 0 3mm; font-size: var(--small); break-inside: avoid; }
+.birth > div { display: flex; gap: 2mm; border-bottom: 0.4pt solid var(--color-line); padding-bottom: 1mm; }
+.birth dt { color: var(--color-muted); }
+.birth dd { margin: 0; font-weight: 700; color: var(--color-primary); }
+
+/* What the free chart leaves out. Plain type on Cream, no tint and no colour: this is an honest note
+   about scope, and dressing it up as a promotion is exactly what it must not look like. */
+.excluded { border: 0.4pt solid var(--color-line); border-radius: 1.2mm; padding: 2.8mm 3.4mm; margin: 0 0 4mm;
+            background: var(--color-bg); break-inside: avoid; }
+.excluded-title { margin: 0 0 1.4mm; font-weight: 700; color: var(--color-primary); font-size: var(--h3); }
+.excluded ul { margin: 0 0 1.6mm; padding-left: 4.5mm; font-size: calc(var(--base) - .5pt); }
+.excluded-note { margin: 0; font-size: var(--small); color: var(--color-muted); }

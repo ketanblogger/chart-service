@@ -1,0 +1,15 @@
+fastapi==0.141.1
+uvicorn[standard]==0.53.0
+pyswisseph==2.10.3.2
+jinja2==3.1.6
+anthropic==1.7.0  # Claude API (app/ai). 1.x uses httpx2, not httpx
+python-dotenv==1.2.3  # app/ai/config.py loads .env
+playwright==1.63.0  # app/pdf: drives headless Chromium. Browser itself: `playwright install chromium-headless-shell` (see docs/API.md)
+httpx==0.28.1  # app/payments: Razorpay REST API (also FastAPI's TestClient)
+pypdf==6.19.0  # app/pdf: checks which fonts ended up embedded in a generated PDF
+apscheduler==3.11.3  # app/rashifal/scheduler.py: optional in-process rashifal scheduler (RASHIFAL_SCHEDULER=1)
+
+# test
+pytest==9.1.1
+fonttools==4.65.0  # tests/test_pdf.py: every printed character must exist in the bundled fonts
+mini-racer==0.14.1  # embedded V8: runs app/static/js/render.js against real API responses in tests/test_web.py

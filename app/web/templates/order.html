@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{# Permanent "your purchase" page, /order/{token}. The token is the credential: noindex, no-store, no referrer.
+   All words come from app/payments/order_page.py (`order`), in the language of the order. Keep the ids, classes and
+   data-* attributes: pay.js and scripts/browser_check_payments.py depend on them. #}
+
+{% block title %}{{ order.labels.title }} - {{ site_name }}{% endblock %}
+{% block meta_description %}{{ order.labels.description }}{% endblock %}
+{% block head_extra %}
+<meta name="robots" content="noindex, nofollow">
+<meta name="referrer" content="no-referrer">
+{% endblock %}
+
+{% block main %}
+<div class="wrap order">
+  <h1>{{ order.labels.heading }}</h1>
+  <dl class="facts order__facts">
+    <div class="fact"><dt>{{ order.labels.purchase }}</dt><dd>{{ order.product_name }}</dd></div>
+    <div class="fact"><dt>{{ order.labels.amount }}</dt><dd>₹{{ "%g"|format(view.amount_inr) }}</dd></div>
+    <div class="fact"><dt>{{ order.labels.paid_on }}</dt><dd>{{ paid_on }}</dd></div>
+    {% if language_name %}<div class="fact"><dt>{{ order.labels.report_language }}</dt><dd>{{ language_name }}</dd></div>{% endif %}
+  </dl>
+
+  <div id="order-status" class="pay-status pay-status--{{ info.state }}" role="status" data-state="{{ info.state }}"
+       data-order-id="{{ view.order_id }}" data-order-token="{{ token }}" data-poll="{{ '0' if info.done else '1' }}">
+    <p class="pay-status__title">{{ info.title }}</p>
+    <p>{{ info.text }}</p>
+    {% if order.email_copy %}<p class="pay-status__email small">{{ order.email_copy }}</p>{% endif %}
+    {% if view.pdf_url %}<a class="btn btn--cta pay-status__download" href="{{ view.pdf_url }}" download>{{ order.labels.download }}</a>{% endif %}
+    <p class="small pay-status__id">{{ order.labels.reference }}{{ view.order_id }}</p>
+  </div>
+
+  {% if view.kind == "pack" %}
+  <p><a class="btn btn--primary" href="{{ consultation_path }}">{{ order.labels.continue }}</a></p>
+  {% endif %}
+  <p class="muted small">{{ order.labels.keep }}</p>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/js/pay.js?v={{ static_version }}" defer data-pay data-enabled="{{ '1' if payments_enabled else '0' }}"></script>
+{% endblock %}
