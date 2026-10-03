@@ -1,0 +1,91 @@
+{# The birth form of a tool page, as tool.html has always rendered it. Extracted so the full-width
+   prototype (tool_v2.html) can place the SAME markup somewhere else: two arrangements of one form, not two
+   forms. Nothing here changed in the extraction, which was checked by rendering all 249 URLs in the sitemap
+   from the pre-extraction commit in a git worktree and diffing against this tree: all 249 were identical
+   once the asset hash (`?v=` moves whenever anything under static/ changes, and design-v2.css is under it)
+   and the blank lines left where the include tags now sit were normalised away.
+
+   That diff is a one-off and not a test. What tests/test_design_v2_phase2.py asserts continuously is the
+   property it was checking for - the live pages keep their stages, their script hooks and their words. #}
+{% from "_person_fields.html" import person_fields with context %}
+  <section class="card tool__form" aria-labelledby="form-heading">
+    <h2 id="form-heading" data-heading-birth="{{ copy.form_heading }}"{% if copy.extra.name_heading %} data-heading-name="{{ copy.extra.name_heading }}"{% endif %}>{{ copy.form_heading }}</h2>
+    {% if page_key == "matching" %}
+    {# By-name mode (SEO map §3): same API, names instead of birth details. Deep link: ?mode=name or #by-name. #}
+    <div class="mode-toggle" id="by-name" role="group" aria-label="{{ copy.extra.mode_aria }}">
+      <button type="button" class="chip" data-mode="birth" aria-pressed="true">{{ copy.extra.mode_birth }}</button>
+      <button type="button" class="chip" data-mode="name" aria-pressed="false">{{ copy.extra.mode_name }}</button>
+    </div>
+    {% endif %}
+    {# One short trust line by the form (a trust requirement): the question "is this just a guess?" is asked here,
+       at the point of use, not on the about page. #}
+    <p class="trust-line">{{ ui.trust_form }}</p>
+    <form id="tool-form" class="birth-form birth-form--{{ spec.form }}" novalidate data-mode="birth"
+          data-form="{{ spec.form }}" data-endpoint="{{ spec.endpoint }}" data-renderer="{{ spec.renderer }}" data-lang="{{ lang }}">
+      {# Numbered steps. A PAIR form groups by person (two steps), a single form by input (three steps):
+         six steps to compare two charts would be worse than the single form it replaces. Either way every
+         field is in the DOM from the start and all steps are visible until app.js takes over, so the
+         <noscript> path below is still the whole form. #}
+      {% if spec.form == "pair" %}
+      <div class="pair steps">
+        <fieldset class="step" data-step="1">
+          <legend class="step__legend">
+            <span class="step__num" aria-hidden="true">1</span>
+            <span class="step__icon" aria-hidden="true">◷</span>
+            <span class="step__title">{{ ui.boy_legend }}</span>
+          </legend>
+          {{ person_fields("boy") }}
+        </fieldset>
+        <fieldset class="step" data-step="2">
+          <legend class="step__legend">
+            <span class="step__num" aria-hidden="true">2</span>
+            <span class="step__icon" aria-hidden="true">☾</span>
+            <span class="step__title">{{ ui.girl_legend }}</span>
+          </legend>
+          {{ person_fields("girl") }}
+        </fieldset>
+      </div>
+      {% else %}
+      {# `form_stages` is the ONLY thing a caller may vary, and only the prototype varies it: the live pages
+         leave it unset and get the numbered stages they have always had. tool_v2.html sets it false because
+         its form sits in the hero, where three stacked stages are taller than the fold - the non-staged
+         branch is the same fields with date and time on one row and place across the width, which is what
+         home_v2.html already renders. No [data-step] elements means app.js skips staging and leaves
+         `.step-nav` hidden, so the two arrangements need no script change between them. #}
+      {% if form_stages is not defined or form_stages %}
+      <div class="steps">{{ person_fields("self", stages=True) }}</div>
+      {% else %}
+      {{ person_fields("self") }}
+      {% endif %}
+      {% endif %}
+      <p class="form-status" id="form-status" role="alert" hidden></p>
+      <p class="step-nav" data-step-nav hidden>
+        <button type="button" class="btn btn--ghost" data-step-back>{{ ui.step_back }}</button>
+        <button type="button" class="btn btn--primary" data-step-next>{{ ui.step_next }}</button>
+        <span class="step-nav__count" data-step-count aria-live="polite"
+              data-template="{{ ui.step_count }}"></span>
+      </p>
+      <button type="submit" class="btn btn--primary" id="submit-btn" data-label-birth="{{ copy.submit_label }}"{% if copy.extra.name_submit %} data-label-name="{{ copy.extra.name_submit }}"{% endif %}>{{ copy.submit_label }}</button>
+      {# The busy row. In the markup and `hidden`, rather than built by app.js, so its content and language
+         come from the page rather than from script.
+
+         REVEALING IT DOES MOVE WHAT IS BELOW IT - measured, 32px at 390 and 55px at 320, because `hidden`
+         takes it out of layout entirely. That is the honest description and it is the acceptable half of
+         the trade: the shift is under the button, immediately after a deliberate click, which is both
+         expected by the reader and outside what CLS counts.
+
+         What is NOT acceptable is the button moving under the finger, and that is why the trust line lives
+         here rather than on it. The submit button is width:100% on a phone, so the longer label wraps:
+         measured at 48px -> 67px, nineteen pixels of growth at the exact instant of the most important
+         click on the page. Keeping the button's box fixed and letting the row below appear is the right way
+         round. It is also a statement rather than a label, and a statement wants a line of its own.
+
+         aria-live="polite" and not role="alert": this is progress, not a problem. #}
+      <p class="form-busy" id="form-busy" aria-live="polite" hidden>
+        <span class="form-busy__spinner" aria-hidden="true"></span><span data-busy-text></span>
+      </p>
+      <p class="form-note" id="form-note">{{ ui.form_note }}</p>
+      {% if page_key == "matching" %}<p class="form-note form-note--name" id="name-note" hidden>{{ copy.extra.name_note }}</p>{% endif %}
+      <noscript><p class="form-status form-status--error">{{ ui.noscript }}</p></noscript>
+    </form>
+  </section>

@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+{% block title %}System health{% endblock %}
+{% block sub %}APP_ENV is <code>{{ view.environment }}</code>. The readiness block below is exactly what
+  <code>/health/ready</code> answers.{% endblock %}
+{% block body %}
+<div class="tiles">
+  <div class="tile"><div class="k">Readiness</div>
+    <div class="v">{% if view.readiness.status == 'ok' %}<span class="pill ok">ok</span>{% else %}<span class="pill no">FAIL</span>{% endif %}</div>
+    <div class="n">{{ view.readiness.checks|length }} check(s){% if not view.checked_chromium %}, Chromium not launched{% endif %}</div></div>
+  <div class="tile"><div class="k">5xx, last 10 min</div>
+    <div class="v">{{ view.errors.ten_minutes.get('server_error', 0) }}</div>
+    <div class="n">{{ view.errors.day.get('server_error', 0) }} in 24 h, {{ view.errors.week.get('server_error', 0) }} in 7 days</div></div>
+  <div class="tile"><div class="k">Free on var/</div>
+    <div class="v">{% if view.disk.ok %}{{ '%.1f'|format(view.disk.free_percent) }}%{% else %}<span class="unknown">{{ '%.1f'|format(view.disk.free_percent|default(0)) }}%</span>{% endif %}</div>
+    <div class="n">{{ '%.1f'|format(view.disk.free_gb|default(0)) }} GB of {{ '%.0f'|format(view.disk.total_gb|default(0)) }} GB</div></div>
+  <div class="tile"><div class="k">Database</div><div class="v">{{ '%.1f'|format(view.database.mb) }} MB</div>
+    <div class="n">{{ view.database.path }}, plus a {{ '%.1f'|format(view.database.wal_mb) }} MB write-ahead log</div></div>
+  <div class="tile"><div class="k">Last smoke check</div>
+    <div class="v">{% if view.smoke.recorded %}{{ view.smoke.age }}{% else %}<span class="unknown">not recorded</span>{% endif %}</div>
+    <div class="n">{% if view.smoke.recorded %}{{ view.smoke.when.strftime('%d %b %H:%M') }} IST{% else %}see the note below{% endif %}</div></div>
+  {# Not a countdown. It showed "OVERDUE" against a deadline that does not exist: the AGPL is one of the Swiss
+     Ephemeris's two licences and publishing every deploy satisfies it. A red word on a dashboard for a
+     compliant state is how a dashboard stops being read. #}
+  <div class="tile"><div class="k">First live sale</div>
+    <div class="v">{% if view.licence.started %}recorded{% else %}not yet{% endif %}</div>
+    <div class="n">Swiss Ephemeris licence pending; AGPL publishing in force</div></div>
+</div>
+
+{% if not view.smoke.recorded %}
+<div class="note"><b>Nothing timestamps the smoke check.</b> {{ view.smoke.note }}</div>
+{% endif %}
+
+<div class="note {{ 'warn' if view.licence.overdue }}">{{ view.licence.summary }}</div>
+
+<div class="two">
+  <div class="card">
+    <h2 style="margin-top:0">Readiness detail</h2>
+    <table>
+      <tbody>{% for name, check in view.readiness.checks.items() %}
+        <tr><th>{{ name }}</th>
+          <td>{% if check.ok %}<span class="pill ok">ok</span>{% else %}<span class="pill no">fail</span>{% endif %}
+            <span class="mono quiet">{{ check.detail }}</span></td></tr>
+      {% endfor %}</tbody>
+    </table>
+    <p class="sub"><a href="/admin/system?chromium=1">Run it again including headless Chromium</a> - about
+      1.5 s, and it starts a browser process on this box, which is why it is not on by default.</p>
+  </div>
+  <div class="card">
+    <h2 style="margin-top:0">Configuration</h2>
+    {% if view.config.fatal %}<ul class="sub">{% for problem in view.config.fatal %}<li><b>FATAL</b> {{ problem }}</li>{% endfor %}</ul>{% endif %}
+    {% if view.config.warnings %}<ul class="sub">{% for problem in view.config.warnings %}<li>{{ problem }}</li>{% endfor %}</ul>{% endif %}
+    {% if not view.config.fatal and not view.config.warnings %}<p class="quiet">Nothing would block or worry a production start.</p>{% endif %}
+    <p class="sub">The same <code>config_problems()</code> the process runs at boot, so it cannot disagree
+      with what a production start would actually do.</p>
+  </div>
+</div>
+
+<h2>Errors kept from the application log</h2>
+<div class="card scroll">
+  {% if not view.errors.capturing %}
+  <div class="note warn">ADMIN_ERROR_CAPTURE=0, so nothing is being recorded and these counts are stale.</div>
+  {% endif %}
+  <table>
+    <thead><tr><th>Kind</th><th class="n">10 min</th><th class="n">24 h</th><th class="n">7 days</th></tr></thead>
+    <tbody>{% for kind, label in view.errors.labels.items() %}
+      <tr><td>{{ label }}</td>
+        <td class="n">{{ view.errors.ten_minutes.get(kind, 0) }}</td>
+        <td class="n">{{ view.errors.day.get(kind, 0) }}</td>
+        <td class="n">{{ view.errors.week.get(kind, 0) }}</td></tr>
+    {% endfor %}</tbody>
+  </table>
+  {% if view.errors.dropped %}
+  <p class="sub"><b>{{ view.errors.dropped }} event(s) were dropped</b> because the in-memory queue was full -
+    a diagnostic that loses records says so rather than quietly under-reporting.</p>
+  {% endif %}
+  <p class="sub">Counted by a logging handler this package attaches (app/admin/errors.py): the app already
+    logs each of these precisely, and the journal is not something the app can read back. Identical messages
+    inside a minute are one row with a count, and rows are dropped after 14 days.</p>
+  <table>
+    <thead><tr><th>When (IST)</th><th>Kind</th><th class="n">Times</th><th>Message</th></tr></thead>
+    <tbody>{% for event in view.errors.recent %}
+      <tr><td class="mono">{{ event.when.strftime('%d %b %H:%M:%S') }}</td><td>{{ event.kind }}</td>
+        <td class="n">{{ event.times }}</td><td class="mono">{{ event.message }}</td></tr>
+    {% else %}<tr><td colspan="4" class="quiet">Nothing has been recorded.</td></tr>{% endfor %}</tbody>
+  </table>
+</div>
+
+<div class="two">
+  <div class="card">
+    <h2 style="margin-top:0">Space under var/</h2>
+    <table>
+      <thead><tr><th>What</th><th class="n">Files</th><th class="n">MB</th></tr></thead>
+      <tbody>{% for row in view.directories %}<tr><td>{{ row.label }}</td><td class="n">{{ row.files }}</td>
+        <td class="n">{{ '%.1f'|format(row.mb) }}</td></tr>{% endfor %}</tbody>
+    </table>
+  </div>
+  <div class="card">
+    <h2 style="margin-top:0">Outbound e-mail</h2>
+    <p>{% if view.mailer_configured.configured %}<span class="pill ok">sending</span> Resend is configured and
+      the master switch is on.{% else %}<span class="pill no">not sending</span> Nothing will be sent, including
+      these alerts and the daily digest.{% endif %}</p>
+    {% if view.mailer_configured.problems %}<ul class="sub">{% for problem in view.mailer_configured.problems %}<li>{{ problem }}</li>{% endfor %}</ul>{% endif %}
+  </div>
+</div>
+
+<h2>Audit log, most recent first</h2>
+<div class="card scroll">
+  <table>
+    <thead><tr><th>When (IST)</th><th>Who</th><th>Action</th><th>Subject</th><th>Detail</th><th>From</th></tr></thead>
+    <tbody>{% for entry in audit_entries %}
+      <tr><td class="mono">{{ entry.at|ist }}</td><td>{{ entry.actor }}</td><td>{{ entry.action }}</td>
+        <td class="mono">{% if entry.action == 'order_view' and entry.subject %}<a href="/admin/orders/{{ entry.subject }}">{{ entry.subject }}</a>{% else %}{{ entry.subject or '-' }}{% endif %}</td>
+        <td class="quiet">{{ entry.detail or '' }}</td><td class="mono quiet">{{ entry.ip_key[:10] or '-' }}</td></tr>
+    {% else %}<tr><td colspan="6" class="quiet">Nothing recorded yet.</td></tr>{% endfor %}</tbody>
+  </table>
+  <p class="sub"><a href="/admin/export/audit.csv">Download the audit log as CSV</a> &mdash; it names order ids
+    and actions, never a customer's details.</p>
+</div>
+{% endblock %}

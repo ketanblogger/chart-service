@@ -1,0 +1,79 @@
+{# PHASE 2 PROTOTYPE of a rashifal READING (/horoscope/libra/today and its 179 siblings). Reached only by
+   `?design=v2`; rashifal_page.html is untouched.
+
+   THE READING AND EVERYTHING AROUND IT ARE THE SAME PARTIALS THE LIVE PAGE INCLUDES. This file decides where
+   they go and nothing else: the reading, the day facts and the transit tables in a wide column, and the
+   blocks that used to follow them - the two calls to action, the other periods, the other rashis, the about
+   block - in a rail beside it. On the live page a reader who has finished the reading scrolls past three
+   screens of tables to reach "what else can I read"; here it is next to them the whole way down.
+
+   These are the most-read pages on the site, so nothing about the words, the headings or the JSON-LD moves. #}
+{% extends "base.html" %}
+
+{% block body_class %} class="design-v2"{% endblock %}
+
+{% block title %}{{ title }} | {{ site_name }}{% endblock %}
+{% block meta_description %}{{ meta_description }}{% endblock %}
+{% block og_type %}article{% endblock %}
+
+{% block head_extra %}
+  {# Only while this is a PREVIEW behind ?design=v2. Once it is the design the site serves, a noindex
+     here would quietly delist the page. See site.DESIGN_V2. #}
+  {% if not v2_is_default %}<meta name="robots" content="noindex, nofollow">{% endif %}
+  <link rel="stylesheet" href="/static/css/design-v2.css?v={{ static_version }}">
+  <script src="/static/js/design-v2.js?v={{ static_version }}" defer></script>
+{% endblock %}
+
+{% block main %}
+<div id="design-v2" class="v2">
+
+<section class="v2-hero v2-hero--slim">
+  <div class="wrap">
+    <nav class="breadcrumbs" aria-label="{{ ui.breadcrumb_aria }}">
+      {% for name, path in crumbs %}<a href="{{ path }}">{{ name }}</a>{% if not loop.last %} <span aria-hidden="true">›</span> {% endif %}{% endfor %}
+    </nav>
+    <h1>{{ h1 }}</h1>
+    <p class="rashifal-meta">
+      <span><strong>{{ range_label }}:</strong> <span id="period-range">{{ current_range }}</span></span>
+      {% if reading %}<span><strong>{{ t.updated }}:</strong> <time id="last-updated">{{ reading.updated }}</time></span>{% endif %}
+    </p>
+  </div>
+</section>
+
+<div class="wrap v2-body v2-reading">
+  <main class="v2-main">
+    {% include "_rashifal_reading_body.html" %}
+  </main>
+
+  <aside class="v2-rail" aria-label="{{ v2.sky_heading }}">
+    {% if sky %}
+    <section class="v2-card" aria-labelledby="sky-heading">
+      <h2 id="sky-heading">{{ v2.sky_heading }}</h2>
+      <p class="v2-card__when">{{ sky.as_of }} · {{ v2.sky_note }}</p>
+      <details class="v2-readmore" open>
+        <summary>{{ v2.read_more }}</summary>
+        <ul class="v2-sky">
+          {% for row in sky.rows %}
+          <li><span class="v2-sky__graha">{{ row.graha }}</span>
+            <span class="v2-sky__pos">{{ row.sign }} {{ row.degree }}°{% if row.retrograde %}<span
+              class="v2-sky__rx" title="{{ v2.sky_rx_label }}">{{ v2.sky_rx }}</span>{% endif %}</span></li>
+          {% endfor %}
+        </ul>
+      </details>
+    </section>
+    {% endif %}
+
+    {# The live page's own trailing blocks, in the rail. Same partial, same order, same links. #}
+    <div class="v2-rail__aside">
+      {% include "_rashifal_reading_aside.html" %}
+    </div>
+  </aside>
+</div>
+
+<nav class="v2-bottombar" aria-label="{{ v2.tools_heading }}">
+  <a class="is-primary" href="{{ href('kundali') }}">{{ v2.bar_kundali }}</a>
+  <a class="is-secondary" href="{{ href('consultation') }}">{{ v2.bar_ai }}</a>
+</nav>
+
+</div>
+{% endblock %}

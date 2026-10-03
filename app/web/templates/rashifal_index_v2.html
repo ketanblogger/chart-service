@@ -1,0 +1,130 @@
+{# PHASE 2 PROTOTYPE of a rashifal hub (/horoscope, /hi/rashifal, /mr/rashi-bhavishya and the three weekly
+   hubs). Reached only by `?design=v2`; rashifal_index.html is untouched.
+
+   Every card, link, ad slot, crumb and disclaimer the live hub renders is here - this is the twelve cards
+   laid across the width with a rail beside them, not a different page. The words, the H1 and the JSON-LD are
+   the live ones. #}
+{% extends "base.html" %}
+{% import "_copy_blocks.html" as blocks %}
+
+{% macro arrow() %}<svg class="icon v2-arrow" width="1em" height="1em" viewBox="0 0 16 16" fill="none"
+  stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 8h11M9 3.5L13.5 8 9 12.5"/></svg>{% endmacro %}
+
+{% block body_class %} class="design-v2"{% endblock %}
+
+{% block title %}{{ title }} | {{ site_name }}{% endblock %}
+{% block meta_description %}{{ meta_description }}{% endblock %}
+
+{% block head_extra %}
+  {# Only while this is a PREVIEW behind ?design=v2. Once it is the design the site serves, a noindex
+     here would quietly delist the page. See site.DESIGN_V2. #}
+  {% if not v2_is_default %}<meta name="robots" content="noindex, nofollow">{% endif %}
+  <link rel="stylesheet" href="/static/css/design-v2.css?v={{ static_version }}">
+  <script src="/static/js/design-v2.js?v={{ static_version }}" defer></script>
+{% endblock %}
+
+{% block main %}
+<div id="design-v2" class="v2">
+
+<section class="v2-hero v2-hero--slim">
+  <div class="wrap">
+    <nav class="breadcrumbs" aria-label="{{ ui.breadcrumb_aria }}">
+      {% for name, path in crumbs %}<a href="{{ path }}">{{ name }}</a>{% if not loop.last %} <span aria-hidden="true">›</span> {% endif %}{% endfor %}
+    </nav>
+    <h1>{{ h1 }}</h1>
+    <p class="v2-hero__intro">{{ copy.intro }}</p>
+    <p class="rashifal-meta">
+      <span><strong>{{ range_label }}:</strong> <span id="period-range">{{ current_range }}</span></span>
+      {% if updated %}<span><strong>{{ labels.updated }}:</strong> <time id="last-updated">{{ updated }}</time></span>{% endif %}
+    </p>
+  </div>
+</section>
+
+<div class="wrap v2-body">
+  <main class="v2-main">
+    <div class="ad-slot" data-ad-slot="{{ ad_slots[0] }}" hidden></div>
+
+    {# Three across at 1280 instead of the live page's narrow stack: twelve readings are a LIST to scan, and
+       the whole point of the width is that more of it is on screen at once. #}
+    <ul class="v2-hubgrid" id="hub-cards">
+      {% for card in cards %}
+      <li class="v2-hubcard" id="rashi-{{ card.slug }}">
+        <h2><a href="{{ card.path }}">{{ card.label }}</a> <span class="muted small">{{ card.sub }}</span></h2>
+        {% if card.summary %}
+        {% if card.headline %}<p class="rashi-card__headline"><strong>{{ card.headline }}</strong></p>{% endif %}
+        <p>{{ card.summary }}</p>
+        {% else %}
+        {% if card.fact %}<p>{{ card.fact }}</p>{% endif %}
+        <p class="muted small">{{ card.pending }}</p>
+        {% endif %}
+        <p class="rashi-card__links"><a href="{{ card.path }}" aria-label="{{ labels.read_more }}: {{ card.label }}">{{ labels.read_more }}{{ arrow() }}</a></p>
+      </li>
+      {% endfor %}
+    </ul>
+
+    <p class="hub-switch"><a class="btn btn--primary" href="{{ other_hub.path }}">{{ other_hub.label }}</a></p>
+    <div class="ad-slot" data-ad-slot="{{ ad_slots[1] }}" hidden></div>
+
+    {% for section in copy.sections %}
+    <article class="v2-panel v2-article"{% if section.anchor %} id="about-{{ section.anchor }}"{% endif %}>
+      <h2>{{ section.heading }}</h2>
+      <details class="v2-readmore" open>
+        <summary>{{ v2.read_more }}</summary>
+        {{ blocks.section_body(section) }}
+      </details>
+    </article>
+    {% endfor %}
+
+    {% if copy.faqs %}
+    <section class="v2-panel" aria-labelledby="faq-heading">
+      <h2 id="faq-heading">{{ ui.faq_heading }}</h2>
+      <div class="v2-faq">
+        {% for question, answer in copy.faqs %}
+        <details><summary>{{ question }}</summary><div class="v2-prose">{{ answer }}</div></details>
+        {% endfor %}
+      </div>
+    </section>
+    {% endif %}
+    <p class="disclaimer" id="rashifal-disclaimer">{{ disclaimer }}</p>
+  </main>
+
+  <aside class="v2-rail" aria-label="{{ v2.sky_heading }}">
+    {% if sky %}
+    <section class="v2-card" aria-labelledby="sky-heading">
+      <h2 id="sky-heading">{{ v2.sky_heading }}</h2>
+      <p class="v2-card__when">{{ sky.as_of }} · {{ v2.sky_note }}</p>
+      <details class="v2-readmore" open>
+        <summary>{{ v2.read_more }}</summary>
+        <ul class="v2-sky">
+          {% for row in sky.rows %}
+          <li><span class="v2-sky__graha">{{ row.graha }}</span>
+            <span class="v2-sky__pos">{{ row.sign }} {{ row.degree }}°{% if row.retrograde %}<span
+              class="v2-sky__rx" title="{{ v2.sky_rx_label }}">{{ v2.sky_rx }}</span>{% endif %}</span></li>
+          {% endfor %}
+        </ul>
+      </details>
+    </section>
+    {% endif %}
+
+    {# The two CTAs the live hub puts in a pair below the cards. In the rail they are beside the reading
+       instead of after it, which is where a reader who has just found their sign actually is. #}
+    <section class="v2-card" aria-labelledby="cta-kundali">
+      <h2 id="cta-kundali">{{ labels.cta_kundali_title }}</h2>
+      <p>{{ labels.cta_kundali_text }}</p>
+      <p><a class="btn btn--cta" href="{{ href('kundali') }}">{{ labels.cta_kundali_button }}</a></p>
+    </section>
+    <section class="v2-card" aria-labelledby="cta-chat">
+      <h2 id="cta-chat">{{ labels.cta_chat_title }}</h2>
+      <p>{{ labels.cta_chat_text }}</p>
+      <p><a class="btn btn--cta" href="{{ href('consultation') }}">{{ labels.cta_chat_button }}</a></p>
+    </section>
+  </aside>
+</div>
+
+<nav class="v2-bottombar" aria-label="{{ v2.tools_heading }}">
+  <a class="is-primary" href="{{ href('kundali') }}">{{ v2.bar_kundali }}</a>
+  <a class="is-secondary" href="{{ href('consultation') }}">{{ v2.bar_ai }}</a>
+</nav>
+
+</div>
+{% endblock %}

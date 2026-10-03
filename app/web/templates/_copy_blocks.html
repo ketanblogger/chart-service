@@ -1,0 +1,54 @@
+{# Long-form SEO content + FAQ of a PageCopy (tool pages, consultation, home, rashifal hubs). #}
+{% macro sections(copy) %}
+  {% for section in copy.sections %}{{ section_block(section) }}{% endfor %}
+{% endmacro %}
+
+{# ONE section, so a layout can place sections individually instead of taking the whole run. `sections` is
+   this in a loop, which is what keeps a page that arranges its own sections (the full-width home prototype)
+   rendering the identical markup to one that does not. #}
+{% macro section_block(section) %}
+  <section{% if section.anchor %} id="about-{{ section.anchor }}"{% endif %}>
+    <h2>{{ section.heading }}</h2>
+    {{ section_body(section) }}
+  </section>
+{% endmacro %}
+
+{# The paragraphs and lists of one section, WITHOUT its heading, for a layout that places the heading itself
+   - the full-width prototype puts it outside a <details> so that a collapsed section still shows what it is.
+   One source for the body markup either way. #}
+{% macro section_body(section) %}
+    {% for block in section.blocks %}
+      {% if block is string %}
+      <p>{{ block }}</p>
+      {% else %}
+      <ul>
+        {% for item in block %}<li>{{ item }}</li>{% endfor %}
+      </ul>
+      {% endif %}
+    {% endfor %}
+{% endmacro %}
+
+{% macro faq(copy, heading) %}
+  {% if copy.faqs %}
+  <section class="faq" id="faq" aria-labelledby="faq-heading">
+    <h2 id="faq-heading">{{ heading }}</h2>
+    {% for question, answer in copy.faqs %}
+    <details{% if loop.first %} open{% endif %}>
+      <summary>{{ question }}</summary>
+      <p>{{ answer }}</p>
+    </details>
+    {% endfor %}
+  </section>
+  {% endif %}
+{% endmacro %}
+
+{% macro tool_links(items, heading) %}
+  <section class="more-tools" aria-labelledby="more-heading">
+    <h2 id="more-heading">{{ heading }}</h2>
+    <ul class="tool-links">
+      {% for item in items %}
+      <li><a href="{{ item.path }}">{{ item.label }}</a> &ndash; {{ item.blurb }}</li>
+      {% endfor %}
+    </ul>
+  </section>
+{% endmacro %}

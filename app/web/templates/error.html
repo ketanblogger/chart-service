@@ -1,0 +1,24 @@
+{# 404 / 500 in the site style (app/hardening.py). Never indexed. Header, footer and links follow the language tree of
+   the requested path. #}
+{% extends "base.html" %}
+
+{% block title %}{{ heading }} | {{ site_name }}{% endblock %}
+{% block meta_description %}{{ text }}{% endblock %}
+{% block head_extra %}<meta name="robots" content="noindex">{% endblock %}
+
+{% block main %}
+<section class="hero">
+  <div class="wrap">
+    <h1>{{ heading }}</h1>
+    <p class="hero__intro">{{ text }}</p>
+  </div>
+</section>
+<div class="wrap content">
+  <p><a class="btn btn--primary" href="{{ home_path }}">{{ ui.error_home }}</a></p>
+  <ul class="tool-links">
+    {% for item in nav %}
+    <li><a href="{{ item.path }}">{{ item.label }}</a> &ndash; {{ item.blurb }}</li>
+    {% endfor %}
+  </ul>
+</div>
+{% endblock %}
