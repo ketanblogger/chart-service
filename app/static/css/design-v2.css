@@ -1,0 +1,846 @@
+/* PROTOTYPE stylesheet for the full-width home page (?design=v2). NOT loaded by any live page.
+ *
+ * It is a second file rather than a section of site.css so that the prototype cannot change the live site by
+ * accident: nothing here is downloaded, parsed or applied unless the preview flag rendered the marker element
+ * this file hangs everything off. Every colour is a token from site.css - the palette is the contract with the
+ * PDF report and this file adds no new one.
+ *
+ * `body.design-v2` carries the widened container. It began as `body:has(#design-v2)`, because phase 1 was not
+ * allowed to touch base.html; the class was approved on 2026-09-30 and base.html now has a `body_class` block
+ * that emits nothing at all for every other page.
+ */
+
+/* ---------- the container: 960 -> 1280, fluid below ------------------------------------------------- */
+
+/* FLUID, not a fixed 1280. On a 1920 or 2560 monitor a 1280px column leaves a third to a half of the screen
+   empty on either side, which is the one thing this redesign exists to stop.
+     clamp(1280px, 94vw, 1600px)
+   is min(94vw, 1600px) once the viewport is wide enough to matter, and never NARROWER than the 1280 that was
+   reviewed: below a 1362px viewport the lower bound wins, and a max-width above the available width simply
+   lets the block fill it, so every width from the phone up to the laptop renders exactly as before.
+   1600 is the upper stop because the rail is capped at 400 and the main column past ~1200 stops buying
+   anything a reader can use. */
+body.design-v2 .wrap { max-width: clamp(1280px, 94vw, 1600px); }
+
+/* Reading text never gets the full 1280. A 1280px line of prose is ~180 characters and nobody reads it;
+   the grid is wide so that MORE can be on screen at once, not so that sentences can be longer. */
+.v2 .v2-prose { max-width: 70ch; }
+
+.v2 { --v2-gap: 1.5rem; --v2-radius: 14px; }
+
+/* ---------- hero: headline + trust on the left, the actual form on the right ------------------------- */
+
+.v2-hero {
+  background: var(--color-primary);
+  color: #fff;
+  padding: 2.5rem 0 3rem;
+  /* The constellation ground, drawn rather than downloaded: three radial dots at 2-3% white. It costs no
+     request, it tiles, and at this opacity it reads as texture rather than as stars on a flag. */
+  background-image:
+    radial-gradient(circle at 12% 22%, rgba(255,255,255,.055) 0 1.5px, transparent 1.6px),
+    radial-gradient(circle at 63% 71%, rgba(255,255,255,.045) 0 1.3px, transparent 1.4px),
+    radial-gradient(circle at 87% 31%, rgba(255,255,255,.05) 0 1.1px, transparent 1.2px);
+  background-size: 180px 180px, 240px 240px, 300px 300px;
+}
+.v2-hero__grid {
+  display: grid;
+  /* Same reasoning as the rail: the form is a form. Past ~520px its fields are just longer boxes, so the
+     extra width goes to the headline and the lead instead. */
+  grid-template-columns: minmax(0, 1fr) minmax(360px, 520px);
+  gap: 2.5rem;
+  align-items: start;
+}
+.v2-hero__lead { padding-top: .5rem; }
+.v2-hero h1 { color: #fff; font-size: clamp(1.9rem, 1.2rem + 2vw, 2.9rem); line-height: 1.15; margin: .35rem 0 .75rem; }
+.v2-hero__tagline { color: var(--color-accent); font-weight: 600; letter-spacing: .04em; margin: 0; }
+.v2-hero__intro { color: rgba(255,255,255,.92); font-size: 1.08rem; max-width: 46ch; }
+.v2-hero__trust {
+  color: rgba(255,255,255,.92);
+  border-left: 3px solid var(--color-accent);
+  padding: .1rem 0 .1rem .9rem;
+  margin-top: 1.25rem;
+  max-width: 48ch;
+}
+.v2-hero__points { list-style: none; padding: 0; margin: 1.5rem 0 0; display: grid; gap: .55rem; }
+.v2-hero__points li { display: flex; gap: .6rem; align-items: baseline; color: rgba(255,255,255,.92); }
+.v2-hero__points .tick { color: var(--color-accent); width: 15px; height: 15px; flex: none; margin-top: .28rem; }
+
+/* The form card. White on indigo, so it is the brightest thing above the fold - which is the whole point of
+   moving it here: the first action is visible without scrolling. */
+.v2-formcard {
+  /* COLOUR IS RESET AT THE CARD BOUNDARY, and this line is load-bearing. `.v2-hero` sets `color: #fff` for
+     the headline, every child inherits it, and a white card inside a dark section then renders every element
+     that does NOT set its own colour as white on white. The first casualty was the name field's <label>,
+     which vanished entirely while the fields around it - which do set a colour - looked fine. This site has
+     had this exact bug before, on the purchase panel's total at 1.10:1. */
+  color: var(--color-ink);
+  background: #fff;
+  border-radius: var(--v2-radius);
+  padding: 1.35rem 1.35rem 1.5rem;
+  box-shadow: 0 18px 40px rgba(20, 14, 60, .28);
+}
+.v2-formcard h2 { margin: 0 0 .15rem; font-size: 1.2rem; }
+.v2-formcard .trust-line { margin: .1rem 0 .9rem; }
+
+/* ---------- the two-column body: main 2/3, rail 1/3 -------------------------------------------------- */
+
+.v2-body {
+  display: grid;
+  /* The rail is a FIXED band, not a third of whatever the window is. At 2fr/1fr a 1600px container gave it
+     525px, and a column of cards that wide stops reading as a sidebar and starts competing with the article.
+     Capped at 400; everything the container gains past that goes to the main column. */
+  grid-template-columns: minmax(0, 1fr) minmax(260px, 400px);
+  gap: 2.25rem;
+  align-items: start;
+  /* padding-TOP and -BOTTOM only. `.v2-body` is also a `.wrap`, and `.wrap` supplies the 16px side gutter -
+     a `padding:` shorthand here silently reset it to zero, so on a phone every card, heading and line of
+     text in this grid ran flush into both screen edges. Invisible at 1440, where the centring margin is
+     80px and hides it. */
+  padding-top: 2.25rem;
+  padding-bottom: 1rem;
+}
+/* `grid-template-columns: minmax(0, 1fr)` on BOTH, and `min-width: 0` is not enough on its own. These are
+   grid items (fixed by `min-width: 0`) that are ALSO grids, and an implicit grid column's minimum is
+   min-content - so the transit table's `min-width: 36rem` from site.css passed straight through the item's
+   own zero minimum and widened the page anyway. `.table-wrap` can only scroll inside a column that is
+   allowed to be narrower than what it holds. */
+.v2-main { display: grid; grid-template-columns: minmax(0, 1fr); gap: 2.25rem; min-width: 0; }
+.v2-rail { display: grid; grid-template-columns: minmax(0, 1fr); gap: 1.1rem; position: sticky; top: 1rem; min-width: 0; }
+
+.v2-section__head { display: flex; justify-content: space-between; align-items: baseline; gap: 1rem; flex-wrap: wrap; }
+.v2-section__head h2 { margin: 0 0 .75rem; font-size: 1.32rem; }
+
+/* ---------- tool cards, 3 x 2 ------------------------------------------------------------------------ */
+
+.v2-tools { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--v2-gap); }
+.v2-tool {
+  background: #fff; border: 1px solid var(--color-line); border-radius: var(--v2-radius);
+  padding: 1.1rem 1.15rem 1.2rem; display: flex; flex-direction: column; gap: .4rem;
+}
+.v2-tool h3 { margin: 0; font-size: 1.05rem; }
+.v2-tool h3 a { text-decoration: none; }
+.v2-tool p { margin: 0; color: var(--color-muted); font-size: .93rem; flex: 1; }
+.v2-tool__icon {
+  width: 34px; height: 34px; border-radius: 9px; display: grid; place-items: center;
+  background: var(--color-tint); color: var(--color-primary); margin-bottom: .2rem;
+}
+.v2-tool__icon svg { width: 20px; height: 20px; }
+.v2-tool__go { font-weight: 600; font-size: .92rem; display: inline-flex; align-items: center; gap: .3rem; }
+
+/* EVERY inline icon, bounded twice. An <svg> with a viewBox and no width scales to its container, so the
+   arrow that replaced "→" rendered 571px square inside a tool card - a dark wedge across half of every card,
+   in every language, on desktop and mobile. It shipped because the rule that would have sized it was lost:
+   the script that added it aborted on an assertion after editing the template and before writing this file,
+   and the retry only fixed the template.
+   So the size is on the ELEMENT now (width/height attributes, which need no stylesheet at all) and again
+   here. A missing stylesheet, a renamed class or a lost edit can no longer make an icon fill a card, and
+   scripts/design_shots.py fails the run if any inline SVG renders larger than 32px on either axis. */
+svg.icon { width: 1em; height: 1em; flex: none; vertical-align: -0.125em; }
+svg.icon--tile { width: 26px; height: 26px; }
+
+/* ---------- the twelve signs ------------------------------------------------------------------------- */
+
+/* `minmax(0, 1fr)`, never a bare `1fr`: a bare one floors at MIN-CONTENT, so one long sign name -
+   Sagittarius, धनु - pushes the whole grid past the viewport. At four columns on a phone that made the
+   home page 410px wide at every width from 320 to 390, and the page scrolled sideways. */
+.v2-signs { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: .7rem; }
+.v2-sign a {
+  display: grid; place-items: center; gap: .3rem; text-align: center; text-decoration: none;
+  background: #fff; border: 1px solid var(--color-line); border-radius: var(--v2-radius);
+  padding: .85rem .35rem .7rem; height: 100%;
+}
+.v2-sign a:hover { border-color: var(--color-accent); }
+.v2-sign svg { width: 26px; height: 26px; color: var(--color-primary); }
+.v2-sign__name { font-weight: 600; font-size: .92rem; line-height: 1.2; }
+.v2-sign__sub { color: var(--color-muted); font-size: .8rem; line-height: 1.2; }
+.v2-periods { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: .9rem; }
+.v2-periods a {
+  border: 1px solid var(--color-line); border-radius: 999px; padding: .35rem .85rem;
+  text-decoration: none; font-size: .9rem; background: #fff;
+}
+.v2-periods a:hover { border-color: var(--color-accent); }
+
+/* ---------- AI preview, trust block, report preview -------------------------------------------------- */
+
+.v2-panel { background: #fff; border: 1px solid var(--color-line); border-radius: var(--v2-radius); padding: 1.35rem 1.4rem; }
+/* `margin: ... 0 ...` on a `.wrap` element kills the auto centring it inherits, and this element IS a
+   `.wrap`: at 2560px the whole chat page sat hard against the left edge, its content outside the
+   veiled band entirely. `auto` on the inline sides keeps the vertical rhythm and the centring. */
+.v2-chat { display: grid; gap: .7rem; margin: .9rem auto 1rem; }
+.v2-bubble { border-radius: 14px; padding: .7rem .95rem; max-width: 85%; }
+.v2-bubble--q { background: var(--color-tint); justify-self: start; border-bottom-left-radius: 4px; }
+.v2-bubble--a { background: var(--color-card); color: #fff; justify-self: end; border-bottom-right-radius: 4px; }
+.v2-bubble--a .v2-bubble__who { color: var(--color-accent); }
+.v2-bubble__who { display: block; font-size: .76rem; letter-spacing: .06em; text-transform: uppercase; margin-bottom: .2rem; font-weight: 700; }
+.v2-bubble--q .v2-bubble__who { color: var(--color-muted); }
+
+.v2-trust { background: var(--color-tint); border-radius: var(--v2-radius); padding: 1.35rem 1.4rem; }
+.v2-trust ol { margin: .8rem 0 0; padding-left: 1.2rem; display: grid; gap: .55rem; }
+.v2-trust li::marker { color: var(--color-primary); font-weight: 700; }
+
+.v2-report { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 1.4rem; align-items: center; }
+/* Three "pages" drawn in CSS - ruled lines on cream. No image, so nothing to download and nothing to go
+   stale when the book's design moves. It is a suggestion of a page, and it is labelled as one. */
+.v2-pages { display: flex; gap: .55rem; }
+.v2-page {
+  width: 74px; height: 104px; border-radius: 4px; background: #fff;
+  border: 1px solid var(--color-line); box-shadow: 0 4px 12px rgba(30, 27, 46, .1);
+  padding: 8px 7px; display: grid; align-content: start; gap: 5px;
+}
+.v2-page span { display: block; height: 3px; border-radius: 2px; background: var(--color-line); }
+.v2-page span:first-child { background: var(--color-accent); width: 60%; height: 5px; }
+.v2-page--2 { transform: translateY(6px); }
+.v2-page--3 { transform: translateY(12px); }
+.v2-price { font-size: 1.5rem; font-weight: 700; color: var(--color-ink); }
+.v2-price small { font-size: .85rem; font-weight: 400; color: var(--color-muted); }
+
+/* ---------- the lower half, across the width ---------------------------------------------------------- */
+/* This is the half the first prototype got wrong: below the fold everything dropped back into a ~700px column
+   with the whole right side empty, which is the problem the redesign exists to fix. Two prose sections per
+   row, the four needs as a 2x2, the FAQ in two columns. The grid is TWO wide and not three because a card
+   still holds its reading width: the extra width buys a second column, never a longer line. */
+
+/* The full-width band under the two-column grid. Two columns of ~620px at 1280, which a card then holds to
+   ~68ch of text - the width buys a second column, never a longer line. */
+.v2-wide { display: grid; gap: 2.25rem; padding-bottom: 2rem; }
+.v2-duo { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--v2-gap); align-items: start; }
+.v2-article h2 { margin-top: 0; font-size: 1.2rem; }
+.v2-article :is(p, li) { max-width: 68ch; }
+.v2-article > section > :last-child { margin-bottom: 0; }
+
+.v2-needs { list-style: none; padding: 0; margin: .9rem 0 1rem; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--v2-gap); }
+.v2-need {
+  background: #fff; border: 1px solid var(--color-line); border-left: 3px solid var(--color-accent);
+  border-radius: var(--v2-radius); padding: 1rem 1.15rem 1.05rem; display: flex; flex-direction: column; gap: .6rem;
+}
+.v2-need p { margin: 0; max-width: 62ch; flex: 1; }
+
+/* Two columns of questions, and a question never splits across them. */
+.v2-faq { columns: 2; column-gap: 2rem; margin-top: .6rem; }
+.v2-faq details { break-inside: avoid; margin: 0 0 .7rem; border-bottom: 1px solid var(--color-line); padding-bottom: .7rem; }
+.v2-faq summary { cursor: pointer; font-weight: 600; }
+.v2-faq details > div { margin-top: .5rem; color: var(--color-muted); }
+
+/* ---------- the right rail --------------------------------------------------------------------------- */
+
+.v2-card { background: #fff; border: 1px solid var(--color-line); border-radius: var(--v2-radius); padding: 1.1rem 1.15rem; }
+.v2-card h2 { margin: 0 0 .2rem; font-size: .84rem; letter-spacing: .09em; text-transform: uppercase; color: var(--color-muted); }
+.v2-card__when { color: var(--color-muted); font-size: .8rem; margin: 0 0 .7rem; }
+
+.v2-sky { list-style: none; margin: 0; padding: 0; display: grid; gap: .3rem; }
+.v2-sky li { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: baseline; gap: .5rem; padding: .3rem 0; border-bottom: 1px solid var(--color-line); }
+.v2-sky li:last-child { border-bottom: 0; }
+.v2-sky__graha { font-weight: 600; }
+.v2-sky__pos { color: var(--color-muted); font-size: .9rem; font-variant-numeric: tabular-nums; }
+.v2-sky__rx { color: var(--color-warning); font-weight: 700; font-size: .78rem; margin-left: .3rem; }
+
+.v2-picker { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .35rem; margin-top: .5rem; }
+.v2-picker a {
+  text-align: center; text-decoration: none; font-size: .82rem; padding: .4rem .2rem;
+  border: 1px solid var(--color-line); border-radius: 8px; background: #fff;
+}
+.v2-picker a:hover { border-color: var(--color-accent); }
+
+.v2-sell { background: var(--color-card); color: #fff; border: 0; }
+.v2-sell h2 { color: var(--color-accent); }
+.v2-sell p { color: rgba(255,255,255,.9); font-size: .93rem; }
+.v2-sell .v2-price { color: #fff; }
+.v2-sell .v2-price small { color: rgba(255,255,255,.75); }
+.v2-sell .btn { width: 100%; text-align: center; }
+
+/* ---------- mobile ----------------------------------------------------------------------------------- */
+
+@media (max-width: 960px) {
+  /* `minmax(0, 1fr)`, NEVER a bare `1fr`. A grid column's implicit minimum is min-content, and the transit
+     table on a reading page carries `min-width: 36rem` from site.css - so a bare `1fr` let the column grow
+     to 576px and took the whole page with it. On a 390px phone the layout viewport stretched to 594px and
+     every reading page scrolled sideways. The desktop rule above already says `minmax(0, 2fr)` for exactly
+     this reason; the narrow override had quietly dropped it. */
+  .v2-body { grid-template-columns: minmax(0, 1fr); gap: 1.75rem; }
+  .v2-rail { position: static; }
+  .v2-tools { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .v2-signs { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .v2-duo, .v2-needs { grid-template-columns: minmax(0, 1fr); }
+  .v2-faq { columns: 1; }
+}
+
+@media (max-width: 700px) {
+  /* THE FORM COMES FIRST. On a phone the headline is a paragraph the reader scrolls past to reach the thing
+     they came to do, so the order is reversed and the words follow the form. */
+  .v2-hero__grid { grid-template-columns: minmax(0, 1fr); gap: 1.5rem; }
+  .v2-hero__form { order: -1; }
+  .v2-hero { padding: 1.5rem 0 2rem; }
+  /* TWO columns of compact cards, not one column of tall ones: icon, name, one line. The blurb is still in
+     the markup for a crawler and a screen reader - `line-clamp` shortens what is DRAWN, it does not remove
+     the text - so the page is shorter without the page being smaller. */
+  /* SIGNS BEFORE TOOLS on a phone. A reader who came for "my horoscope today" wants the twelve, and the
+     tools are what they go to next; on a wide screen both are on screen at once and the order is moot. */
+  .v2-block--signs { order: -1; }
+  .v2-tools { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .7rem; }
+  .v2-tool { padding: .8rem .85rem .85rem; gap: .3rem; }
+  .v2-tool h3 { font-size: .98rem; }
+  /* `flex: none` matters as much as the clamp: the base rule grows this paragraph to fill the card, so the
+     text was clamped to two lines inside a box three lines tall and the card kept the height anyway. */
+  .v2-tool p { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+               font-size: .86rem; flex: none; }
+  .v2-tool__icon { width: 28px; height: 28px; }
+  .v2-tool__icon svg { width: 17px; height: 17px; }
+  .v2-signs { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .v2-report { grid-template-columns: 1fr; }
+  /* room for the sticky bar, so the last link is never under it */
+  .v2 { padding-bottom: 4.5rem; }
+}
+
+/* The two actions, always reachable on a phone. Hidden on desktop, where both are on screen already. */
+.v2-bottombar { display: none; }
+@media (max-width: 700px) {
+  .v2-bottombar {
+    display: grid; grid-template-columns: 1fr 1fr; gap: .5rem;
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 20;
+    padding: .55rem .75rem calc(.55rem + env(safe-area-inset-bottom));
+    background: rgba(251, 248, 241, .97);
+    border-top: 1px solid var(--color-line);
+  }
+  .v2-bottombar a { text-align: center; padding: .7rem .5rem; border-radius: 10px; text-decoration: none; font-weight: 600; font-size: .95rem; }
+  .v2-bottombar .is-primary { background: var(--color-accent); color: var(--color-ink); }
+  .v2-bottombar .is-secondary { background: var(--color-primary); color: #fff; }
+}
+
+/* ---------- read more, phone only -------------------------------------------------------------------- */
+/* The long prose sections are `<details open>` in the markup, so everything is present and expanded for a
+   crawler, for a reader with no JavaScript, and on every screen wide enough to have the room. On a phone
+   static/js/design-v2.js closes them, which is the only thing that script does. */
+.v2-readmore > summary { display: none; }
+@media (max-width: 700px) {
+  .v2-readmore > summary {
+    display: block; cursor: pointer; font-weight: 600; color: var(--color-primary);
+    padding: .5rem 0; list-style: none;
+  }
+  /* THE MARKER IS DRAWN, NOT TYPED. It was `content: " \25BE"` and it rendered as a tofu box: no font this
+     site ships or names carries U+25BE, and the page had already had to replace "\2192" and "\2713" with
+     inline SVG for exactly that reason - a glyph in a `content:` string is the one place that substitution
+     is invisible to a template test. A triangle made of borders depends on no font at all. */
+  .v2-readmore > summary::after {
+    content: ""; display: inline-block; margin-left: .45em; vertical-align: .12em;
+    border: .3em solid transparent; border-top-color: currentColor; border-bottom: 0;
+  }
+  .v2-readmore[open] > summary::after {
+    border-top: 0; border-bottom: .3em solid currentColor; vertical-align: .2em;
+  }
+  .v2-readmore > summary::-webkit-details-marker { display: none; }
+}
+
+/* ---------- phase 2: tool pages ---------------------------------------------------------------------- */
+
+/* The form card on a tool page is the same partial the live page uses, so it arrives with `.card` on it and
+   the hero has to undo the light-page assumptions rather than the partial having to know where it is. */
+.v2-tool-form .card { border: 0; box-shadow: 0 18px 40px rgba(20, 14, 60, .28); border-radius: var(--v2-radius); }
+.v2-tool-form .tool__form { color: var(--color-ink); background: #fff; padding: 1.35rem; }
+.v2-tool-form h2 { margin: 0 0 .15rem; font-size: 1.2rem; }
+
+/* The result is the tallest thing on the page and the thing the reader came for: full width, never beside
+   a rail. `.result` stays hidden until app.js fills it, so this band collapses to nothing until then. */
+.v2-result { padding-top: 1.5rem; }
+.v2-result .result[hidden], .v2-result .result-skeleton[hidden] { display: none; }
+
+/* The kundali and the positions table on one row. 1100px, not 1000: below that the table (min-width 36rem
+   from site.css) would have to scroll inside its own box to sit beside a 520px chart, and a table you have
+   to drag sideways is worse than a table under the chart. The wrapper is built by static/js/design-v2.js. */
+@media (min-width: 1100px) {
+  .v2-chartpair {
+    display: grid;
+    grid-template-columns: minmax(0, 520px) minmax(0, 1fr);
+    gap: var(--v2-gap);
+    align-items: start;
+  }
+  .v2-chartpair > .block { margin: 0; }
+}
+
+/* THE YEAR QUICK-JUMP BESIDE THE DATE, not under it. app.js builds a <select> of birth years into the slot
+   after the date input, and site.css gives that slot `display: block` - which on the live page sits under a
+   full-width field and reads fine, but in the prototype's narrow form card left a lone "Year" control
+   orphaned on its own line under the date. The field becomes a two-column grid: the input and the jump share
+   a row, and the label, the echo and the error span both columns as before. */
+.v2-formcard .field:has(> input[type="date"]),
+.v2-tool-form .field:has(> input[type="date"]),
+.v2-chat__main .field:has(> input[type="date"]) {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  column-gap: .5rem;
+  align-items: start;
+}
+.v2-formcard .field:has(> input[type="date"]) > :not(input):not(.field__jump),
+.v2-tool-form .field:has(> input[type="date"]) > :not(input):not(.field__jump),
+.v2-chat__main .field:has(> input[type="date"]) > :not(input):not(.field__jump) { grid-column: 1 / -1; }
+.v2-formcard .field__jump, .v2-tool-form .field__jump, .v2-chat__main .field__jump { margin: 0; }
+
+.v2-more { list-style: none; margin: .4rem 0 0; padding: 0; display: grid; gap: .1rem; }
+.v2-more a { display: inline-flex; align-items: center; gap: .35rem; text-decoration: none; padding: .35rem 0; }
+.v2-more a:hover { text-decoration: underline; }
+
+/* ---------- phase 2: rashifal hub -------------------------------------------------------------------- */
+
+/* A slim hero for a page that is a LIST rather than a landing: the twelve cards are the content and should
+   start near the top, unlike the home page where the form is the first thing. */
+.v2-hero--slim { padding: 1.4rem 0 1.6rem; }
+.v2-hero--slim h1 { font-size: clamp(1.5rem, 1.1rem + 1.4vw, 2.1rem); margin: .3rem 0 .5rem; }
+.v2-hero--slim .breadcrumbs, .v2-hero--slim .breadcrumbs a { color: rgba(255,255,255,.8); }
+.v2-hero--slim .rashifal-meta { color: rgba(255,255,255,.9); }
+.v2-hero--slim .rashifal-meta strong { color: var(--color-accent); }
+
+.v2-hubgrid { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--v2-gap); }
+.v2-hubcard {
+  background: #fff; border: 1px solid var(--color-line); border-radius: var(--v2-radius);
+  padding: 1rem 1.1rem 1.05rem; display: flex; flex-direction: column; gap: .4rem;
+}
+.v2-hubcard h2 { margin: 0; font-size: 1.05rem; }
+.v2-hubcard h2 a { text-decoration: none; }
+.v2-hubcard p { margin: 0; font-size: .93rem; }
+.v2-hubcard .rashi-card__links { margin-top: auto; padding-top: .35rem; }
+.v2-hubcard .rashi-card__links a { display: inline-flex; align-items: center; gap: .3rem; font-weight: 600; text-decoration: none; }
+
+@media (max-width: 960px) { .v2-hubgrid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 700px) { .v2-hubgrid { grid-template-columns: minmax(0, 1fr); } }
+
+.v2-periodcards { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--v2-gap); }
+@media (max-width: 960px) { .v2-periodcards { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 700px) { .v2-periodcards { grid-template-columns: minmax(0, 1fr); } }
+
+/* ---------- phase 2: a rashifal reading -------------------------------------------------------------- */
+
+/* The reading is prose and stays at a reading width inside its wider column; the TABLES are what the extra
+   width is for - a transit table at 960px wraps its note column onto a second line for every row. */
+.v2-reading .reading :is(p, li) { max-width: 70ch; }
+.v2-reading .table-wrap { max-width: none; }
+
+/* The live page's trailing blocks, restyled as rail cards rather than full-width bands. The markup is the
+   same partial, so this is the whole of the difference. */
+.v2-rail__aside { display: grid; gap: 1.1rem; }
+.v2-rail__aside .cta-pair { display: grid; gap: 1.1rem; }
+/* `.cta` KEEPS ITS OWN INDIGO CARD. The first version of this rule gave it a white background and left its
+   text white - 1.25:1, eight runs of it, caught by the contrast sweep. It is a designed component that
+   already works; the rail only needs to stop it adding a top margin. This is the third time in one day that
+   changing a background without resetting `color` has produced invisible text on this site. */
+.v2-rail__aside .cta { margin: 0; padding: 1.1rem 1.15rem; border-radius: var(--v2-radius); }
+.v2-rail__aside .cta h3 { color: #fff; font-size: 1rem; text-transform: none; letter-spacing: 0; }
+.v2-rail__aside .block {
+  background: #fff; border: 1px solid var(--color-line); border-radius: var(--v2-radius);
+  padding: 1.1rem 1.15rem; margin: 0;
+}
+.v2-rail__aside .block > h2 { margin: 0 0 .5rem; font-size: .84rem; letter-spacing: .09em;
+  text-transform: uppercase; color: var(--color-muted); }
+.v2-rail__aside .link-grid { display: grid; grid-template-columns: 1fr 1fr; gap: .25rem .6rem; margin: 0; padding: 0; list-style: none; }
+.v2-rail__aside .link-grid a { font-size: .9rem; }
+.v2-rail__aside .btn { width: 100%; text-align: center; }
+.v2-rail__aside .content p { font-size: .9rem; }
+
+/* ---------- sign-in and "My orders" ------------------------------------------------------------------ */
+
+/* A form and a list. Both are narrow on purpose: a sign-in form spread across 1600px reads as a page you
+   have to study rather than a box you type two things into. */
+/* padding-TOP and -BOTTOM only, here and on every block below that is also a `.wrap`. A `padding:` shorthand
+   resets `.wrap`'s 16px side gutter and the content then runs into both screen edges on a phone - the same
+   mistake `.v2-body` carries a note about, made again on five new blocks and caught by the camera's gutter
+   guard rather than by anyone looking at the page. */
+.v2-auth { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 360px); gap: var(--v2-gap); align-items: start; padding-top: 2.25rem; padding-bottom: 3rem; }
+@media (max-width: 900px) { .v2-auth { grid-template-columns: minmax(0, 1fr); } .v2-authaside { order: 2; } }
+
+.v2-authcard { background: #fff; border-radius: var(--v2-radius); padding: 1.6rem 1.6rem 1.8rem; box-shadow: 0 18px 40px rgba(20, 14, 60, .12); max-width: 560px; }
+.v2-authcard h1 { margin: 0 0 .4rem; font-size: 1.55rem; }
+/* Every field the same width. `input[type="email"]` takes a default `size` from the browser, so without
+   this the address box renders visibly narrower than the name box above it. */
+.v2-authcard .field input { width: 100%; box-sizing: border-box; }
+.v2-auth__intro { margin: 0 0 1.1rem; }
+.v2-auth__sent { margin: 0 0 .9rem; padding: .6rem .8rem; border-radius: 8px; background: var(--color-surface); }
+.v2-auth__links { display: flex; flex-wrap: wrap; gap: .5rem; margin: .8rem 0 0; }
+
+/* THE CONSENT LINE is not small print. DPDP asks for notice at the point of collection, and a notice set in
+   11px grey beside a button is a notice designed not to be read - so it is body size, above the fold of the
+   card, and the only thing between the form and the button. */
+.v2-auth__consent { margin: 1.2rem 0 .6rem; padding: .8rem .9rem; border-left: 3px solid var(--color-accent); background: var(--color-surface); border-radius: 0 8px 8px 0; }
+.v2-auth__why, .v2-auth__free { margin: .5rem 0 0; color: var(--color-muted); }
+
+.v2-orders { padding-top: 2.25rem; padding-bottom: 3rem; max-width: 900px; }
+.v2-orders__head { display: flex; flex-wrap: wrap; gap: .6rem 1rem; align-items: baseline; justify-content: space-between; }
+.v2-orders__head h1 { margin: 0; }
+.v2-orderlist { list-style: none; margin: 1.2rem 0 0; padding: 0; display: grid; gap: .7rem; }
+.v2-order { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: .3rem 1rem; align-items: baseline; background: #fff; border: 1px solid var(--color-line); border-radius: 10px; padding: .9rem 1rem; }
+.v2-order__what { display: grid; gap: .15rem; }
+.v2-order__amount { font-weight: 700; }
+.v2-order__links { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: .9rem; }
+.v2-orders__empty { margin: 1.2rem 0 0; padding: 1rem 1.1rem; background: var(--color-surface); border-radius: 10px; }
+@media (max-width: 480px) { .v2-order { grid-template-columns: minmax(0, 1fr); } }
+
+/* ---------- policy pages ----------------------------------------------------------------------------- */
+
+/* Text column first in the MARKUP, contents second - but the contents render to the LEFT on a wide screen
+   and above the text on a phone. Source order is the reading order; `order` is presentation. */
+.v2-policy { display: grid; grid-template-columns: minmax(0, 260px) minmax(0, 760px); gap: var(--v2-gap); align-items: start; padding-top: 2rem; padding-bottom: 3rem; justify-content: center; }
+.v2-policy__body { max-width: 760px; }
+.v2-policy__body > section { margin: 0 0 1.8rem; scroll-margin-top: 1rem; }
+.v2-policy__body h2 { font-size: 1.25rem; margin: 0 0 .5rem; }
+.v2-policy__body p, .v2-policy__body li { max-width: 70ch; }
+
+.v2-contents { position: sticky; top: 1rem; background: var(--color-surface); border-radius: 10px; padding: .9rem 1rem; }
+.v2-contents > summary { font-weight: 600; cursor: pointer; list-style: none; }
+.v2-contents > summary::-webkit-details-marker { display: none; }
+.v2-contents ol { margin: .6rem 0 0; padding-left: 1.1rem; display: grid; gap: .35rem; }
+.v2-contents a { text-decoration: none; }
+.v2-contents a:hover { text-decoration: underline; }
+
+@media (min-width: 901px) {
+  /* The marker is only meaningful where the list can be closed, which is the phone. */
+  .v2-contents > summary::after { content: none; }
+}
+@media (max-width: 900px) {
+  .v2-policy { grid-template-columns: minmax(0, 1fr); }
+  .v2-contents { position: static; }
+}
+
+/* One column, for the pages that have no rail (the error page). */
+.v2-body--single { grid-template-columns: minmax(0, 1fr); }
+
+/* The purchase page: a receipt, so it stays narrow whatever the container does. */
+.v2-order-page { max-width: 760px; padding-top: 2rem; padding-bottom: 3rem; }
+
+/* ---------- the AI astrologer ------------------------------------------------------------------------ */
+
+/* The chat is a READING COLUMN. A conversation set across 1600px is unreadable, and this is the page people
+   spend longest on - so the column is capped and the width buys the chart panel beside it instead. */
+.v2-chat { display: grid; grid-template-columns: minmax(0, 800px) minmax(0, 360px); gap: var(--v2-gap); align-items: start; padding-top: 2rem; padding-bottom: 1rem; justify-content: center; }
+.v2-chat__main { min-width: 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: 1.25rem; }
+.v2-chat__side { min-width: 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: 1.1rem; position: sticky; top: 1rem; }
+
+/* BELOW 1100 THE CONVERSATION COMES FIRST, and a one-line strip above it answers "what is it looking at?"
+   - the question the old ordering existed for. That ordering put the whole panel on top, which was right
+   when the panel was five figures; with the kundali in it, a phone had to scroll about 1,500px of chart
+   and paywall to reach the chat it came for. The strip answers the same question in one line, opens to the
+   full panel on a tap, and the rail - panel and "more questions" card - follows the conversation.
+
+   The strip is phone-only: above 1100 the panel is beside the chat, where it answers the question just by
+   being visible. */
+@media (max-width: 1100px) {
+  .v2-chat { grid-template-columns: minmax(0, 1fr); }
+  .v2-chat__side { position: static; order: 1; }
+  .v2-chat__main { order: 0; }
+  .v2-chatstrip { order: -1; }
+}
+.v2-chatstrip { display: none; }
+@media (max-width: 1100px) {
+  .v2-chatstrip {
+    display: block;
+    margin: 0 0 .9rem;
+    border: 1px solid var(--color-line);
+    border-radius: 10px;
+    /* `--color-card` is the brand INDIGO - the bubbles and the sell card pair it with white text. A card
+       surface here is the same white `.v2-card` uses, or the strip is dark ink on a dark ground. */
+    background: #fff;
+    color: var(--color-ink);
+  }
+  .v2-chatstrip > summary {
+    display: flex;
+    gap: .6rem;
+    align-items: baseline;
+    justify-content: space-between;
+    padding: .7rem .85rem;
+    min-height: 44px;
+    cursor: pointer;
+    list-style: none;
+  }
+  .v2-chatstrip > summary::-webkit-details-marker { display: none; }
+  .v2-chatstrip__line { font-weight: 600; min-width: 0; }
+  .v2-chatstrip__more {
+    display: inline-flex;
+    align-items: center;
+    gap: .35rem;
+    font-size: .78rem;
+    color: var(--color-muted);
+    white-space: nowrap;
+  }
+  /* The caret is DRAWN, not typed. U+25BE is not in the Devanagari-first font stack these pages use, so a
+     character here is a tofu box on the very devices this strip exists for. Borders always render. */
+  .v2-chatstrip__more::after {
+    content: "";
+    width: 0;
+    height: 0;
+    border-left: 4px solid transparent;
+    border-right: 4px solid transparent;
+    border-top: 5px solid currentColor;
+  }
+  .v2-chatstrip[open] .v2-chatstrip__more::after { transform: rotate(180deg); }
+  /* The turn is motion, small as it is, so it is only animated where motion is welcome. Without this the
+     caret still flips - it just flips immediately, which is what somebody asking for less motion wants. */
+  @media (prefers-reduced-motion: no-preference) {
+    .v2-chatstrip__more::after { transition: transform .15s ease; }
+  }
+  /* The panel moves in here when it opens, so the strip gives it the frame and the panel needs none of its
+     own - nor its heading, which the strip's own label has just said. */
+  .v2-chatstrip__body > .v2-chartpanel { border: 0; margin: 0; padding-top: 0; }
+  .v2-chatstrip__body > .v2-chartpanel > h2 { display: none; }
+}
+
+.v2-chartpanel__facts { margin: .6rem 0 0; display: grid; gap: .5rem; }
+.v2-chartpanel__facts > div { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: .5rem; align-items: baseline; border-bottom: 1px solid var(--color-line); padding-bottom: .4rem; }
+.v2-chartpanel__facts dt { color: var(--color-muted); font-size: .92rem; }
+.v2-chartpanel__facts dd { margin: 0; font-weight: 600; text-align: right; }
+.v2-chartpanel__sub { margin: 1rem 0 .3rem; font-size: .95rem; }
+.v2-chartpanel__transits { list-style: none; margin: 0; padding: 0; display: grid; gap: .3rem; font-size: .92rem; }
+
+/* ---------- the decorative graha field, re-tuned for the wider container ------------------------------ */
+
+/* site.css puts the drifting grahas in the gutters with `width: calc(50% - 496px)` - a number tuned when the
+   content column was ~992px wide. This design's container is up to 1600px, so that band now runs UNDERNEATH
+   the reading column: tests/test_layout_widths.py measured the ornament reading at 24.9% behind the text
+   where the brief allows 4-6%, and it is the only place on the site that makes no legibility claim
+   precisely because it was supposed to touch no text.
+   Tied to the container instead of to a constant, so it cannot drift out of step with it again: the clear
+   zone is half the container plus a 24px margin, and `max(0px, …)` keeps it valid at widths where there is
+   no gutter left to decorate. */
+/* BELOW 1860 THERE IS NO GUTTER TO DECORATE. The glyph column is 120px wide; with the container at
+   min(94vw, 1600px) the first width that leaves 120px plus a margin on each side is about 1860. Between
+   1240 and there the ornament would have to sit under the text, so it is simply not painted - a decoration
+   that has run out of room is removed, not squeezed. */
+@media (min-width: 1240px) and (max-width: 1859px) {
+  body.design-v2::before, body.design-v2::after { content: none; }
+}
+@media (min-width: 1860px) {
+  body.design-v2::before, body.design-v2::after {
+    width: max(0px, calc(50% - min(47vw, 800px) - 24px));
+  }
+}
+
+.v2-auth__new { margin: 0 0 1rem; padding: .7rem .85rem; background: var(--color-surface);
+                border-radius: 8px; }
+
+
+/* ---------- the decorative field, kept out from behind the text ----------------------------------------
+   site.css paints a star tile in the gutters and a veil over the reading column so the tile does not read
+   behind text: tile 25% x 0.20 pass-through = 5%, against a budget of about 26/255.
+   The veil's half-width was a literal 496px, half of the PREVIOUS container. This design's container is
+   `clamp(1280px, 94vw, 1600px)`, so from 992px outward the text sat on the unveiled tile and the field
+   measured 24.9%. The lid is sized to this container now - half of it, plus the gutter the container's
+   padding adds - so the field stays where the brief puts it: in the gutters, never under a sentence. */
+@media (min-width: 1240px) {
+  body.design-v2 { --veil-half: calc(clamp(1280px, 94vw, 1600px) / 2 + 1.5rem); }
+}
+
+/* ---------- the muhurta finder -------------------------------------------------------------------- */
+.v2-muhurta { display: grid; gap: var(--v2-gap); padding-top: 2rem; padding-bottom: 1rem; }
+/* A grid child's min-width is `auto`, which means it will not shrink below its CONTENT - so the dates
+   table pushed the whole phone page sideways even though the wrapper was told to scroll. The same trap as
+   a bare `1fr`, one level down. */
+.v2-muhurta > * { min-width: 0; }
+.v2-muhurta__form { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+                    gap: .9rem; align-items: end; }
+.v2-muhurta__form .field { position: relative; }
+.v2-muhurta__form button { min-height: 44px; }
+.v2-muhurta__count { font-weight: 600; margin: 0 0 .6rem; }
+.v2-muhurta__table { width: 100%; border-collapse: collapse; }
+.v2-muhurta__table th, .v2-muhurta__table td { padding: .5rem .6rem; text-align: left;
+                                               border-bottom: 1px solid var(--color-line); }
+.v2-muhurta__buy { margin-top: 1rem; }
+/* The table is the widest thing on this page in Devanagari; it scrolls on its own rather than pushing the
+   page sideways, which is the failure the phone-width check exists for. */
+.v2-muhurta .table-wrap { overflow-x: auto; }
+
+/* The muhurta finder's free actions: a download and a way into the chat, side by side. */
+.v2-muhurta__buy { display: flex; flex-wrap: wrap; gap: .8rem; align-items: center; margin-top: 1rem; }
+.v2-muhurta__ask { font-weight: 600; }
+
+/* ---------- the chat list -------------------------------------------------------------------------
+   A column beside the conversation on a desktop, a drawer behind a button on a phone. One list either
+   way: two would be two things to keep in step, and the phone one would be the one that rotted. */
+.v2-chats { display: grid; gap: .5rem; align-content: start; }
+.v2-chats__toggle { display: none; }
+.v2-chats__head { display: flex; gap: .5rem; }
+.v2-chats__new { width: 100%; }
+.v2-chats__list { list-style: none; margin: 0; padding: 0; display: grid; gap: .35rem; }
+.v2-chats__item { display: grid; gap: .15rem; padding: .5rem .6rem; border-radius: 10px;
+                  background: #fff; border: 1px solid var(--color-line); }
+.v2-chats__item.is-current { border-color: var(--color-accent); }
+.v2-chats__open { display: grid; gap: .1rem; width: 100%; text-align: left; border: 0; background: none;
+                  font: inherit; color: inherit; cursor: pointer; padding: 0; min-width: 0; }
+.v2-chats__title { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.v2-chats__who { font-size: .8rem; color: var(--color-muted); }
+/* Rename, Archive and Delete were .78rem underlined words with no padding - about 14px of thumb on a
+   phone, three of them in a row. They are buttons now, each at least 32px tall and separated, so the one
+   that deletes a conversation is not one slip away from the one that renames it. */
+.v2-chats__tools { display: flex; gap: .5rem; flex-wrap: wrap; margin-top: .4rem; }
+.v2-chats__tool { border: 1px solid color-mix(in srgb, var(--color-ink) 18%, transparent);
+                  background: none; padding: .35rem .7rem; min-height: 32px; border-radius: 999px;
+                  font: inherit; font-size: .82rem; line-height: 1.2;
+                  color: var(--color-muted); cursor: pointer; }
+.v2-chats__tool:hover { color: var(--color-ink); border-color: var(--color-ink); }
+.v2-chats__tool[data-action="delete"]:hover { color: var(--color-error, #B3261E);
+                                              border-color: var(--color-error, #B3261E); }
+
+@media (min-width: 1100px) {
+  /* The list, the conversation, the rail. `minmax(0, …)` on all three, never a bare fraction. */
+  .v2-chat { grid-template-columns: minmax(0, 260px) minmax(0, 800px) minmax(0, 360px); }
+}
+@media (max-width: 1099px) {
+  .v2-chats__toggle { display: inline-flex; }
+  .v2-chats { position: fixed; inset: 0 30% 0 0; z-index: 40; padding: 1rem; overflow-y: auto;
+              background: var(--color-bg); border-right: 1px solid var(--color-line);
+              transform: translateX(-102%); transition: transform .18s ease; }
+  .v2-chats.is-open { transform: none; box-shadow: 0 0 40px rgba(20, 14, 60, .35); }
+  @media (prefers-reduced-motion: reduce) { .v2-chats { transition: none; } }
+}
+
+/* ========================================================================================
+   The Vedic motifs: the glyph set in use. Everything here is ornament over markup that
+   already carried its own meaning - a screen reader meets none of it, and a page with the
+   stylesheet stripped reads exactly as it did before.
+   ======================================================================================== */
+
+/* The kundali in the chat's right panel, above the figures. It is square, so it is given a
+   square: `aspect-ratio` keeps the row heights stable before the SVG lands and nothing jumps. */
+.v2-chartpanel__kundali {
+  margin: 0 0 1rem;
+}
+.v2-chartpanel__kundali svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1 / 1;
+  border-radius: 10px;
+}
+.v2-chartpanel__kundali:empty { display: none; }
+
+/* NO WIDTH IS SET HERE ON PURPOSE. `.kundali` carries `min-width: 288px` in site.css, a legibility floor:
+   below it the graha abbreviations cannot be read. A `max-width` here would lose to it anyway - `min-width`
+   wins that argument in CSS - and would sit in the sheet looking as though it did something. On a phone the
+   panel is above the conversation by a decision taken earlier in this file, and the diamond adds its 288px
+   to that scroll; shrinking it is not the way to buy that back. */
+
+/* The running dasha: whose period, how much is gone, when it ends. */
+.v2-dasha {
+  display: grid;
+  grid-template-columns: 2.25rem minmax(0, 1fr);
+  gap: .75rem;
+  align-items: center;
+  margin: .25rem 0 1rem;
+  padding: .75rem;
+  border: 1px solid color-mix(in srgb, var(--color-accent) 30%, transparent);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--color-accent) 6%, transparent);
+}
+.v2-dasha__glyph { width: 2.25rem; height: 2.25rem; color: var(--color-accent); }
+.v2-dasha__body { min-width: 0; }
+.v2-dasha__lord { margin: 0 0 .4rem; font-weight: 600; }
+.v2-dasha__bar {
+  height: 4px;
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--color-ink) 12%, transparent);
+  overflow: hidden;
+}
+.v2-dasha__bar > span {
+  display: block;
+  height: 100%;
+  width: 0;
+  border-radius: 2px;
+  background: var(--color-accent);
+}
+.v2-dasha__ends { margin: .4rem 0 0; }
+
+/* The sidebar: each chat is a person, so each line carries that person's rashi. */
+.v2-chats__rashi {
+  width: 1em;
+  height: 1em;
+  vertical-align: -.15em;
+  color: var(--color-accent);
+}
+.v2-chats__item.is-current {
+  border-left: 3px solid var(--color-accent);
+  background: color-mix(in srgb, var(--color-accent) 9%, transparent);
+}
+.v2-chats__figure {
+  display: block;
+  width: 72px;
+  height: 72px;
+  margin: 0 auto .6rem;
+  color: color-mix(in srgb, var(--color-ink) 34%, transparent);
+}
+
+/* The astrologer's Om, beside its replies. */
+.chat__avatar {
+  float: inline-start;
+  width: 1.4rem;
+  height: 1.4rem;
+  margin: .1rem .5rem .2rem 0;
+  color: var(--color-accent);
+}
+.chat__msg--user .chat__avatar { display: none; }
+
+/* Three grahas going round while it thinks. They move only if motion is welcome; otherwise they
+   are three still marks, which is what the dots were. */
+.chat__orbit {
+  position: relative;
+  display: inline-block;
+  width: 1.5rem;
+  height: 1.5rem;
+  vertical-align: -.35rem;
+}
+.chat__orbit > i {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: .62rem;
+  height: .62rem;
+  margin: -.31rem 0 0 -.31rem;
+  color: var(--color-accent);
+  transform: rotate(0deg) translateX(.56rem);
+}
+/* The glyph itself must not turn with the orbit, or Chandra spends half its round upside down. The
+   counter-rotation is on the svg, so each graha keeps its own attitude while its position goes round. */
+.chat__orbit > i > svg { display: block; width: 100%; height: 100%; }
+.chat__orbit > i:nth-child(2) { transform: rotate(120deg) translateX(.56rem); opacity: .8; }
+.chat__orbit > i:nth-child(3) { transform: rotate(240deg) translateX(.56rem); opacity: .65; }
+
+@media (prefers-reduced-motion: no-preference) and (min-width: 1240px) {
+  /* THE ONLY TWO MOVING THINGS ON THE SITE, and both of them slow: the grahas going round while a
+     reply is being written, and the ring on the logo turning once a minute. A page that is being
+     read does not move. */
+  .chat__orbit > i { animation: v2-orbit 2.8s linear infinite; }
+  .chat__orbit > i:nth-child(2) { animation-delay: -.93s; }
+  .chat__orbit > i:nth-child(3) { animation-delay: -1.86s; }
+  .chat__orbit > i > svg { animation: v2-counterturn 2.8s linear infinite; }
+  /* The ARC turns, not the svg: rotating the element grows its bounding box as it goes, and the header
+     measured 34px of content in a 32px box for it. `transform-box: fill-box` makes the origin the
+     circle's own centre rather than the user-space origin. */
+  .site-logo__arc { animation: v2-turn 60s linear infinite; transform-box: fill-box;
+                    transform-origin: 50% 50%; }
+  .v2-star--slow { animation: v2-twinkle 7s ease-in-out infinite; }
+  .v2-star--slow:nth-of-type(2) { animation-delay: -2.4s; }
+  .v2-star--slow:nth-of-type(3) { animation-delay: -4.6s; }
+}
+@keyframes v2-orbit { to { transform: rotate(360deg) translateX(.56rem); } }
+@keyframes v2-counterturn { from { transform: rotate(0deg); } to { transform: rotate(-360deg); } }
+@keyframes v2-turn  { to { transform: rotate(360deg); } }
+@keyframes v2-twinkle { 0%, 100% { opacity: .18; } 50% { opacity: .5; } }
+
+
+/* THE ONE EXCEPTION TO THE BREAKPOINT ABOVE. The orbiting grahas are not ornament - they are the only
+   sign that an answer is on its way - so they run at every width, on the page where somebody is waiting.
+   Still behind the motion preference, and still nothing else moves. */
+@media (prefers-reduced-motion: no-preference) {
+  .chat__orbit > i { animation: v2-orbit 2.8s linear infinite; }
+  .chat__orbit > i:nth-child(2) { animation-delay: -.93s; }
+  .chat__orbit > i:nth-child(3) { animation-delay: -1.86s; }
+  .chat__orbit > i > svg { animation: v2-counterturn 2.8s linear infinite; }
+}
+
+/* The style a chat answers in, beside the person's name: small, quiet, and a button because it is one. */
+.v2-chats__style {
+  border: 1px solid color-mix(in srgb, var(--color-ink) 16%, transparent);
+  background: none;
+  padding: .1rem .45rem;
+  border-radius: 999px;
+  font: inherit;
+  font-size: .72rem;
+  line-height: 1.4;
+  color: var(--color-muted);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.v2-chats__style:hover { color: var(--color-ink); border-color: var(--color-ink); }

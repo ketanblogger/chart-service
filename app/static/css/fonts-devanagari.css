@@ -1,0 +1,46 @@
+/* Self-hosted Noto Sans Devanagari, loaded ONLY on the /hi/ and /mr/ trees (base.html decides).
+ *
+ * `--font` in site.css already asks for "Noto Sans Devanagari" first on those trees - it just hoped the
+ * device had it. Most phones in India do; a desktop with a thin font set does not, and then the page renders
+ * as boxes. These two faces are that same family, so nothing about the stack changes: the name it already
+ * asks for now resolves to a file we ship.
+ *
+ * THREE THINGS KEEP THIS CHEAP:
+ *
+ *   local() FIRST. A reader whose device already has the family uses it and downloads nothing. Some browsers
+ *   ignore local() for fingerprinting reasons and will fetch the file anyway, which is the cost of being
+ *   certain the page is legible - but on the phones that make up most of this traffic it is a free win.
+ *
+ *   unicode-range, the same coverage app/pdf/templates/print.css declares (scripts/build_web_fonts.py reads
+ *   it from there and subsets to it). Latin text, digits and punctuation are outside it, so an English word
+ *   in a Marathi sentence never triggers this file and keeps using the system font it always used. It is
+ *   also why these are 61 KB rather than 238 KB.
+ *
+ *   font-display: swap. The text is painted immediately in the fallback and reflows when the face arrives.
+ *   The alternative, a blocking period, trades a visible reflow for invisible text, and invisible text on a
+ *   page whose job is to be read is the worse of the two.
+ *
+ * The file names carry no ?v= - a subset of a static font changes approximately never. If one is ever
+ * rebuilt with different coverage, RENAME it rather than relying on a cache-busting query.
+ */
+@font-face {
+  font-family: "Noto Sans Devanagari";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: local("Noto Sans Devanagari"), local("NotoSansDevanagari-Regular"),
+       url("/static/fonts/NotoSansDevanagari-Regular.subset.woff2") format("woff2");
+  unicode-range: U+0900-097F, U+1CD0-1CFF, U+200C-200D, U+20B9, U+25CC, U+A830-A839, U+A8E0-A8FF;
+}
+
+/* 700, not 600: Regular and Bold are the two static faces that exist, and a browser asked for 600 with 400
+   and 700 available picks 700. Synthesising a 600 would mean shipping a weight the typeface does not have. */
+@font-face {
+  font-family: "Noto Sans Devanagari";
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: local("Noto Sans Devanagari Bold"), local("NotoSansDevanagari-Bold"),
+       url("/static/fonts/NotoSansDevanagari-Bold.subset.woff2") format("woff2");
+  unicode-range: U+0900-097F, U+1CD0-1CFF, U+200C-200D, U+20B9, U+25CC, U+A830-A839, U+A8E0-A8FF;
+}

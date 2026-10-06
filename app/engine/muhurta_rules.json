@@ -1,0 +1,186 @@
+{
+  "_about": [
+    "The rules a muhurta search applies, as data rather than code, so that a rule can be read, argued with",
+    "and corrected without touching the arithmetic that applies it. Every field here is checked against the",
+    "panchang the engine computes; nothing in this file is interpreted loosely.",
+    "",
+    "tithi numbers are 1-15 within the paksha. 4, 9 and 14 are the rikta ('empty') tithis that classical",
+    "texts set aside for beginnings; 15 of krishna paksha is amavasya. vara is 0=Monday..6=Sunday, matching",
+    "date.weekday(), because that is what the code has and a second convention is a second bug."
+  ],
+  "purposes": {
+    "griha-pravesh": {
+      "en": "Moving into a home",
+      "hi": "गृह प्रवेश",
+      "mr": "गृहप्रवेश",
+      "nakshatras": [
+        "Rohini",
+        "Mrigashira",
+        "Uttara Phalguni",
+        "Chitra",
+        "Anuradha",
+        "Uttarashadha",
+        "Uttara Bhadrapada",
+        "Revati",
+        "Shatabhisha"
+      ],
+      "avoid_tithis": [
+        4,
+        9,
+        14
+      ],
+      "avoid_amavasya": true,
+      "avoid_varas": [
+        1,
+        6
+      ],
+      "note_en": "Traditionally a fixed or gentle nakshatra, outside the rikta tithis."
+    },
+    "vehicle": {
+      "en": "Buying a vehicle",
+      "hi": "वाहन खरीद",
+      "mr": "वाहन खरेदी",
+      "nakshatras": [
+        "Ashwini",
+        "Rohini",
+        "Mrigashira",
+        "Punarvasu",
+        "Pushya",
+        "Hasta",
+        "Chitra",
+        "Swati",
+        "Anuradha",
+        "Dhanishta",
+        "Shatabhisha",
+        "Revati"
+      ],
+      "avoid_tithis": [
+        4,
+        9,
+        14
+      ],
+      "avoid_amavasya": true,
+      "avoid_varas": [
+        6
+      ],
+      "note_en": "The moving nakshatras are the traditional choice for anything that travels."
+    },
+    "business": {
+      "en": "Starting a business or new work",
+      "hi": "नया काम या व्यापार",
+      "mr": "नवा व्यवसाय",
+      "nakshatras": [
+        "Ashwini",
+        "Rohini",
+        "Mrigashira",
+        "Punarvasu",
+        "Pushya",
+        "Uttara Phalguni",
+        "Hasta",
+        "Chitra",
+        "Anuradha",
+        "Uttarashadha",
+        "Dhanishta",
+        "Uttara Bhadrapada",
+        "Revati"
+      ],
+      "avoid_tithis": [
+        4,
+        9,
+        14
+      ],
+      "avoid_amavasya": true,
+      "avoid_varas": [
+        6
+      ],
+      "note_en": "Pushya is the one most often named for trade."
+    },
+    "naming": {
+      "en": "Naming a child",
+      "hi": "नामकरण",
+      "mr": "नामकरण",
+      "nakshatras": [
+        "Ashwini",
+        "Rohini",
+        "Mrigashira",
+        "Punarvasu",
+        "Pushya",
+        "Uttara Phalguni",
+        "Hasta",
+        "Chitra",
+        "Swati",
+        "Anuradha",
+        "Shravana",
+        "Dhanishta",
+        "Uttara Bhadrapada",
+        "Revati"
+      ],
+      "avoid_tithis": [
+        4,
+        9,
+        14
+      ],
+      "avoid_amavasya": true,
+      "avoid_varas": [],
+      "note_en": "Usually the twelfth day; this finds the days around it that also carry a gentle nakshatra."
+    },
+    "travel": {
+      "en": "Starting a journey",
+      "hi": "यात्रा आरंभ",
+      "mr": "प्रवास आरंभ",
+      "nakshatras": [
+        "Ashwini",
+        "Mrigashira",
+        "Punarvasu",
+        "Pushya",
+        "Hasta",
+        "Anuradha",
+        "Shravana",
+        "Dhanishta",
+        "Revati"
+      ],
+      "avoid_tithis": [
+        4,
+        9,
+        14
+      ],
+      "avoid_amavasya": true,
+      "avoid_varas": [],
+      "note_en": "The classical disha-shool rules are about direction and are deliberately not applied here."
+    }
+  },
+  "refused": {
+    "_about": "Asked for and refused, with the reason shown to the reader rather than a blank. The Devanagari entries are STEMS, not whole words: Marathi and Hindi inflect, so शस्त्रक्रियेसाठी does not contain शस्त्रक्रिया and a whole-word list quietly matched nothing.",
+    "keywords_en": [
+      "surgery",
+      "operation",
+      "chemotherapy",
+      "medical",
+      "treatment",
+      "illness",
+      "disease",
+      "death",
+      "funeral",
+      "abortion",
+      "court case verdict",
+      "lawsuit outcome"
+    ],
+    "keywords_hi": [
+      "ऑपरेशन",
+      "सर्जरी",
+      "इलाज",
+      "बीमार",
+      "मृत्यु",
+      "मौत",
+      "शल्यक्रिय"
+    ],
+    "keywords_mr": [
+      "ऑपरेशन",
+      "शस्त्रक्रिय",
+      "उपचार",
+      "आजार",
+      "मृत्यू",
+      "निधन"
+    ]
+  }
+}

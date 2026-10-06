@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+{% block title %}Order {{ detail.order.id }}{% endblock %}
+{% block sub %}This view has been written to the audit log. The customer's full e-mail address is shown here
+  and nowhere else; the birth date and time are not read from the database at all.{% endblock %}
+{% block body %}
+<div class="tiles">
+  <div class="tile"><div class="k">Charged</div><div class="v">{{ detail.gross_inr|rupees }}</div>
+    <div class="n">{% if detail.gst_recorded %}{{ detail.net_inr|rupees }} net + {{ detail.gst_inr|rupees }} GST{% if detail.order.gst_rate_bp %} at {{ '%g'|format(detail.order.gst_rate_bp / 100) }}%{% endif %}{% else %}no GST split recorded on this order{% endif %}</div></div>
+  <div class="tile"><div class="k">AI cost</div><div class="v">{{ detail.cost_inr|rupees }}</div>
+    <div class="n">{{ detail.model or 'model not recorded' }}</div></div>
+  <div class="tile"><div class="k">Margin</div><div class="v">{{ detail.margin_inr|rupees }}</div>
+    <div class="n">{% if detail.margin_percent is not none %}{{ detail.margin_percent|pct }} of net, after a {{ detail.fee_inr|rupees }} modelled fee{% else %}the AI cost of this sale is not recorded{% endif %}</div></div>
+  <div class="tile"><div class="k">Generation</div><div class="v">{{ detail.row.seconds|minutes }}</div>
+    <div class="n">{{ detail.order.attempts }} attempt(s), fulfilment {{ detail.order.fulfilment }}</div></div>
+</div>
+
+<div class="card">
+  <h2 style="margin-top:0">paid &rarr; ready &rarr; e-mail &rarr; download</h2>
+  <table>
+    <thead><tr><th>Step</th><th>When (IST)</th><th>What is recorded</th></tr></thead>
+    <tbody>
+    {% for step in detail.timeline %}
+      <tr><td><b>{{ step.step }}</b></td>
+        <td class="mono">{% if step.at %}{{ step.at|ist }}{% else %}<span class="quiet">not recorded</span>{% endif %}</td>
+        <td>{{ step.detail }}</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<div class="two">
+  <div class="card">
+    <h2 style="margin-top:0">The sale</h2>
+    <table>
+      <tr><th>Our id</th><td class="mono">{{ detail.order.id }}</td></tr>
+      <tr><th>Razorpay order</th><td class="mono">{{ detail.order.razorpay_order_id }}</td></tr>
+      <tr><th>Payment</th><td class="mono">{{ detail.order.payment_id or '-' }} ({{ detail.order.paid_via or '-' }})</td></tr>
+      {% if detail.order.invoice_no %}<tr><th>Invoice</th><td class="mono">{{ detail.order.invoice_no }}</td></tr>{% endif %}
+      <tr><th>Product</th><td>{{ detail.order.product }} ({{ detail.order.kind }}){% if detail.order.messages %}, {{ detail.order.messages }} questions{% endif %}</td></tr>
+      <tr><th>Language</th><td>{{ detail.order.language or '-' }}</td></tr>
+      <tr><th>E-mail</th><td class="mono">{{ detail.order.email or 'none captured' }}</td></tr>
+      <tr><th>Birth place</th><td>{{ detail.order.birth_places|join(', ') or 'not resolved to a city' }}
+        <span class="quiet">(the date and time are not read by this page)</span></td></tr>
+      <tr><th>Cover name</th><td>{{ 'personalised' if detail.order.named_cover else 'none' }}
+        <span class="quiet">(the name itself is not shown)</span></td></tr>
+      <tr><th>Report</th><td class="mono">{{ detail.order.report_id or '-' }}</td></tr>
+      <tr><th>Age</th><td>{{ detail.age }}</td></tr>
+      {% if detail.order.error %}<tr><th>Last error</th><td class="mono">{{ detail.order.error }}</td></tr>{% endif %}
+    </table>
+  </div>
+  <div class="card">
+    <h2 style="margin-top:0">Who has opened this order</h2>
+    {% if views %}
+    <table>
+      <thead><tr><th>When (IST)</th><th>Who</th><th>From</th></tr></thead>
+      <tbody>{% for view in views %}<tr><td class="mono">{{ view.at|ist }}</td><td>{{ view.actor }}</td>
+        <td class="mono quiet">{{ view.ip_key[:10] or '-' }}</td></tr>{% endfor %}</tbody>
+    </table>
+    <p class="sub">"From" is an HMAC of the network block, not an address - the same convention the rate
+      limiter uses. This view is in the list the next time the page is opened.</p>
+    {% else %}
+    <p class="quiet">This is the first recorded view.</p>
+    {% endif %}
+  </div>
+</div>
+
+<div class="card scroll">
+  <h2 style="margin-top:0">AI calls: cost, retries, repairs, redactions</h2>
+  {% if detail.calls %}
+  <table>
+    <thead><tr><th>Call</th><th class="n">Attempts</th><th class="n">Repairs</th><th class="n">Redactions</th><th class="n">Cost</th></tr></thead>
+    <tbody>
+    {% for call in detail.calls %}
+      <tr><td>{{ call.call }}</td>
+        <td class="n">{% if call.attempts > 1 %}<span class="pill no">{{ call.attempts }}</span>{% else %}1{% endif %}</td>
+        <td class="n">{{ call.repairs }}</td><td class="n">{{ call.redactions }}</td>
+        <td class="n">{{ call.cost_inr|rupees }}</td></tr>
+    {% endfor %}
+    </tbody>
+    <tfoot><tr><th>Total</th><th class="n">{{ detail.order.attempts }}</th><th class="n">{{ detail.repairs }}</th>
+      <th class="n">{{ detail.redactions }}</th><th class="n">{{ detail.cost_inr|rupees }}</th></tr></tfoot>
+  </table>
+  {% if detail.cut_by_chapter %}
+  <p class="sub">Paragraphs cut, by chapter:
+    {% for chapter, count in detail.cut_by_chapter %}<span class="pill">{{ chapter }} &times;{{ count }}</span> {% endfor %}</p>
+  {% endif %}
+  {% else %}
+  <p class="quiet">No per-call record. A concise report stores an attempt count only, and a cache hit stores
+    nothing at all - the report it served was generated (and costed) against an earlier order.</p>
+  {% endif %}
+</div>
+<p class="sub"><a href="/admin/orders">&larr; back to the orders list</a></p>
+{% endblock %}

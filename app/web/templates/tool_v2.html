@@ -1,0 +1,154 @@
+{# PHASE 2 PROTOTYPE of a tool page (/birth-chart, /horoscope-matching, /mangal-dosha, /sade-sati and the
+   sidereal calculator). Reached only by `?design=v2`; tool.html is untouched and is what every visitor gets.
+
+   THE FORM AND THE RESULT ARE THE SAME MARKUP, included from the same partials tool.html includes - not a
+   second copy arranged differently. app.js and pay.js find everything by id, so a copy would be a second
+   contract to keep in step with two scripts, and the first time one of them moved this page would break in a
+   way no test on the live page could see.
+
+   Words: `copy` is this page's live copy, unchanged, so the H1, intro, sections, FAQ and every JSON-LD block
+   are the ones the live page carries. #}
+{% extends "base.html" %}
+{% import "_copy_blocks.html" as blocks %}
+
+{% macro arrow() %}<svg class="icon v2-arrow" width="1em" height="1em" viewBox="0 0 16 16" fill="none"
+  stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 8h11M9 3.5L13.5 8 9 12.5"/></svg>{% endmacro %}
+
+{% block body_class %} class="design-v2"{% endblock %}
+
+{% block title %}{{ copy.title }} | {{ site_name }}{% endblock %}
+{% block meta_description %}{{ copy.meta_description }}{% endblock %}
+
+{% block head_extra %}
+  {# Only while this is a PREVIEW behind ?design=v2. Once it is the design the site serves, a noindex
+     here would quietly delist the page. See site.DESIGN_V2. #}
+  {% if not v2_is_default %}<meta name="robots" content="noindex, nofollow">{% endif %}
+  <link rel="stylesheet" href="/static/css/design-v2.css?v={{ static_version }}">
+  <script src="/static/js/design-v2.js?v={{ static_version }}" defer></script>
+{% endblock %}
+
+{% block main %}
+<div id="design-v2" class="v2">
+
+<section class="v2-hero">
+  <div class="wrap v2-hero__grid">
+    <div class="v2-hero__lead">
+      <h1>{{ copy.h1 }}</h1>
+      <p class="v2-hero__intro">{{ copy.intro }}</p>
+      {# NO trust line here. `_tool_form.html` already prints `ui.trust_form` at the top of the form card,
+         which is where this site deliberately puts it - at the point of use, answering "is this just a
+         guess?" where the question is actually asked. Printing it in the lead as well put the same three
+         sentences on screen twice, side by side, which is what the hero looked like until now. #}
+      {% if copy.product %}
+      <ul class="v2-hero__points">
+        {% for point in (copy.product.points or [])[:3] %}
+        <li><svg class="icon tick" width="1em" height="1em" viewBox="0 0 16 16" fill="none" stroke="currentColor"
+                 stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8.5l3.5 3.5L13 4.5"/></svg><span>{{ point }}</span></li>
+        {% endfor %}
+      </ul>
+      {% endif %}
+    </div>
+    {# The form, above the fold, in the card that used to sit under the hero. Not staged here: see the note
+       in _tool_form.html. A single form's three numbered stages are taller than the fold, and the hero's
+       whole argument is that the first action is visible without scrolling. #}
+    <div class="v2-hero__form v2-tool-form">
+      {% set form_stages = false %}
+      {% include "_tool_form.html" %}
+    </div>
+  </div>
+</section>
+
+{# THE RESULT GETS THE WHOLE WIDTH. It is the tallest thing on the page - a rendered kundali is thousands of
+   pixels - and it is the thing the reader came for, so it is not squeezed into two thirds beside a rail. #}
+<div class="wrap v2-result">
+  {% include "_tool_result.html" %}
+</div>
+
+<div class="wrap v2-body">
+  <main class="v2-main">
+    {% for section in copy.sections %}
+    <article class="v2-panel v2-article"{% if section.anchor %} id="about-{{ section.anchor }}"{% endif %}>
+      <h2>{{ section.heading }}</h2>
+      <details class="v2-readmore" open>
+        <summary>{{ v2.read_more }}</summary>
+        {{ blocks.section_body(section) }}
+      </details>
+    </article>
+    {% endfor %}
+
+    {% if copy.faqs %}
+    <section class="v2-panel" id="faq" aria-labelledby="faq-heading">
+      <h2 id="faq-heading">{{ ui.faq_heading }}</h2>
+      <div class="v2-faq">
+        {% for question, answer in copy.faqs %}
+        <details>
+          <summary>{{ question }}</summary>
+          <div class="v2-prose">{{ answer }}</div>
+        </details>
+        {% endfor %}
+      </div>
+    </section>
+    {% endif %}
+  </main>
+
+  <aside class="v2-rail" aria-label="{{ v2.sky_heading }}">
+    {% if sky %}
+    <section class="v2-card" aria-labelledby="sky-heading">
+      <h2 id="sky-heading">{{ v2.sky_heading }}</h2>
+      <p class="v2-card__when">{{ sky.as_of }} · {{ v2.sky_note }}</p>
+      <details class="v2-readmore" open>
+        <summary>{{ v2.read_more }}</summary>
+        <ul class="v2-sky">
+          {% for row in sky.rows %}
+          <li>
+            <span class="v2-sky__graha">{{ row.graha }}</span>
+            <span class="v2-sky__pos">{{ row.sign }} {{ row.degree }}°{% if row.retrograde %}<span
+              class="v2-sky__rx" title="{{ v2.sky_rx_label }}">{{ v2.sky_rx }}</span>{% endif %}</span>
+          </li>
+          {% endfor %}
+        </ul>
+      </details>
+    </section>
+    {% endif %}
+
+    {# The other tools, as links rather than cards: on a tool page these are where you go NEXT, not the
+       choice you are making now. Same list the live page puts at the foot of its content. #}
+    {% if more_tools %}
+    <section class="v2-card" aria-labelledby="more-heading">
+      <h2 id="more-heading">{{ ui.more_heading }}</h2>
+      <ul class="v2-more">
+        {% for item in more_tools %}
+        <li><a href="{{ item.path }}">{{ item.label }}{{ arrow() }}</a></li>
+        {% endfor %}
+      </ul>
+      {# NAMES THE ENGINE, because this list names the AI tool. The trust rule is that no section may mention
+         AI without Swiss Ephemeris beside it, and a bare list of links was a section that did - caught by
+         tests/test_trust_copy.py on the day the design became the default. `ui.footer_meta` rather than a
+         new sentence: it already says this, in all three languages, and has already been reviewed. #}
+      <p class="small muted" style="margin:.6rem 0 0">{{ ui.footer_meta }}</p>
+    </section>
+    {% endif %}
+
+    <section class="v2-card v2-sell" aria-labelledby="sell-heading">
+      <h2 id="sell-heading">{{ v2.sell_heading }}</h2>
+      <p>{{ v2.report_text }}</p>
+      <p class="v2-price">₹{{ book_price }}</p>
+      <p><a class="btn btn--cta" href="{{ href('kundali') }}">{{ v2.sell_cta }}</a></p>
+      <p class="small" style="color:rgba(255,255,255,.75);margin:.5rem 0 0">{{ v2.sell_note }}</p>
+    </section>
+  </aside>
+</div>
+
+<nav class="v2-bottombar" aria-label="{{ v2.tools_heading }}">
+  <a class="is-primary" href="#tool-form">{{ v2.bar_kundali }}</a>
+  <a class="is-secondary" href="{{ href('consultation') }}">{{ v2.bar_ai }}</a>
+</nav>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/js/render.js?v={{ static_version }}" defer></script>
+<script src="/static/js/app.js?v={{ static_version }}" defer></script>
+<script src="/static/js/pay.js?v={{ static_version }}" defer data-pay data-enabled="{{ '1' if payments_enabled else '0' }}"></script>
+{% endblock %}

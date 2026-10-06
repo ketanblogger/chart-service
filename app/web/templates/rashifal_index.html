@@ -1,0 +1,66 @@
+{# Daily hub and weekly hub: all 12 rashis on one page, in the tree's language (app/web/rashifal.py `_hub`).
+   Each card is the stored short summary of that rashi's reading - or, until one exists, the engine's Moon facts. #}
+{% extends "base.html" %}
+{% import "_copy_blocks.html" as blocks %}
+
+{% block title %}{{ title }} | {{ site_name }}{% endblock %}
+{% block meta_description %}{{ meta_description }}{% endblock %}
+
+{% block main %}
+<section class="hero hero--rashifal">
+  <div class="wrap">
+    <nav class="breadcrumbs" aria-label="{{ ui.breadcrumb_aria }}">
+      {% for name, path in crumbs %}<a href="{{ path }}">{{ name }}</a>{% if not loop.last %} <span aria-hidden="true">›</span> {% endif %}{% endfor %}
+    </nav>
+    <h1>{{ h1 }}</h1>
+    <p class="hero__intro">{{ copy.intro }}</p>
+    <p class="rashifal-meta">
+      <span><strong>{{ range_label }}:</strong> <span id="period-range">{{ current_range }}</span></span>
+      {% if updated %}<span><strong>{{ labels.updated }}:</strong> <time id="last-updated">{{ updated }}</time></span>{% endif %}
+    </p>
+  </div>
+</section>
+
+<div class="wrap rashifal">
+  <div class="ad-slot" data-ad-slot="{{ ad_slots[0] }}" hidden></div>
+
+  <ul class="rashi-grid" id="hub-cards">
+    {% for card in cards %}
+    <li class="card rashi-card" id="rashi-{{ card.slug }}">
+      <h2><a href="{{ card.path }}">{{ card.label }}</a> <span class="muted small">{{ card.sub }}</span></h2>
+      {% if card.summary %}
+      {% if card.headline %}<p class="rashi-card__headline"><strong>{{ card.headline }}</strong></p>{% endif %}
+      <p>{{ card.summary }}</p>
+      {% else %}
+      {% if card.fact %}<p>{{ card.fact }}</p>{% endif %}
+      <p class="muted small">{{ card.pending }}</p>
+      {% endif %}
+      <p class="rashi-card__links"><a href="{{ card.path }}" aria-label="{{ labels.read_more }}: {{ card.label }}">{{ labels.read_more }}</a></p>
+    </li>
+    {% endfor %}
+  </ul>
+
+  <p class="hub-switch"><a class="btn btn--primary" href="{{ other_hub.path }}">{{ other_hub.label }}</a></p>
+
+  <div class="ad-slot" data-ad-slot="{{ ad_slots[1] }}" hidden></div>
+
+  <div class="cta-pair">
+    <aside class="cta" aria-labelledby="cta-kundali">
+      <h3 id="cta-kundali">{{ labels.cta_kundali_title }}</h3>
+      <p>{{ labels.cta_kundali_text }}</p>
+      <a class="btn btn--cta" href="{{ href('kundali') }}">{{ labels.cta_kundali_button }}</a>
+    </aside>
+    <aside class="cta" aria-labelledby="cta-chat">
+      <h3 id="cta-chat">{{ labels.cta_chat_title }}</h3>
+      <p>{{ labels.cta_chat_text }}</p>
+      <a class="btn btn--cta" href="{{ href('consultation') }}">{{ labels.cta_chat_button }}</a>
+    </aside>
+  </div>
+</div>
+
+<article class="wrap content">
+  {{ blocks.sections(copy) }}
+  {{ blocks.faq(copy, ui.faq_heading) }}
+  <p class="disclaimer" id="rashifal-disclaimer">{{ disclaimer }}</p>
+</article>
+{% endblock %}

@@ -1,0 +1,89 @@
+{# The waiting skeleton, the result and the purchase panel of a tool page. Extracted from tool.html for the
+   same reason as the form - see _tool_form.html. app.js and pay.js find everything here by id, so the ids,
+   the data- attributes and the order of the buttons are contracts, not markup preferences. #}
+  {# Shown only once the calculation has been outstanding for half a second - see REVEAL_SKELETON_MS in
+     app.js. Below that threshold nobody ever sees it, which is the normal case: the endpoint answers in
+     well under a second, and a placeholder that appears and vanishes is worse than none.
+
+     WHAT IT DOES NOT DO IS PREVENT REFLOW, and that is worth stating because it is the obvious thing to
+     claim for a skeleton. Measured, a rendered result is 5862px tall at 320 and 5466px at 390; no
+     placeholder can reserve that, so the swap from skeleton to result reflows the page either way. Both
+     that reflow and this element's own appearance follow a deliberate click, so neither counts towards
+     CLS. This is FEEDBACK DURING A WAIT and nothing more - it is sized to the chart because that is the
+     part of the result a reader is waiting to see, not because the size buys a metric.
+
+     aria-hidden: the busy row above already announces the wait politely, and a screen reader does not
+     need a description of grey rectangles. #}
+  <div class="result-skeleton" id="result-skeleton" aria-hidden="true" hidden>
+    <span class="result-skeleton__bar result-skeleton__bar--wide"></span>
+    <span class="result-skeleton__bar"></span>
+    <span class="result-skeleton__chart"></span>
+    <span class="result-skeleton__bar"></span>
+    <span class="result-skeleton__bar result-skeleton__bar--wide"></span>
+  </div>
+
+  <section class="result" id="result" aria-labelledby="result-heading" tabindex="-1" hidden>
+    <h2 id="result-heading">{{ copy.result_heading }}</h2>
+    <div id="result-body"></div>
+
+    {% if page_key == "kundali" %}
+    {# The free Basic Chart PDF. POST /api/chart/pdf takes the SAME birth details the page already posted, so
+       app.js re-sends the stored payload rather than keeping a second copy of the form. Server-rendered
+       because the blurb quotes both tier prices, and a price is never typed into JS or copy - it comes from
+       app/payments/catalogue.py at request time, like every other number on this page. #}
+    <div class="chart-download" id="chart-download">
+      <button type="button" class="btn btn--primary chart-download__go" id="chart-pdf-btn"
+              data-label-working="{{ copy.extra.download_working }}">{{ copy.extra.download_button }}</button>
+      <p class="chart-download__note">{{ copy.extra.download_text }}</p>
+      <p class="chart-download__status" id="chart-pdf-status" role="status" hidden
+         data-busy="{{ copy.extra.download_busy }}" data-limit="{{ copy.extra.download_limit }}"
+         data-failed="{{ copy.extra.download_failed }}"></p>
+    </div>
+    {% endif %}
+
+    <aside class="cta" id="cta" aria-labelledby="cta-heading">
+      <h3 id="cta-heading">{{ copy.product.heading }}</h3>
+      <p>{{ copy.product.text }}</p>
+      {% if copy.product.points %}
+      <ul>
+        {% for point in copy.product.points %}<li>{{ point }}</li>{% endfor %}
+      </ul>
+      {% endif %}
+      {# One button per tier this page sells (pages.purchase_offers): the kundali page offers the concise report and
+         the book, every other page offers its single product and renders exactly one button. Clicking dispatches a
+         cancelable `product:purchase` CustomEvent on document with detail {product, priceInr, request, name}; see
+         static/js/app.js. pay.js (platform) takes it over when keys are set, and inserts its panel next to the button
+         that was pressed - so each option is wrapped in its own element. The price and the ids are the catalogue's
+         (app/payments/catalogue.py) - never typed into copy. #}
+      <div class="cta__options{% if options | length > 1 %} cta__options--tiers{% endif %}">
+        {% for option in options %}
+        <div class="cta__option{% if options | length > 1 and loop.first %} cta__option--lite{% endif %}">
+          {% if option.blurb %}<p class="cta__gets">{{ option.blurb }}</p>{% endif %}
+          {# data-price-inr is the LISTED price (what the label quotes); data-total-inr is what will actually be
+             charged, because the listed prices are GST-exclusive. pay.js reads all four off this button and
+             shows price / GST / total before Checkout opens - it must never compute a tax figure itself. #}
+          <button type="button" class="btn btn--cta" data-product="{{ option.product }}"
+                  data-price-inr="{{ option.price_inr }}" data-base-inr="{{ option.base_inr }}"
+                  data-gst-inr="{{ option.gst_inr }}"
+                  data-total-inr="{{ option.total_inr }}" data-gst-rate="{{ option.gst_rate }}">{{ option.label }}</button>
+        </div>
+        {% endfor %}
+      </div>
+      {# Place-of-supply options, rendered by the SERVER and cloned into the purchase panel by pay.js.
+         Same reasoning as the busy row above: content and language come from the page, not from script. 36
+         states and union territories in three languages is reference data (app/payments/states.py), and a
+         copy of it inside pay.js would be a second source of truth for something a tax return is filed
+         against. A <template> because these options belong to a <select> that does not exist yet. #}
+      <template id="pay-state-options">
+        {% for code, state_name in ui.states %}<option value="{{ code }}">{{ state_name }}</option>{% endfor %}
+      </template>
+      {# GST, at the point of decision. The prices above are exclusive of it, so this belongs beside the button
+         rather than on a policy page; the exact rupee total for the option pressed appears on the pay panel. #}
+      <p class="cta__gst small">{{ ui.gst_note }}</p>
+      {# The disclaimer sits with the offer, not at the bottom of the page - and because it shares this
+         section with copy about the AI-written report, the engine is named here too. #}
+      <p class="cta__disclaimer">{{ copy.extra.cta_disclaimer }}</p>
+      <p class="cta__notice" id="cta-notice" role="status" hidden></p>
+    </aside>
+  </section>
+</div>

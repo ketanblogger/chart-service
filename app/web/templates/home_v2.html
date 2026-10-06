@@ -1,0 +1,338 @@
+{# PROTOTYPE of the full-width home page. Reached only by `?design=v2`; `home.html` is untouched and is what
+   every real visitor still gets. NOINDEX, because it is the same content on a second URL and it must never
+   compete with `/` in a search index.
+
+   The words come from the live `copy` wherever the live page already has them - the H1, the intro, the trust
+   line, the sections and the FAQ are NOT rewritten here, so the SEO signals on this page are the ones the
+   real page carries. The prototype's own labels (`v2`) are in app/web/design_v2.py and move into the content
+   modules if phase 2 is approved. #}
+{% extends "base.html" %}
+{% from "_person_fields.html" import person_fields with context %}
+{% import "_copy_blocks.html" as blocks %}
+
+{% block title %}{{ copy.title }} | {{ site_name }}{% endblock %}
+{% block meta_description %}{{ copy.meta_description }}{% endblock %}
+
+{# A DRAWN arrow. "→" (U+2192) is not in Noto Sans Devanagari, which html[lang=hi|mr] puts first in the
+   stack, so on the Hindi and Marathi pages it fell through to whatever else the device had - and on a machine
+   with a thin font set, to a box. Every mark on this page is drawn for that reason. #}
+{% macro arrow() %}<svg class="icon v2-arrow" width="1em" height="1em" viewBox="0 0 16 16" fill="none"
+  stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 8h11M9 3.5L13.5 8 9 12.5"/></svg>{% endmacro %}
+
+{% block body_class %} class="design-v2"{% endblock %}
+
+{% block head_extra %}
+  {# A preview of a page that already exists at this URL without the flag: never indexable. #}
+  {# Only while this is a PREVIEW behind ?design=v2. Once it is the design the site serves, a noindex
+     here would quietly delist the page. See site.DESIGN_V2. #}
+  {% if not v2_is_default %}<meta name="robots" content="noindex, nofollow">{% endif %}
+  <link rel="stylesheet" href="/static/css/design-v2.css?v={{ static_version }}">
+  {# Collapses the long sections on a PHONE only. Everything is open in the markup, so a crawler and a reader
+     with no JavaScript both get the whole page - this only takes width away on the screen that has none. #}
+  <script src="/static/js/design-v2.js?v={{ static_version }}" defer></script>
+{% endblock %}
+
+{% block main %}
+{# The marker `design-v2` is what widens the header and footer container from design-v2.css without editing
+   base.html in phase 1. It is a prototype seam; phase 2 sets a body class instead. #}
+<div id="design-v2" class="v2">
+
+<section class="v2-hero">
+  <div class="wrap v2-hero__grid">
+    <div class="v2-hero__lead">
+      <p class="v2-hero__tagline">{{ ui.brand_tagline }}</p>
+      <h1>{{ copy.h1 }}</h1>
+      <p class="v2-hero__intro">{{ copy.intro }}</p>
+      {# The hero leads with accuracy, never with the AI - the same trust requirement as the live page. #}
+      <p class="v2-hero__trust">{{ copy.extra.hero_trust }}</p>
+      <ul class="v2-hero__points">
+        {% for point in v2.hero_points %}
+        {# An SVG tick, not "✓". html[lang=mr|hi] puts Noto Sans Devanagari first in the stack and that face
+           has no U+2713, so the character fell through to whatever the device had - and on a machine with a
+           thin font set, to a box. The same reasoning as the sign glyphs: draw it, do not hope for it. #}
+        <li><svg class="icon tick" width="1em" height="1em" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.2"
+                 stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8.5l3.5 3.5L13 4.5"/></svg><span>{{ point }}</span></li>
+        {% endfor %}
+      </ul>
+    </div>
+
+    {# THE FORM, ABOVE THE FOLD. The same markup app.js drives on /birth-chart: same ids, same data
+       attributes, same macro. It IS new wiring, though - this comment used to say it was not, and that was
+       wrong in the way that matters: the live home page has never carried a birth form, so it has never
+       loaded the tool scripts, and this form sat here fully styled and completely dead. The scripts and the
+       result region are at the foot of this template, and the test named there checks them. #}
+    <div class="v2-hero__form">
+      <section class="v2-formcard" aria-labelledby="form-heading">
+        <h2 id="form-heading" data-heading-birth="{{ v2.form_heading }}">{{ v2.form_heading }}</h2>
+        <p class="trust-line">{{ ui.trust_form }}</p>
+        <form id="tool-form" class="birth-form birth-form--single" novalidate data-mode="birth"
+              data-form="single" data-endpoint="/api/chart" data-renderer="kundali" data-lang="{{ lang }}">
+          {# NOT staged. The macro's other branch puts date and time on one row and the place under them, with
+             no step hints - which is the compaction asked for, in markup that already exists and is already
+             what /horoscope-matching ships. app.js stages a form only when it finds [data-step] elements and
+             a step nav, so a form without them takes the plain path rather than a special one. #}
+          {{ person_fields("self") }}
+          <p class="form-status" id="form-status" role="alert" hidden></p>
+          <button type="submit" class="btn btn--primary" id="submit-btn"
+                  data-label-birth="{{ kundali_copy.submit_label }}">{{ kundali_copy.submit_label }}</button>
+          <p class="form-busy" id="form-busy" aria-live="polite" hidden>
+            <span class="form-busy__spinner" aria-hidden="true"></span><span data-busy-text></span>
+          </p>
+          <p class="form-note" id="form-note">{{ ui.form_note }}</p>
+          <noscript><p class="form-status form-status--error">{{ ui.noscript }}</p></noscript>
+        </form>
+      </section>
+    </div>
+  </div>
+</section>
+
+{# THE RESULT, AND THE SCRIPTS THAT FILL IT. Until now this was `<div id="result" class="result" hidden>` and
+   nothing else, under a comment saying there was "nothing to wire" - and the form above it did not work at
+   all. Typing a city fired no lookup, because /static/js/app.js was never loaded on this page: the live home
+   page has no birth form, so it has never needed the tool scripts, and a form lifted onto it inherits none
+   of them. The page looked completely correct in a screenshot, which is the only way it was being checked.
+
+   So the form now gets the SAME result markup and the SAME three scripts the tool page has. `copy` inside
+   the partial is the KUNDALI page's, because this is the kundali tool's form and those are its labels and
+   its tiers; the home page's own `copy` is untouched everywhere else on the page.
+
+   tests/test_design_v2_phase2.py compares this page's script hooks against /birth-chart's, so the next
+   arrangement of this hero cannot quietly drop one again. #}
+{# `page_key` too, and only inside this block: the free Basic Chart PDF is gated on it, and this IS the
+   kundali tool's result - a home page that drew the same chart but withheld the download it offers would be
+   a quietly worse copy of it. The `with` scope ends before the rest of the page, which is still the home
+   page and still knows itself as one. #}
+{% with copy = kundali_copy, page_key = "kundali" %}
+<div class="wrap v2-result">
+  {% include "_tool_result.html" %}
+</div>
+{% endwith %}
+
+<div class="wrap v2-body">
+  <main class="v2-main">
+
+    {# ---- the six tools, 3 x 2 ---- #}
+    <section aria-labelledby="tools-heading">
+      <div class="v2-section__head"><h2 id="tools-heading">{{ v2.tools_heading }}</h2></div>
+      <ul class="v2-tools">
+        {% for item in nav %}
+        <li class="v2-tool">
+          <span class="v2-tool__icon" aria-hidden="true">
+            <svg class="icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                 stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="{{ tool_glyph(item.key) }}"/></svg>
+          </span>
+          {% if item.key == "rashifal-hub" %}
+          <h3><a href="{{ item.path }}">{{ copy.extra.card_rashifal_title }}</a></h3>
+          <p>{{ copy.extra.card_rashifal_text }}</p>
+          <a class="v2-tool__go" href="{{ item.path }}">{{ copy.extra.card_rashifal_button }}{{ arrow() }}</a>
+          {% else %}
+          <h3><a href="{{ item.path }}">{{ item.label }}</a></h3>
+          <p>{{ item.blurb }}</p>
+          <a class="v2-tool__go" href="{{ item.path }}"
+             aria-label="{{ copy.extra.card_open_aria|replace('{name}', item.label) }}">{{ copy.extra.card_chat_button if item.key == "consultation" else copy.extra.card_open }}{{ arrow() }}</a>
+          {% endif %}
+        </li>
+        {% endfor %}
+      </ul>
+    </section>
+
+    {# ---- the twelve signs ---- #}
+    <section class="v2-block--signs" aria-labelledby="signs-heading">
+      <div class="v2-section__head"><h2 id="signs-heading">{{ v2.signs_heading }}</h2></div>
+      <ul class="v2-signs">
+        {% for rashi in rashis_zodiac %}
+        <li class="v2-sign">
+          <a href="{{ rashi.path }}">
+            <svg class="icon icon--tile" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                 stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{ sign_glyph(rashi.key) }}"/></svg>
+            <span class="v2-sign__name">{{ rashi.label }}</span>
+            <span class="v2-sign__sub">{{ rashi.sub }}</span>
+          </a>
+        </li>
+        {% endfor %}
+      </ul>
+      <p class="muted small v2-prose" style="margin-top:.8rem">{{ v2.signs_note }}</p>
+      <div class="v2-periods">
+        <a href="{{ href('rashifal-weekly') }}">{{ copy.extra.strip_weekly }}</a>
+      </div>
+    </section>
+
+    {# ---- the AI preview, labelled as AI in the bubble itself ---- #}
+    <section class="v2-panel" aria-labelledby="ai-heading">
+      <h2 id="ai-heading">{{ v2.ai_heading }}</h2>
+      <div class="v2-chat">
+        <div class="v2-bubble v2-bubble--q">
+          <span class="v2-bubble__who">{{ v2.ai_who_q }}</span>{{ v2.ai_q }}
+        </div>
+        <div class="v2-bubble v2-bubble--a">
+          <span class="v2-bubble__who">{{ v2.ai_who_a }}</span>{{ v2.ai_a }}
+        </div>
+      </div>
+      <p class="muted small v2-prose">{{ v2.ai_note }}</p>
+      <p><a class="btn btn--primary" href="{{ href('consultation') }}">{{ v2.ai_cta }}</a></p>
+    </section>
+
+    {# ---- how it is calculated ---- #}
+    <section class="v2-trust" aria-labelledby="trust-heading">
+      <h2 id="trust-heading">{{ v2.trust_heading }}</h2>
+      <ol class="v2-prose">
+        {% for step in v2.trust_steps %}<li>{{ step }}</li>{% endfor %}
+      </ol>
+    </section>
+
+    {# ---- the paid book, priced from the catalogue ---- #}
+    <section class="v2-panel" aria-labelledby="report-heading">
+      <h2 id="report-heading">{{ v2.report_heading }}</h2>
+      <div class="v2-report">
+        <div class="v2-pages" aria-hidden="true">
+          <span class="v2-page"><span></span><span></span><span></span><span></span><span></span><span></span></span>
+          <span class="v2-page v2-page--2"><span></span><span></span><span></span><span></span><span></span><span></span></span>
+          <span class="v2-page v2-page--3"><span></span><span></span><span></span><span></span><span></span><span></span></span>
+        </div>
+        <div>
+          <p class="v2-prose">{{ v2.report_text }}</p>
+          <p class="v2-price">₹{{ book_price }} <small>{{ v2.report_note }}</small></p>
+          <p><a class="btn btn--primary" href="{{ href('kundali') }}">{{ v2.report_cta }}</a></p>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  {# ---- the right rail ---- #}
+  <aside class="v2-rail" aria-label="{{ v2.sky_heading }}">
+    {% if sky %}
+    <section class="v2-card" aria-labelledby="sky-heading">
+      <h2 id="sky-heading">{{ v2.sky_heading }}</h2>
+      <p class="v2-card__when">{{ sky.as_of }} · {{ v2.sky_note }}</p>
+      {# Nine rows is a screenful on a phone, on a panel a reader did not come for. Same mechanism as the long
+         prose sections: `open` in the markup, closed below 700px by static/js/design-v2.js, so the positions
+         are in the HTML for everyone and take no height on the screen that has none to spare. The heading and
+         the time stay visible, which is the one line the disclosure leaves behind. #}
+      <details class="v2-readmore" open>
+        <summary>{{ v2.read_more }}</summary>
+      <ul class="v2-sky">
+        {% for row in sky.rows %}
+        <li>
+          <span class="v2-sky__graha">{{ row.graha }}</span>
+          <span class="v2-sky__pos">{{ row.sign }} {{ row.degree }}°{% if row.retrograde %}<span
+            class="v2-sky__rx" title="{{ v2.sky_rx_label }}">{{ v2.sky_rx }}</span>{% endif %}</span>
+        </li>
+        {% endfor %}
+      </ul>
+      </details>
+    </section>
+    {% endif %}
+
+    <section class="v2-card" aria-labelledby="picker-heading">
+      <h2 id="picker-heading">{{ v2.picker_heading }}</h2>
+      <div class="v2-picker">
+        {% for rashi in rashis_zodiac %}<a href="{{ rashi.path }}">{{ rashi.label }}</a>{% endfor %}
+      </div>
+    </section>
+
+    <section class="v2-card v2-sell" aria-labelledby="sell-heading">
+      <h2 id="sell-heading">{{ v2.sell_heading }}</h2>
+      <p>{{ v2.report_text }}</p>
+      <p class="v2-price">₹{{ book_price }}</p>
+      <p><a class="btn btn--cta" href="{{ href('kundali') }}">{{ v2.sell_cta }}</a></p>
+      <p class="small" style="color:rgba(255,255,255,.75);margin:.5rem 0 0">{{ v2.sell_note }}</p>
+    </section>
+  </aside>
+</div>
+
+{# THE LOWER HALF GETS THE WHOLE WIDTH. It used to sit inside the 2/3 main column, so below the point where
+   the rail ends - about 1100px down - the right third of the page was empty for thousands of pixels, which is
+   the exact complaint the redesign started from. It is a sibling of the grid, not a child of it: a grid item
+   cannot reflow into a track its neighbour has stopped using. #}
+<div class="wrap v2-wide">
+    {# ---- THE LIVE PAGE'S OWN WORDS, LAID OUT ACROSS THE WIDTH ----
+     Same sections, same headings, same sentences, same order - only the arrangement changes, so nothing a
+     crawler reads is different from the live page. Two prose sections per row, the four needs as a 2x2 of
+     cards that each link to their own tool, and the FAQ in two columns. Each card holds its reading width
+     to ~65-70ch, which is why the grid is two wide and not three: the width buys a SECOND COLUMN, never a
+     longer line. #}
+
+  {% set pairs = [(copy.sections[0], copy.sections[1]), (copy.sections[3], copy.sections[4])] %}
+  <section class="v2-duo" aria-label="{{ copy.sections[0].heading }}">
+    {% for left, right in pairs[:1] %}
+    {% for section in (left, right) %}
+    <article class="v2-panel v2-article"{% if section.anchor %} id="about-{{ section.anchor }}"{% endif %}>
+      <h2>{{ section.heading }}</h2>
+      {# Open in the markup; static/js/design-v2.js closes it on a phone and nowhere else. The heading is
+         OUTSIDE, so a collapsed section still says what it is. #}
+      <details class="v2-readmore" open>
+        <summary>{{ v2.read_more }}</summary>
+        {{ blocks.section_body(section) }}
+      </details>
+    </article>
+    {% endfor %}
+    {% endfor %}
+  </section>
+
+  {# The four needs, one card each, each linking to the tool it names. The bullet order is the copy's and
+     the mapping is positional - asserted per language in tests/test_design_v2.py. #}
+  {% set needs = copy.sections[2] %}
+  <section aria-labelledby="needs-heading">
+    <div class="v2-section__head"><h2 id="needs-heading">{{ needs.heading }}</h2></div>
+    <p class="muted v2-prose">{{ v2.needs_heading_note }}</p>
+    <ul class="v2-needs">
+      {% for item in needs.blocks if item is not string %}
+      {% for need in item %}
+      <li class="v2-need">
+        <p>{{ need }}</p>
+        <a class="v2-tool__go" href="{{ href(need_tools[loop.index0]) }}">{{ copy.extra.card_open }}{{ arrow() }}</a>
+      </li>
+      {% endfor %}
+      {% endfor %}
+    </ul>
+    {% for block in needs.blocks if block is string %}
+    {% if not loop.first %}<p class="muted small v2-prose">{{ block }}</p>{% endif %}
+    {% endfor %}
+  </section>
+
+  <section class="v2-duo" aria-label="{{ copy.sections[3].heading }}">
+    {% for left, right in pairs[1:] %}
+    {% for section in (left, right) %}
+    <article class="v2-panel v2-article"{% if section.anchor %} id="about-{{ section.anchor }}"{% endif %}>
+      <h2>{{ section.heading }}</h2>
+      {# Open in the markup; static/js/design-v2.js closes it on a phone and nowhere else. The heading is
+         OUTSIDE, so a collapsed section still says what it is. #}
+      <details class="v2-readmore" open>
+        <summary>{{ v2.read_more }}</summary>
+        {{ blocks.section_body(section) }}
+      </details>
+    </article>
+    {% endfor %}
+    {% endfor %}
+  </section>
+
+  {% if copy.faqs %}
+  <section class="v2-panel" id="faq" aria-labelledby="faq-heading">
+    <h2 id="faq-heading">{{ ui.faq_heading }}</h2>
+    <div class="v2-faq">
+      {% for question, answer in copy.faqs %}
+      <details>
+        <summary>{{ question }}</summary>
+        <div class="v2-prose">{{ answer }}</div>
+      </details>
+      {% endfor %}
+    </div>
+  </section>
+  {% endif %}
+</div>
+
+{# Both actions within a thumb on a phone; hidden on desktop, where both are already on screen. #}
+<nav class="v2-bottombar" aria-label="{{ v2.tools_heading }}">
+  <a class="is-primary" href="#tool-form">{{ v2.bar_kundali }}</a>
+  <a class="is-secondary" href="{{ href('consultation') }}">{{ v2.bar_ai }}</a>
+</nav>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/js/render.js?v={{ static_version }}" defer></script>
+<script src="/static/js/app.js?v={{ static_version }}" defer></script>
+<script src="/static/js/pay.js?v={{ static_version }}" defer data-pay data-enabled="{{ '1' if payments_enabled else '0' }}"></script>
+{% endblock %}

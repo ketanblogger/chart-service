@@ -1,0 +1,29 @@
+{# One rashifal reading page, in the language of its tree (/horoscope/..., /hi/rashifal/..., /mr/rashi-bhavishya/...).
+   Everything here comes from the content store and the engine brief (app/web/rashifal.py) - no AI call happens on a
+   page view. Links come from the registry; the language switcher in the header leads to the same reading in the
+   other languages. #}
+{% extends "base.html" %}
+
+{% block title %}{{ title }} | {{ site_name }}{% endblock %}
+{% block meta_description %}{{ meta_description }}{% endblock %}
+{% block og_type %}article{% endblock %}
+
+{% block main %}
+<section class="hero hero--rashifal">
+  <div class="wrap">
+    <nav class="breadcrumbs" aria-label="{{ ui.breadcrumb_aria }}">
+      {% for name, path in crumbs %}<a href="{{ path }}">{{ name }}</a>{% if not loop.last %} <span aria-hidden="true">›</span> {% endif %}{% endfor %}
+    </nav>
+    <h1>{{ h1 }}</h1>
+    <p class="rashifal-meta">
+      <span><strong>{{ range_label }}:</strong> <span id="period-range">{{ current_range }}</span></span>
+      {% if reading %}<span><strong>{{ t.updated }}:</strong> <time id="last-updated">{{ reading.updated }}</time></span>{% endif %}
+    </p>
+  </div>
+</section>
+
+<div class="wrap rashifal">
+  {% include "_rashifal_reading_body.html" %}
+  {% include "_rashifal_reading_aside.html" %}
+</div>
+{% endblock %}

@@ -1,0 +1,128 @@
+{% extends "base.html" %}
+{% block title %}Usage{% endblock %}
+{% block sub %}Who came, what they used, what it cost and what it earned - in IST calendar days.{% endblock %}
+{% block body %}
+
+<div class="note">
+  <b>Range:</b>
+  {% for value, label in ranges %}
+    {% if value == days %}<b>{{ label }}</b>{% else %}<a href="/admin/usage?days={{ value }}{{ '&include_admin=1' if include_admin }}">{{ label }}</a>{% endif %}
+    {% if not loop.last %}·{% endif %}
+  {% endfor %}
+  &nbsp;|&nbsp;
+  <form method="get" action="/admin/usage" style="display:inline">
+    <input type="number" name="days" min="1" max="365" value="{{ days }}" style="width:5em">
+    {% if include_admin %}<input type="hidden" name="include_admin" value="1">{% endif %}
+    <button type="submit">days</button>
+  </form>
+  &nbsp;|&nbsp;
+  {% if include_admin %}
+    <a href="/admin/usage?days={{ days }}">Hide my own usage</a>
+  {% else %}
+    <a href="/admin/usage?days={{ days }}&include_admin=1">Include my own usage</a>
+  {% endif %}
+  <br>{{ report["from"] }} to {{ report.to }}.
+  {% if report.admin_events_excluded %}
+    <b>{{ report.admin_events_excluded }}</b> of your own events are left out of everything below.
+  {% endif %}
+</div>
+
+<h2>People</h2>
+<div class="tiles">
+  <div class="tile"><div class="k">Unique visitors</div><div class="v">{{ report.visitors }}</div></div>
+  <div class="tile"><div class="k">Page views</div><div class="v">{{ report.views }}</div></div>
+  <div class="tile"><div class="k">Cost</div><div class="v">{{ report.cost_inr|rupees }}</div></div>
+  <div class="tile"><div class="k">Revenue</div><div class="v">{{ report.revenue_inr|rupees }}</div></div>
+  <div class="tile"><div class="k">Margin</div><div class="v">{{ report.margin_inr|rupees }}</div></div>
+</div>
+<p class="muted">A visitor is a daily salted hash of IP and user agent. No raw IP is stored, and the hash
+  cannot be followed from one day to the next. Obvious crawlers are not counted.</p>
+
+<h2>By day</h2>
+<table>
+  <thead><tr><th>Day</th><th>Visitors</th><th>Views</th><th>Cost</th><th>Revenue</th></tr></thead>
+  <tbody>
+    {% set money = {} %}{% for row in report.cost_by_day %}{% set _ = money.update({row.day: row}) %}{% endfor %}
+    {% for row in report.per_day %}
+    <tr>
+      <td>{{ row.day }}</td><td>{{ row.people }}</td><td>{{ row.views }}</td>
+      <td>{{ (money.get(row.day, {}).get('cost') or 0)|rupees }}</td>
+      <td>{{ (money.get(row.day, {}).get('revenue') or 0)|rupees }}</td>
+    </tr>
+    {% else %}<tr><td colspan="5" class="muted">Nothing recorded in this range.</td></tr>{% endfor %}
+  </tbody>
+</table>
+
+<h2>What was used</h2>
+<table>
+  <thead><tr><th>Feature</th><th>Action</th><th>Times</th><th>Worked</th><th>Cost</th><th>Revenue</th></tr></thead>
+  <tbody>
+    {% for row in report.features %}
+    <tr>
+      <td>{{ row.feature }}</td><td>{{ row.action }}</td><td>{{ row.n }}</td>
+      <td>{{ row.ok }}{% if row.ok != row.n %} <b>({{ row.n - row.ok }} failed)</b>{% endif %}</td>
+      <td>{{ (row.cost or 0)|rupees }}</td><td>{{ (row.revenue or 0)|rupees }}</td>
+    </tr>
+    {% else %}<tr><td colspan="6" class="muted">Nothing recorded in this range.</td></tr>{% endfor %}
+  </tbody>
+</table>
+
+<h2>Top pages</h2>
+<table>
+  <thead><tr><th>Path</th><th>Views</th></tr></thead>
+  <tbody>
+    {% for row in report.top_pages %}<tr><td>{{ row.path }}</td><td>{{ row.views }}</td></tr>
+    {% else %}<tr><td colspan="2" class="muted">Nothing yet.</td></tr>{% endfor %}
+  </tbody>
+</table>
+
+<h2>Languages</h2>
+<table>
+  <thead><tr><th>Tree</th><th>Views</th></tr></thead>
+  <tbody>
+    {% for row in report.languages %}<tr><td>{{ row.lang or '—' }}</td><td>{{ row.views }}</td></tr>
+    {% else %}<tr><td colspan="2" class="muted">Nothing yet.</td></tr>{% endfor %}
+  </tbody>
+</table>
+
+<h2>Costliest accounts</h2>
+<p class="muted">By account id, which is already a hash - there is no address on this page to mask.</p>
+<table>
+  <thead><tr><th>Account</th><th>Events</th><th>Cost</th></tr></thead>
+  <tbody>
+    {% for row in report.top_users %}
+    <tr><td><code>{{ mask(row.account_id) }}</code></td><td>{{ row.n }}</td><td>{{ (row.cost or 0)|rupees }}</td></tr>
+    {% else %}<tr><td colspan="3" class="muted">Nothing yet.</td></tr>{% endfor %}
+  </tbody>
+</table>
+
+<h2>What failed</h2>
+<table>
+  <thead><tr><th>Feature</th><th>Action</th><th>Detail</th><th>Times</th></tr></thead>
+  <tbody>
+    {% for row in report.errors %}
+    <tr><td>{{ row.feature }}</td><td>{{ row.action }}</td><td>{{ row.detail or '—' }}</td><td>{{ row.n }}</td></tr>
+    {% else %}<tr><td colspan="4" class="muted">Nothing failed in this range.</td></tr>{% endfor %}
+  </tbody>
+</table>
+
+<h2>Event log</h2>
+<p class="muted"><b>No chat text is on this page, and none can be.</b> The log says who, when, which feature,
+  what it cost and whether it worked. Reading what somebody actually asked is a separate act that is not
+  built here - see <code>app/admin/chat_access.py</code> for the guard and the audit trail it would need.</p>
+<table>
+  <thead><tr><th>When (IST)</th><th>Account</th><th>Feature</th><th>Action</th><th>Lang</th><th>Cost</th><th>OK</th><th>Detail</th></tr></thead>
+  <tbody>
+    {% for row in events %}
+    <tr>
+      <td>{{ row.ts|ist }}</td>
+      <td><code>{{ mask(row.account_id) }}</code>{% if row.is_admin %} <b>admin</b>{% endif %}</td>
+      <td>{{ row.feature }}</td><td>{{ row.action }}</td><td>{{ row.lang or '—' }}</td>
+      <td>{{ (row.cost_inr or 0)|rupees }}</td>
+      <td>{{ 'yes' if row.ok else 'NO' }}</td>
+      <td>{{ row.detail or '—' }}</td>
+    </tr>
+    {% else %}<tr><td colspan="8" class="muted">Nothing recorded yet.</td></tr>{% endfor %}
+  </tbody>
+</table>
+{% endblock %}

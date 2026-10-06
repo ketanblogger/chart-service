@@ -1,0 +1,130 @@
+{# Birth-details fieldset shared by tool.html and consultation.html (wired by static/js/app.js).
+   Visible strings come from `ui` (app/web/content/<lang>.py). On the matching page the same fieldsets serve the
+   by-name mode: the form gets data-mode="name", CSS hides date / time / city and the name becomes required.
+
+   `stages=True` groups date, time and place into three numbered steps. The steps are plain <fieldset>/<legend>,
+   every input stays in the DOM whatever the current step is, and with no JavaScript all three are simply
+   visible - which is the <noscript> path and the pre-existing behaviour. app.js adds `is-staged` to the form
+   and takes over from there. The matching page passes stages=False: it groups by PERSON instead, because six
+   steps to compare two charts is worse than the one form it replaced. #}
+
+{# Every three hours, so the furthest a reader can be from the nearest preset is ninety minutes. The list
+   used to jump from midnight to 6 am, which left a quarter of the clock at three hours out and forced the
+   caveat to be written for that worst case - roughly double the real uncertainty for everyone else. Closing
+   the gap halves every measured error rate and puts the dasha shift under a hard 1.42-year bound. #}
+{% set TIME_PRESETS = [("00:00", "preset_midnight"), ("03:00", "preset_small_hours"), ("06:00", "preset_early"),
+                       ("09:00", "preset_morning"), ("12:00", "preset_noon"), ("15:00", "preset_afternoon"),
+                       ("18:00", "preset_evening"), ("21:00", "preset_night")] %}
+
+{% macro _date_field(prefix) %}
+<div class="field">
+  <label for="{{ prefix }}-date">{{ ui.date }}</label>
+  <input type="date" id="{{ prefix }}-date" name="date" required min="1800-01-01" max="2399-12-31"
+         aria-describedby="{{ prefix }}-date-echo {{ prefix }}-date-error">
+  {# The date control is drawn in the browser's own locale, which can be month-first whatever the page says.
+     This reads the value back in words, so a 03/04 mix-up is visible before it becomes a chart. #}
+  {# Fast year selection. The <select> is BUILT BY app.js, not shipped here: a birth-year list is ~226
+     options, about 7KB of markup per field and two of them on the matching pages, which is a lot of
+     document for an accelerator on all 246 pages - and without JavaScript the native picker already works,
+     so there is nothing to degrade. The empty slot carries only the label text and the bounds, so what the
+     script builds is decided by the page's language and by the field it writes into, not by the script. #}
+  <span class="field__jump" data-year-jump data-label="{{ ui.year_jump }}"></span>
+  <p class="field-echo" id="{{ prefix }}-date-echo" data-date-echo role="status" hidden
+     data-label="{{ ui.echo_prefix }}" data-supplied></p>
+  <p class="field-error" id="{{ prefix }}-date-error" hidden></p>
+</div>
+{% endmacro %}
+
+{% macro _time_field(prefix) %}
+<div class="field">
+  <label for="{{ prefix }}-time">{{ ui.time }}</label>
+  <input type="time" id="{{ prefix }}-time" name="time" required
+         aria-describedby="{{ prefix }}-time-echo {{ prefix }}-time-error">
+  {# The same guarantee the date echo gives, for the field where a mistake is least recoverable. The time
+     control is drawn in the browser's own locale: it may offer AM/PM, it may be a 24-hour spinner, and the
+     page language does not decide which. A birth time taken as morning when the visitor meant evening moves
+     the lagna by half the zodiac, and every figure computed from it is then consistent and wrong - there is
+     nothing downstream that can notice. So the parsed value is read straight back in the words this
+     language uses for the time of day, by the SAME formatter that prints it on the result. #}
+  <p class="field-echo" id="{{ prefix }}-time-echo" data-time-echo role="status" hidden
+     data-label="{{ ui.echo_prefix }}"></p>
+  <p class="field-error" id="{{ prefix }}-time-error" hidden></p>
+  {# Presets for a birth time nobody wrote down. Each is up to three hours wide and the lagna turns over about
+     every two hours, so choosing one sets data-approx-time on the form; app.js carries that into the result,
+     where render.js prints the caveat saying which conclusions survive it and which do not. #}
+  <div class="presets" data-presets>
+    <button type="button" class="presets__toggle" data-preset-toggle aria-expanded="false"
+            aria-controls="{{ prefix }}-presets">{{ ui.time_unsure }}</button>
+    <div class="presets__panel" id="{{ prefix }}-presets" hidden>
+      <p class="presets__lead" id="{{ prefix }}-presets-lead">{{ ui.time_presets_lead }}</p>
+      <ul class="presets__list" role="group" aria-labelledby="{{ prefix }}-presets-lead">
+        {% for value, key in TIME_PRESETS %}
+        <li><button type="button" class="chip presets__chip" data-preset="{{ value }}"
+                    aria-pressed="false">{{ ui[key] }}</button></li>
+        {% endfor %}
+      </ul>
+      <p class="presets__note">{{ ui.time_approx_note }}</p>
+    </div>
+  </div>
+</div>
+{% endmacro %}
+
+{% macro _place_field(prefix) %}
+<div class="field">
+  <label for="{{ prefix }}-city">{{ ui.city }}</label>
+  <div class="combo" data-combo>
+    <input type="text" id="{{ prefix }}-city" name="city" required autocomplete="off" autocapitalize="words"
+           spellcheck="false" enterkeyhint="done" placeholder="{{ ui.city_placeholder }}"
+           role="combobox" aria-autocomplete="list" aria-expanded="false" aria-haspopup="listbox"
+           aria-controls="{{ prefix }}-city-list" aria-describedby="{{ prefix }}-city-hint {{ prefix }}-city-error">
+    <ul class="combo__list" id="{{ prefix }}-city-list" role="listbox" aria-label="{{ ui.cities }}" hidden></ul>
+  </div>
+  <p class="field-hint" id="{{ prefix }}-city-hint">{{ ui.city_hint }}</p>
+  {# Only on a single-person form: "my location" as the BIRTH place of two different people is nonsense.
+     app.js reads the coordinates in the browser, picks the nearest of the cities it already fetched from
+     /api/cities, and submits the city name - the coordinates are never sent anywhere. #}
+  {% if prefix == "self" %}
+  <p class="locate" data-locate hidden>
+    <button type="button" class="locate__go" data-locate-go>{{ ui.location_button }}</button>
+    <span class="locate__hint">{{ ui.location_hint }}</span>
+  </p>
+  <p class="locate__status" data-locate-status role="status" hidden
+     data-searching="{{ ui.location_searching }}" data-denied="{{ ui.location_denied }}"
+     data-unavailable="{{ ui.location_unavailable }}" data-found="{{ ui.location_found }}"></p>
+  {% endif %}
+  <p class="field-error" id="{{ prefix }}-city-error" hidden></p>
+</div>
+{% endmacro %}
+
+{% macro person_fields(prefix, legend=None, stages=False) %}
+<fieldset class="person" data-person="{{ prefix }}">
+  {% if legend %}<legend>{{ legend }}</legend>{% else %}<legend class="visually-hidden">{{ ui.legend }}</legend>{% endif %}
+  <div class="field field--name">
+    <label for="{{ prefix }}-name">{{ ui.name }} <span class="optional">{{ ui.optional }}</span></label>
+    <input type="text" id="{{ prefix }}-name" name="name" maxlength="60" autocomplete="off"
+           aria-describedby="{{ prefix }}-name-error"{% if copy.extra.name_placeholder %} data-name-placeholder="{{ copy.extra.name_placeholder_girl if prefix == 'girl' else copy.extra.name_placeholder }}"{% endif %}>
+    {% if copy.extra.name_hint %}<p class="field-hint name-only" id="{{ prefix }}-name-hint" hidden>{{ copy.extra.name_hint }}</p>{% endif %}
+    <p class="field-error" id="{{ prefix }}-name-error" hidden></p>
+  </div>
+  {% if stages %}
+  {% for step, heading, hint in [(1, ui.step_date, ui.step_date_hint), (2, ui.step_time, ui.step_time_hint),
+                                 (3, ui.step_place, ui.step_place_hint)] %}
+  <fieldset class="step birth-only" data-step="{{ step }}">
+    <legend class="step__legend">
+      <span class="step__num" aria-hidden="true">{{ step }}</span>
+      <span class="step__icon" aria-hidden="true">{{ {1: "◷", 2: "☾", 3: "✦"}[step] }}</span>
+      <span class="step__title">{{ heading }}</span>
+    </legend>
+    <p class="step__hint">{{ hint }}</p>
+    {% if step == 1 %}{{ _date_field(prefix) }}{% elif step == 2 %}{{ _time_field(prefix) }}{% else %}{{ _place_field(prefix) }}{% endif %}
+  </fieldset>
+  {% endfor %}
+  {% else %}
+  <div class="field-row birth-only">
+    {{ _date_field(prefix) }}
+    {{ _time_field(prefix) }}
+  </div>
+  <div class="birth-only">{{ _place_field(prefix) }}</div>
+  {% endif %}
+</fieldset>
+{% endmacro %}

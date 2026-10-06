@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% block title %}Overview{% endblock %}
+{% block sub %}Today, the last 7 days and the last 30 days, in IST calendar days.{% endblock %}
+{% block body %}
+
+<div class="alerts">
+  {% if alerts %}
+    {% for alert in alerts %}
+    <div class="alert {{ 'warn' if alert.severity != 'critical' }}"><b>{{ alert.title }}</b>{{ alert.detail }}</div>
+    {% endfor %}
+  {% else %}
+    <div class="alert calm"><b>Nothing is raising an alert.</b>No late or failed order, no order over its cost
+      limit, spend under the daily limit, no failed rashifal page, no burst of server errors, readiness ok.</div>
+  {% endif %}
+</div>
+
+{% if not gst.recorded %}
+<div class="note warn"><b>Net revenue is not net of anything yet.</b> {{ gst.how }}</div>
+{% endif %}
+
+{% for window in windows %}
+<h2>{{ window.label }}</h2>
+<div class="tiles">
+  <div class="tile"><div class="k">Net revenue</div><div class="v">{{ window.totals.net_inr|rupees }}</div>
+    <div class="n">{{ window.totals.gross_inr|rupees }} charged{% if window.totals.gst_unknown %},
+      {{ window.totals.gst_unknown }} without a GST split{% endif %}</div></div>
+  <div class="tile"><div class="k">Paid orders</div><div class="v">{{ window.totals.orders }}</div>
+    <div class="n">{{ window.totals.not_ready }} not ready yet</div></div>
+  <div class="tile"><div class="k">Average order</div><div class="v">{{ window.totals.average_order_inr|rupees }}</div>
+    <div class="n">net of GST, per paid order</div></div>
+  <div class="tile"><div class="k">AI cost</div><div class="v">{{ window.totals.ai_cost_inr|rupees }}</div>
+    <div class="n">{% if window.totals.cost_unknown %}{{ window.totals.cost_unknown }} order(s) not recorded{% else %}all orders recorded{% endif %}</div></div>
+  <div class="tile"><div class="k">Margin</div>
+    <div class="v">{% if window.totals.margin_inr is none %}<span class="unknown">not computable</span>{% else %}{{ window.totals.margin_inr|rupees }}{% endif %}</div>
+    <div class="n">{% if window.totals.margin_inr is none %}{{ window.totals.cost_unknown }} of
+      {{ window.totals.orders }} order(s) have no recorded AI cost{% else %}{{ window.totals.margin_percent|pct }} of net,
+      after a {{ window.totals.fee_inr|rupees }} modelled fee{% endif %}</div></div>
+  <div class="tile"><div class="k">p50 generation</div><div class="v">{{ window.totals.durations.p50|minutes }}</div>
+    <div class="n">p90 {{ window.totals.durations.p90|minutes }}, max {{ window.totals.durations.longest|minutes }}
+      over {{ window.totals.durations.measured }} ready order(s)</div></div>
+  <div class="tile"><div class="k">Failed orders</div>
+    <div class="v">{% if window.totals.failed %}<span class="unknown">{{ window.totals.failed }}</span>{% else %}0{% endif %}</div>
+    <div class="n">paid, fulfilment failed</div></div>
+</div>
+{% endfor %}
+
+<h2>Last 30 days</h2>
+<div class="two">
+  <div class="card">
+    <div class="k quiet">Net revenue per day (Rs)</div>
+    {{ revenue_chart|safe }}
+  </div>
+  <div class="card">
+    <div class="k quiet">Paid orders per day</div>
+    {{ orders_chart|safe }}
+  </div>
+</div>
+<div class="card scroll">
+  <table>
+    <thead><tr><th>Day</th><th class="n">Orders</th><th class="n">Net</th><th class="n">AI cost</th>
+      <th class="n">Margin</th><th class="n">p50</th></tr></thead>
+    <tbody>
+    {% for day in trend|reverse %}
+      <tr><td class="mono">{{ day.day }}</td><td class="n">{{ day.totals.orders }}</td>
+        <td class="n">{{ day.totals.net_inr|rupees }}</td>
+        <td class="n">{% if day.totals.cost_unknown %}<span class="quiet">{{ day.totals.ai_cost_inr|rupees }} +{{ day.totals.cost_unknown }}?</span>{% else %}{{ day.totals.ai_cost_inr|rupees }}{% endif %}</td>
+        <td class="n">{{ day.totals.margin_inr|rupees }}</td>
+        <td class="n">{{ day.totals.durations.p50|minutes }}</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  <p class="sub">A day with unrecorded AI cost shows the recorded part and how many orders are missing, e.g.
+    <span class="quiet">Rs 12.40 +2?</span> - the margin column is then blank rather than flattering.</p>
+</div>
+{% endblock %}

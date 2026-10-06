@@ -1,0 +1,147 @@
+{# The AI astrologer in the full-width design.
+
+   THE CHAT IS A READING COLUMN, so it stays at ~800px however wide the window is - a conversation set across
+   1600px is unreadable, and this is the page people spend the longest on. What the width buys instead is the
+   CHART PANEL beside it: lagna, rashi, nakshatra, the running dasha and the key transits, all of it from the
+   Swiss Ephemeris and none of it from the AI. It answers the question a reader has while reading an answer -
+   "what is it actually looking at?" - without them scrolling away from the reply.
+
+   The panel is filled by static/js/chat-panel.js from the SAME /api/consultation/start response the chat
+   itself opens with, so it costs no extra request and cannot disagree with the reading.
+
+   The form, result and chat markup come from _consultation_body.html, the same partial the previous shell
+   includes - every id chat.js and app.js depend on is therefore identical in both. #}
+{% extends "base.html" %}
+{% import "_copy_blocks.html" as blocks %}
+
+{% block body_class %} class="design-v2"{% endblock %}
+{% block title %}{{ copy.title }} | {{ site_name }}{% endblock %}
+{% block meta_description %}{{ copy.meta_description }}{% endblock %}
+{% block head_extra %}
+  <link rel="stylesheet" href="/static/css/design-v2.css?v={{ static_version }}">
+  <script src="/static/js/design-v2.js?v={{ static_version }}" defer></script>
+{% endblock %}
+
+{% block main %}
+<div id="design-v2" class="v2">
+
+<section class="v2-hero v2-hero--slim">
+  <div class="wrap">
+    <h1>{{ copy.h1 }}</h1>
+    <p class="v2-hero__intro">{{ copy.intro }}</p>
+    {# NO trust line here: the form card below already prints `ui.trust_form`, which is where this site puts
+       it - at the point of use. The tool page had this same duplication and it is the same fix. #}
+  </div>
+</section>
+
+{# THE CHAT LIST. A drawer on a phone, a column on a desktop - one list either way, because two would be
+   two things to keep in step. Hidden until the reader is signed in, since an account is what the chats
+   belong to; `hidden` rather than CSS so it is honest with no JavaScript at all. #}
+<div class="wrap v2-chat" id="chat-shell">
+  <button type="button" class="btn v2-chats__toggle" id="chat-list-toggle" hidden
+          aria-expanded="false" aria-controls="chat-list-panel">{{ v2.chats_button }}</button>
+
+  {# The words live on the element as data attributes rather than in an inline script block: the CSP here
+     has no 'unsafe-inline', and a blanket check forbids such a block in any template - including, as it
+     turns out, one written inside a comment, which is how this sentence came to be phrased this way. #}
+  <nav class="v2-chats" id="chat-list-panel" hidden aria-label="{{ v2.chats_aria }}"
+       data-sprite="/static/img/glyphs.svg?v={{ static_version }}"
+       data-empty="{{ v2.chats_empty }}" data-me="{{ v2.chats_for_me }}" data-whose="{{ v2.chats_whose }}"
+       data-styles="{{ style_choices }}" data-style-ask="{{ v2.chats_style_ask }}"
+       data-style-change="{{ v2.chats_style_change }}"
+       data-rename="{{ v2.chats_rename }}" data-archive="{{ v2.chats_archive }}"
+       data-del="{{ v2.chats_delete }}" data-sure="{{ v2.chats_delete_sure }}"
+       data-full="{{ v2.chats_full }}">
+    <div class="v2-chats__head">
+      <button type="button" class="btn btn--primary v2-chats__new" id="chat-new">{{ v2.chats_new }}</button>
+    </div>
+    <ul class="v2-chats__list" id="chat-list"></ul>
+    <p class="small muted" id="chat-list-note" hidden></p>
+  </nav>
+
+  <main class="v2-chat__main">
+    {% include "_consultation_body.html" %}
+  </main>
+
+  {# THE STRIP, phones only. On a phone the full panel sits below the conversation, so this one line is
+     what answers "what is it reading?" before the reading starts - the question the old ordering was there
+     to answer, in 40px instead of 700. Tapping it opens the whole panel in place.
+
+     A <details> rather than a button and a script: it opens with no JavaScript, it is a disclosure widget
+     to a screen reader without being told to be one, and there is nothing to go wrong on a slow phone. #}
+  <details class="v2-chatstrip" id="chat-strip" hidden>
+    <summary>
+      <span class="v2-chatstrip__line" data-panel="strip">—</span>
+      <span class="v2-chatstrip__more">{{ v2.chart_panel_heading }}</span>
+    </summary>
+    <div class="v2-chatstrip__body" data-panel="strip-body"></div>
+  </details>
+
+  <aside class="v2-chat__side">
+    {# Empty until a chart exists. Hidden rather than absent so the script has somewhere to write, and
+       `hidden` rather than display:none in CSS so it is honest with no JavaScript at all. #}
+    <section class="v2-card v2-chartpanel" id="chat-chart-panel" hidden aria-labelledby="chartpanel-heading"
+             data-sprite="/static/img/glyphs.svg?v={{ static_version }}"
+             data-ends-before="{{ v2.dasha_ends_before }}" data-ends-after="{{ v2.dasha_ends_after }}">
+      <h2 id="chartpanel-heading">{{ v2.chart_panel_heading }}</h2>
+      {# The kundali itself, above the figures. Drawn by render.js from the same houses the reading was
+         built on - the panel never computes anything, it only draws. Empty until a chart exists. #}
+      <div class="v2-chartpanel__kundali" data-panel="kundali"></div>
+      <dl class="v2-chartpanel__facts">
+        <div><dt>{{ v2.chart_lagna }}</dt><dd data-panel="lagna">—</dd></div>
+        <div><dt>{{ v2.chart_rashi }}</dt><dd data-panel="rashi">—</dd></div>
+        <div><dt>{{ v2.chart_nakshatra }}</dt><dd data-panel="nakshatra">—</dd></div>
+      </dl>
+      {# The running dasha as a card rather than a line: whose period it is, and how much of it is left.
+         The bar is the only moving part, and it does not move - it is drawn at the fraction elapsed. #}
+      <div class="v2-dasha" data-panel="dasha-card" hidden>
+        <svg class="v2-dasha__glyph" width="36" height="36" viewBox="0 0 24 24" aria-hidden="true"><use data-panel="dasha-glyph" href=""/></svg>
+        <div class="v2-dasha__body">
+          <p class="v2-dasha__lord" data-panel="dasha-lord"></p>
+          <div class="v2-dasha__bar"><span data-panel="dasha-fill"></span></div>
+          <p class="v2-dasha__ends small muted" data-panel="dasha-ends"></p>
+        </div>
+      </div>
+      <dl class="v2-chartpanel__facts" hidden>
+      </dl>
+      <h3 class="v2-chartpanel__sub" data-panel="transits-heading" hidden>{{ v2.chart_transits }}</h3>
+      <ul class="v2-chartpanel__transits" data-panel="transits"></ul>
+      <p class="small muted">{{ v2.chart_panel_note }}</p>
+    </section>
+
+    {# The offer, in the rail rather than only inside the paywall card: a reader who has used both free
+       answers should already know what the next step costs. #}
+    <section class="v2-card v2-sell" aria-labelledby="packs-heading">
+      <h2 id="packs-heading">{{ v2.packs_heading }}</h2>
+      <p>{{ copy.extra.chat_trust }}</p>
+      {# `options` is what the paywall card itself is built from (pages.purchase_offers), so the rail and
+         the paywall can never quote two different prices. The first version here used bare `price_pack`
+         and `price_premium`, which are not in this page's context - the card rendered "₹ ·" with no number
+         on it, in all three languages. #}
+      {% for option in options %}
+      {# `label` already reads "₹119: 10 questions + report" - printing the price beside it said ₹119 twice. #}
+      <p class="v2-price">{{ option.label }}</p>
+      {% endfor %}
+      <p class="small" style="color:rgba(255,255,255,.75);margin:.5rem 0 0">{{ v2.sell_note }}</p>
+    </section>
+  </aside>
+</div>
+
+<div class="wrap v2-body v2-body--single">
+  <main class="v2-main">
+    {{ blocks.sections(copy) }}
+    {{ blocks.faq(copy, ui.faq_heading) }}
+    {{ blocks.tool_links(more_tools, copy.extra.more_heading) }}
+  </main>
+</div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/js/render.js?v={{ static_version }}" defer></script>
+<script src="/static/js/app.js?v={{ static_version }}" defer></script>
+<script src="/static/js/chat.js?v={{ static_version }}" defer></script>
+<script src="/static/js/chat-panel.js?v={{ static_version }}" defer></script>
+<script src="/static/js/pay.js?v={{ static_version }}" defer data-pay data-enabled="{{ '1' if payments_enabled else '0' }}"></script>
+{% endblock %}

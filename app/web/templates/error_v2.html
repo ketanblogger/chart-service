@@ -1,0 +1,34 @@
+{# 404 / 500 in the full-width design. Same words, same links, still noindex. #}
+{% extends "base.html" %}
+
+{% block body_class %} class="design-v2"{% endblock %}
+{% block title %}{{ heading }} | {{ site_name }}{% endblock %}
+{% block meta_description %}{{ text }}{% endblock %}
+{% block head_extra %}
+  <meta name="robots" content="noindex">
+  <link rel="stylesheet" href="/static/css/design-v2.css?v={{ static_version }}">
+{% endblock %}
+
+{% block main %}
+<div id="design-v2" class="v2">
+<section class="v2-hero v2-hero--slim">
+  <div class="wrap">
+    <h1>{{ heading }}</h1>
+    <p class="v2-hero__intro">{{ text }}</p>
+  </div>
+</section>
+<div class="wrap v2-body v2-body--single">
+  <main class="v2-main">
+    <p><a class="btn btn--primary" href="{{ home_path }}">{{ ui.error_home }}</a></p>
+    <ul class="v2-needs">
+      {% for item in nav %}
+      <li class="v2-tool">
+        <h2><a href="{{ item.path }}">{{ item.label }}</a></h2>
+        <p>{{ item.blurb }}</p>
+      </li>
+      {% endfor %}
+    </ul>
+  </main>
+</div>
+</div>
+{% endblock %}

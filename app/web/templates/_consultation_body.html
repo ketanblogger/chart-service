@@ -1,0 +1,117 @@
+{# The AI astrologer's form, result and chat panel, extracted so the previous shell and the full-width one
+   include the SAME markup. chat.js and app.js find every one of these by id - #chat-start, #tool-form,
+   #result, #result-body, #chat, #chat-log - so two copies would be two contracts with two scripts, and the
+   way that breaks is a chat that renders and never answers. #}
+{# An include does NOT inherit the including template's imports, so the macro is imported here. #}
+{% from "_person_fields.html" import person_fields with context %}
+  <section class="card tool__form" id="chat-start" aria-labelledby="form-heading">
+    <h2 id="form-heading">{{ copy.form_heading }}</h2>
+    <p class="trust-line">{{ ui.trust_form }}</p>
+    <form id="tool-form" class="birth-form birth-form--single" novalidate data-mode="birth"
+          data-form="single" data-endpoint="{{ endpoint }}" data-renderer="consultation" data-lang="{{ lang }}">
+      {{ person_fields("self") }}
+      <p class="form-status" id="form-status" role="alert" hidden></p>
+      {# THE SIGN-IN IS ANNOUNCED BEFORE THE FORM IS FILLED, not after it is submitted. Server-rendered, so
+         it is there with no JavaScript and before any request is made. When this said nothing, a visitor
+         filled in their birth details, pressed the button, and was told "we could not calculate a result
+         from these details" - which was false, blamed them for it, and offered no way forward. #}
+      {% if chat_login_required and not signed_in %}
+      <p class="form-signin" id="chat-signin">
+        <strong>{{ auth.chat_gate }}</strong>
+        <a class="btn btn--ghost" id="chat-signin-link" href="{{ login_path }}?next={{ chat_path }}">{{ auth.verify }}</a>
+      </p>
+      {% endif %}
+      <button type="submit" class="btn btn--primary" id="submit-btn">{{ copy.submit_label }}</button>
+      {# "no sign-up" is not true once a sign-in is required, and a promise the page breaks two clicks later
+         is worse than no promise. The other note is used whenever the gate is open. #}
+      {# WHAT THIS READER HAS, when we know it. The generic offer is for somebody who has not signed in;
+         to a reader whose two answers are spent it reads as a fresh allowance that then refuses to work,
+         which is what it looked like from the outside. #}
+      <p class="form-note">
+        {%- if chat_login_required and not signed_in -%}{{ auth.chat_note }}
+        {%- elif chat_left is not none and chat_left.paid_left -%}
+          {{ auth.left_paid.replace("{n}", (chat_left.free_left + chat_left.paid_left)|string) }}
+        {%- elif chat_left is not none and chat_left.free_left == 0 -%}{{ auth.left_none }}
+        {%- elif chat_left is not none and chat_left.free_left == 1 -%}{{ auth.left_one }}
+        {%- elif chat_left is not none -%}{{ auth.left_some.replace("{n}", chat_left.free_left|string) }}
+        {%- else -%}{{ copy.extra.form_note }}{%- endif -%}
+      </p>
+      <noscript><p class="form-status form-status--error">{{ copy.extra.noscript }}</p></noscript>
+    </form>
+  </section>
+
+  <section class="result chat" id="result" aria-labelledby="result-heading" tabindex="-1" hidden>
+    <h2 id="result-heading">{{ copy.result_heading }}</h2>
+    <div id="result-body"></div>
+
+    <div class="card chat__panel" id="chat" data-free-messages="{{ chat_free_messages }}">
+      {# Before the first message (a trust requirement): what the chat is reading, and what it is not. #}
+      <p class="chat__trust" id="chat-trust">{{ copy.extra.chat_trust }}</p>
+      <ol class="chat__log" id="chat-log" aria-live="polite" aria-label="{{ copy.extra.log_aria }}"></ol>
+      <p class="chat__typing" id="chat-typing" role="status" hidden>
+        {# Three grahas going round while the astrologer thinks, rather than three dots. Sun, Moon and Mars
+           - the three that read at this size, since a glyph of ten pixels is a shape and not a symbol.
+           Decoration only: the waiting is announced by this paragraph's own `role="status"` text, which
+           has not changed, so nothing new is spoken. #}
+        <span class="chat__orbit" aria-hidden="true">
+          {% for glyph in ["g-surya", "g-chandra", "g-mangal"] %}
+          <i><svg width="10" height="10" viewBox="0 0 24 24" aria-hidden="true"><use href="/static/img/glyphs.svg?v={{ static_version }}#{{ glyph }}"></use></svg></i>
+          {% endfor %}
+        </span> {{ copy.extra.typing }}
+      </p>
+      <p class="form-status form-status--error" id="chat-error" role="alert" hidden></p>
+
+      <form class="chat__form" id="chat-form" novalidate>
+        <label class="visually-hidden" for="chat-input">{{ copy.extra.input_label }}</label>
+        <textarea id="chat-input" name="message" rows="2" maxlength="1000" required enterkeyhint="send"
+                  placeholder="{{ copy.extra.input_placeholder }}"></textarea>
+        <button type="submit" class="btn btn--primary" id="chat-send">{{ copy.extra.send }}</button>
+      </form>
+      <p class="chat__quota" id="chat-quota" role="status"></p>
+      {# Gita 2.47 says yours is the right to action alone. It says nothing about astrology, so the verse is
+         quoted and translated on its own line and our application of it follows separately - the same rule
+         the policy pages already hold for the Bhrigu Samhita: inspiration, never a cited source. #}
+      <p class="chat__philosophy"><span lang="sa">{{ copy.extra.philosophy_verse }}</span>
+        {{ copy.extra.philosophy_gloss }}</p>
+
+      {# Paywall: shown instead of the input when no messages are left. Every tier is "N questions + a
+         Kundali PDF" - there is no chat-only pack; the two differ in WHICH report they bundle, and the prices and ids
+         come from the catalogue (pages.purchase_offers). Each button fires the same cancelable `product:purchase`
+         event as the tool pages, with detail.sessionId (chat.js sets data-session-id on every one of them); after
+         crediting, pay.js dispatches `consultation:credited` and the chat reloads. `chat-buy` is the entry tier: the
+         browser checks and chat.js address it by that id. #}
+      <aside class="cta chat__paywall" id="chat-paywall" aria-labelledby="paywall-heading" hidden>
+        <h3 id="paywall-heading">{{ copy.extra.paywall_heading }}</h3>
+        <p>{{ copy.extra.paywall_text }}</p>
+        <div class="cta__options{% if options | length > 1 %} cta__options--tiers{% endif %}">
+          {% for option in options %}
+          <div class="cta__option{% if options | length > 1 and loop.first %} cta__option--lite{% endif %}">
+            {% if option.blurb %}<p class="cta__gets">{{ option.blurb }}</p>{% endif %}
+            {# data-price-inr is the LISTED price; data-total-inr is what is charged, because the listed prices
+               are GST-exclusive. pay.js reads them off this button for the panel it opens. #}
+            <button type="button" class="btn btn--cta"{% if loop.first %} id="chat-buy"{% endif %}
+                    data-product="{{ option.product }}" data-price-inr="{{ option.price_inr }}"
+                    data-base-inr="{{ option.base_inr }}" data-gst-inr="{{ option.gst_inr }}"
+                    data-total-inr="{{ option.total_inr }}"
+                    data-gst-rate="{{ option.gst_rate }}"
+                    data-notice="{{ copy.extra.paywall_notice }}">{{ option.label }}</button>
+          </div>
+          {% endfor %}
+        </div>
+        {# Place-of-supply options, rendered by the SERVER and cloned into the purchase panel by pay.js.
+           Same reasoning as the busy row above: content and language come from the page, not from script. 36
+           states and union territories in three languages is reference data (app/payments/states.py), and a
+           copy of it inside pay.js would be a second source of truth for something a tax return is filed
+           against. A <template> because these options belong to a <select> that does not exist yet. #}
+        <template id="pay-state-options">
+          {% for code, state_name in ui.states %}<option value="{{ code }}">{{ state_name }}</option>{% endfor %}
+        </template>
+        {# GST, where the price is: the tier prices above are exclusive of it. #}
+        <p class="cta__gst small">{{ ui.gst_note }}</p>
+        <p class="cta__notice" id="cta-notice" role="status" hidden></p>
+      </aside>
+
+      <p class="chat__disclaimer small">{{ copy.extra.chat_disclaimer }}</p>
+      <p class="small"><button type="button" class="chat__reset" id="chat-reset">{{ copy.extra.reset }}</button></p>
+    </div>
+  </section>
