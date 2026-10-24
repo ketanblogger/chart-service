@@ -1,0 +1,18 @@
+# One timer for all five cadences. The job is window-based and idempotent: every run asks for all periods and
+# regenerates only pages whose stored reading is not for the current window. Effective cadence:
+#   today     -> every day at 00:05 IST          (12 calls)
+#   weekly    -> Mondays at 00:05 IST            (12 calls)
+#   monthly / 6-months / yearly -> the 1st of each month (36 calls)
+# ~15 AI calls/day on average. The 05:30 run costs nothing when midnight succeeded and heals it when it did not
+# (API outage, server reboot): a failed weekly / monthly page is retried within hours, not a week or a month later.
+[Unit]
+Description=Rashifal refresh at 00:05 and 05:30 IST
+
+[Timer]
+OnCalendar=*-*-* 00:05:00 Asia/Kolkata
+OnCalendar=*-*-* 05:30:00 Asia/Kolkata
+Persistent=true
+RandomizedDelaySec=0
+
+[Install]
+WantedBy=timers.target

@@ -1,0 +1,21 @@
+# Publishes what the blog queue's daily allowance permits. See scripts/blog_release.py.
+#
+# WHY A TIMER AT ALL. Autopublish fires when a post arrives through the API; a draft already in the
+# database has nothing to pick it up. Without this unit the queue never moves on its own, which is
+# exactly what happened the first time BLOG_AUTOPUBLISH was turned on.
+[Unit]
+Description=Publish the next posts from the blog queue
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=astro
+WorkingDirectory=/srv/astrology
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/srv/astrology/.venv/bin/python scripts/blog_release.py --apply
+# var/ holds the database; nothing else is written.
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+NoNewPrivileges=true
+ReadWritePaths=/srv/astrology/var

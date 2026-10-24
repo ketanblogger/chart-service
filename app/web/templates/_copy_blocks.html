@@ -1,0 +1,72 @@
+{# Long-form SEO content + FAQ of a PageCopy (tool pages, consultation, home, rashifal hubs). #}
+{% macro sections(copy) %}
+  {% for section in copy.sections %}{{ section_block(section) }}{% endfor %}
+{% endmacro %}
+
+{# ONE section, so a layout can place sections individually instead of taking the whole run. `sections` is
+   this in a loop, which is what keeps a page that arranges its own sections (the full-width home prototype)
+   rendering the identical markup to one that does not. #}
+{% macro section_block(section) %}
+  <section{% if section.anchor %} id="about-{{ section.anchor }}"{% endif %}>
+    <h2>{{ section.heading }}</h2>
+    {{ section_body(section) }}
+  </section>
+{% endmacro %}
+
+{# The paragraphs and lists of one section, WITHOUT its heading, for a layout that places the heading itself
+   - the full-width prototype puts it outside a <details> so that a collapsed section still shows what it is.
+   One source for the body markup either way. #}
+{% macro section_body(section) %}
+    {% for block in section.blocks %}
+      {% if block is string %}
+      <p>{{ block }}</p>
+      {# A BLOCK OF ROWS, not of strings, is a table. The eight kootas and their points read as prose or as
+         a list, but what a reader wants is the thirty-six points laid out so they can be counted - and a
+         table is also what a search result lifts out. Every existing block holds strings, so the check on
+         the first row's type leaves all of them exactly as they were. The first row is the header. #}
+      {% elif block and block[0] is not string %}
+      {# thead/tbody and .table-wrap because the site's stylesheet already styles both: the header row
+         only gets its tint and caps inside a thead, and three columns of Devanagari overflow a phone
+         without the wrapper's scroll. Reusing them rather than adding a second table style. #}
+      <div class="table-wrap">
+        <table class="copy-table">
+          <thead><tr>{% for cell in block[0] %}<th>{{ cell }}</th>{% endfor %}</tr></thead>
+          <tbody>
+          {% for row in block[1:] %}
+          <tr{% if loop.last %} class="is-total"{% endif %}>{% for cell in row %}<td>{{ cell }}</td>{% endfor %}</tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <ul>
+        {% for item in block %}<li>{{ item }}</li>{% endfor %}
+      </ul>
+      {% endif %}
+    {% endfor %}
+{% endmacro %}
+
+{% macro faq(copy, heading) %}
+  {% if copy.faqs %}
+  <section class="faq" id="faq" aria-labelledby="faq-heading">
+    <h2 id="faq-heading">{{ heading }}</h2>
+    {% for question, answer in copy.faqs %}
+    <details{% if loop.first %} open{% endif %}>
+      <summary>{{ question }}</summary>
+      <p>{{ answer }}</p>
+    </details>
+    {% endfor %}
+  </section>
+  {% endif %}
+{% endmacro %}
+
+{% macro tool_links(items, heading) %}
+  <section class="more-tools" aria-labelledby="more-heading">
+    <h2 id="more-heading">{{ heading }}</h2>
+    <ul class="tool-links">
+      {% for item in items %}
+      <li><a href="{{ item.path }}">{{ item.label }}</a> &ndash; {{ item.blurb }}</li>
+      {% endfor %}
+    </ul>
+  </section>
+{% endmacro %}

@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" width="1200" height="630" role="img" aria-hidden="true">
+  <!-- The stand-in for a post with no hero image. PURELY GEOMETRIC AND WORDLESS, on purpose: an SVG
+       used through <img> cannot reach the site's webfont, so any text in here would be drawn with
+       whatever face the device has - which for Devanagari is often nothing at all. The same rings as
+       the share cards, so a post without a picture still looks like it belongs to this site. -->
+  <rect width="1200" height="630" fill="#2E2660"/>
+  <circle cx="1050" cy="150" r="280" fill="none" stroke="#E0A82E" stroke-opacity=".22" stroke-width="2"/>
+  <circle cx="1160" cy="560" r="210" fill="none" stroke="#E0A82E" stroke-opacity=".14" stroke-width="2"/>
+  <circle cx="150" cy="520" r="150" fill="none" stroke="#E0A82E" stroke-opacity=".10" stroke-width="2"/>
+  <g transform="translate(600 315)">
+    <circle r="86" fill="none" stroke="#E0A82E" stroke-width="3"/>
+    <circle cx="61" cy="-61" r="9" fill="#E0A82E"/>
+    <path d="M-44 10 h88 M-30 -16 h60 M-30 34 h60" stroke="#E0A82E" stroke-width="5"
+          stroke-linecap="round" fill="none"/>
+  </g>
+</svg>

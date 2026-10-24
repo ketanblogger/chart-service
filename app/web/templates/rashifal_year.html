@@ -1,0 +1,106 @@
+{# A permanent page for one year and one rashi. The rolling yearly page is always "this year", so it
+   has no address a link or a search result can point at for 2027, and each January its content quietly
+   becomes a different year's.
+
+   WHAT IS ON IT is the part that is true before anybody writes a word: where Guru and Shani stand through
+   the year, as HOUSES counted from this rashi, and the days they move. Every date is a sidereal ingress or
+   station. The template formats; it never computes, and it never fills a gap with a guess. #}
+{% extends "base.html" %}
+{% block title %}{{ title }}{% endblock %}
+{% block meta_description %}{{ meta_description }}{% endblock %}
+
+{% block main %}
+<article class="wrap v2-body">
+  <nav class="breadcrumbs" aria-label="{{ ui.breadcrumb_aria }}">
+    {% for name, path in crumbs %}<a href="{{ path }}">{{ name }}</a>{% if not loop.last %} <span aria-hidden="true">›</span> {% endif %}{% endfor %}
+  </nav>
+  <h1>{{ h1 }}</h1>
+  <p class="lede">{{ copy.intro }}</p>
+
+  <section aria-labelledby="stays">
+    <h2 id="stays">{{ labels.stays_heading }}</h2>
+    <p>{{ labels.stays_note }}</p>
+    <div class="table-wrap">
+      <table class="copy-table">
+        <thead><tr>
+          <th>{{ labels.th_graha }}</th><th>{{ labels.th_sign }}</th><th>{{ labels.th_house }}</th>
+          <th>{{ labels.th_from }}</th><th>{{ labels.th_to }}</th>
+        </tr></thead>
+        <tbody>
+        {% for stay in facts.stays %}
+        <tr>
+          <td>{{ stay.graha | named_in(lang) }}</td>
+          <td>{{ stay.sign | named_in(lang) }}</td>
+          <td>{{ stay.house }}</td>
+          <td>{{ stay.start | date_in(lang) }}</td>
+          <td>{{ stay.end | date_in(lang) }}</td>
+        </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section aria-labelledby="turns">
+    <h2 id="turns">{{ labels.turns_heading }}</h2>
+    <ul class="year-turns">
+      {% for turn in facts.turns %}
+      <li>
+        <strong>{{ turn.date | date_in(lang) }}</strong> &mdash;
+        {%- if turn.kind == "ingress" %}
+          {{ labels.turns_ingress | replace("{graha}", turn.graha | named_in(lang)) | replace("{sign}", turn.sign | named_in(lang)) | replace("{house}", turn.house | string) }}
+        {%- elif turn.direction == "retrograde" %}
+          {{ labels.turns_retrograde | replace("{graha}", turn.graha | named_in(lang)) | replace("{sign}", turn.sign | named_in(lang)) }}
+        {%- else %}
+          {{ labels.turns_direct | replace("{graha}", turn.graha | named_in(lang)) | replace("{sign}", turn.sign | named_in(lang)) }}
+        {%- endif %}
+      </li>
+      {% endfor %}
+    </ul>
+  </section>
+
+  <section aria-labelledby="sade">
+    <h2 id="sade">{{ labels.sade_heading }}</h2>
+    {% if facts.sade_sati %}
+      <p>{{ labels.sade_running | replace("{start}", facts.sade_sati.start | date_in(lang)) | replace("{end}", facts.sade_sati.end | date_in(lang)) }}</p>
+      <ul>
+        {% for phase in facts.sade_sati.phases %}
+        <li>{{ phase_labels[phase.phase] }}: {{ phase.start | date_in(lang) }} &ndash; {{ phase.end | date_in(lang) }}</li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p>{{ labels.sade_clear }}</p>
+    {% endif %}
+    <p><a href="{{ sade_path }}">{{ labels.sade_link }}</a></p>
+  </section>
+
+  {# The written reading is not invented here when it does not exist yet, and the page says which part is
+     final: the dates are, because they come from the ephemeris. #}
+  <p class="muted">{{ labels.written_pending }}</p>
+  <p class="small">{{ labels.source_note }}</p>
+  <p><a href="{{ rolling_path }}">{{ labels.rolling_link }}</a></p>
+
+  <section class="cta" aria-labelledby="cta-chart">
+    <h2 id="cta-chart">{{ labels.chart_heading }}</h2>
+    <p>{{ labels.chart_text }}</p>
+    <a class="btn btn--primary" href="{{ kundali_path }}">{{ labels.chart_button }}</a>
+  </section>
+
+  <section class="cta" aria-labelledby="cta-chat">
+    <h2 id="cta-chat">{{ labels.chat_heading }}</h2>
+    <p>{{ labels.chat_text }}</p>
+    <a class="btn btn--ghost" href="{{ chat_path }}">{{ labels.chat_button }}</a>
+  </section>
+
+  {% if copy.faqs %}
+  <section aria-labelledby="faq">
+    <h2 id="faq">{{ ui.faq_heading }}</h2>
+    <dl>
+      {% for question, answer in copy.faqs %}
+      <dt>{{ question }}</dt><dd>{{ answer }}</dd>
+      {% endfor %}
+    </dl>
+  </section>
+  {% endif %}
+</article>
+{% endblock %}

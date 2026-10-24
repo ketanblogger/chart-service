@@ -1,0 +1,208 @@
+{# The reading itself and everything that belongs with it: the stale banner, the AI sections, key dates,
+   the tip, the day facts, the transit tables and the saturn status. Extracted from rashifal_page.html so the
+   full-width prototype renders the SAME blocks in a wider column - see _rashifal_reading_aside.html. #}
+  {# AD SLOT (empty placeholder - no ad network code yet). Un-hide and fill when ads are wired in Phase 8+. #}
+  <div class="ad-slot" data-ad-slot="{{ ad_slots[0] }}" hidden></div>
+
+  {% if reading %}
+  <article class="reading card" id="reading" aria-labelledby="reading-headline">
+    {% if stale %}<p class="banner banner--info" id="stale-note">{{ t.stale_note.format(range=reading.range) }}</p>{% endif %}
+    <p class="reading__range">{{ t.reading_for }}: {{ reading.range }}</p>
+    <h2 id="reading-headline">{{ reading.headline }}</h2>
+
+    {# THE TEN-SECOND READ. The summary has been generated for every reading since the first version -
+       the checker holds it to 70 words - and no template has ever shown it. It is the part most readers
+       want, and we were paying for it and discarding it. #}
+    {% if reading.summary %}
+    <p class="reading__summary" id="summary">{{ reading.summary }}</p>
+    {% endif %}
+
+    {# THE BRIDGE, HERE AND NOT ONLY IN THE RAIL. The rail carries a proper CTA card with a button, and
+       on a 390px phone it measures about two thirds of the way down a 6,000-pixel page - after the whole
+       reading, which is a long way past the moment this sentence belongs in. Right after the summary the
+       reader has just been told what the day looks like for their sign, and the honest limitation of
+       what they are holding is the most useful thing to say next.
+
+       It states that limitation rather than making a second pitch: one sign is one of twelve readings,
+       and their own chart is theirs. A sentence in the prose, not a card - the rail still does the
+       selling, and two identical asks on one page read as a site that wants something.
+
+       IT DOES COST A LITTLE LAYOUT SHIFT, and the first version of this comment claimed it could not.
+       Measured on the Marathi reading at 390px under Slow 4G, CLS went 0.0510 -> 0.0590 - deterministic,
+       identical across seven runs, so it is the paragraph and not noise. The cause: this box is 94.2px
+       tall in the fallback font and 70.6px once the Devanagari face swaps in, so everything below it
+       moves up 23.6px. Prose reflows; only a fixed-height box like the chip row below does not.
+       Left as it is. A px min-height would reserve the right space at 390px and the wrong space at every
+       other width, and the pre-swap fallback is whatever font the browser picks, so its metrics are not
+       ours to override. 0.059 is inside the 0.1 "good" threshold, and the summary paragraph directly
+       above shifts for exactly the same reason - this is the page's existing behaviour, not a new class
+       of problem. #}
+    <p class="reading__bridge">
+      {{ t.bridge_text.format(rashi=rashi_label) }}
+      <a href="{{ href('kundali') }}">{{ t.bridge_link }}</a>
+    </p>
+
+    {# JUMP CHIPS. The sections are what readers like about this format, so this is a way into each one
+       without scrolling past the rest. Plain anchors: no JavaScript, so they work before any script
+       runs and with scripting off, and `scroll-behavior` in the stylesheet does the smoothing.
+       `height` is fixed in CSS so the row cannot reflow the page when the webfont lands - this block is
+       above the reading, and anything that changes height here moves everything below it. #}
+    <nav class="jumps" id="jumps" aria-label="{{ t.jumps_aria }}">
+      {% for chip in jump_chips %}
+      <a class="jumps__chip" href="#{{ chip.anchor }}">
+        <svg class="jumps__icon" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"
+             fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+             stroke-linejoin="round"><use href="/static/img/glyphs.svg?v={{ static_version }}#{{ chip.icon }}"></use></svg>
+        {{ chip.label }}</a>
+      {% endfor %}
+    </nav>
+
+    <p class="reading__overview">{{ reading.overview }}</p>
+    {% for section in reading.sections %}
+    {# The first anchor is the id; the rest are empty targets just above it, so an older link such as
+       #career-money still lands here. #}
+    <section id="{{ section.anchors[0] }}">
+      {% for alias in section.anchors[1:] %}<span class="anchor-alias" id="{{ alias }}"></span>{% endfor %}
+      <h2>{{ section.heading }}</h2>
+      {% for paragraph in section.paragraphs %}<p>{{ paragraph }}</p>{% endfor %}
+      {% if section.ask %}
+      <p class="reading__ask"><a href="{{ section.ask.path }}">{{ section.ask.label }}</a></p>
+      {% endif %}
+      <p class="reading__totop"><a href="#jumps">{{ t.back_to_top }}</a></p>
+    </section>
+    {% endfor %}
+    {% if reading.key_dates %}
+    <section id="dates">
+      <span class="anchor-alias" id="key-dates"></span>
+      <h2>{{ t.key_dates }}</h2>
+      <ul class="key-dates">
+        {% for item in reading.key_dates %}
+        <li><strong>{{ item.date }}</strong> <span class="key-dates__event">{{ item.event }}</span>
+          <span class="key-dates__note">{{ item.note }}</span></li>
+        {% endfor %}
+      </ul>
+      <p class="reading__totop"><a href="#jumps">{{ t.back_to_top }}</a></p>
+    </section>
+    {% endif %}
+    <section id="remedy" class="reading__tip">
+      <span class="anchor-alias" id="tip"></span>
+      <h2>{{ t.tip }}</h2>
+      <p>{{ reading.tip }}</p>
+      {% if remedy_ask %}
+      <p class="reading__ask"><a href="{{ remedy_ask.path }}">{{ remedy_ask.label }}</a></p>
+      {% endif %}
+      <p class="reading__totop"><a href="#jumps">{{ t.back_to_top }}</a></p>
+    </section>
+  </article>
+
+  {# WHATSAPP SHARE, OUTSIDE THE READING. A rashifal page is the same page for everybody born under
+     that sign, so its link is safe to forward - nothing about the reader is in it, and the kundli
+     result's button shares the TOOL rather than the result for the opposite reason.
+
+     IT SITS AFTER THE ARTICLE, NOT INSIDE IT. The button ships `hidden` and is revealed by script, and
+     nothing inside a reading is ever hidden - the whole reading stays open top to bottom, which
+     tests/test_rashifal_sections.py enforces and which is the reason this page has no accordions. A
+     share control is not part of the reading, so the rule and the button do not have to argue.
+
+     The link is tagged, so arrivals back through it are counted as whatsapp by the classifier that
+     already exists; the tap is counted separately, because a share nobody opens and a share nobody
+     made are different things. #}
+  {% if share %}
+  <p class="reading__share"><button type="button" class="btn btn--share" data-share="rashifal"
+     data-share-text="{{ share.text }}" data-share-url="{{ share.url }}"
+     hidden>{{ share.label }}</button></p>
+  {% endif %}
+
+  {% else %}
+  <section class="card" id="pending" aria-labelledby="pending-heading">
+    <h2 id="pending-heading">{{ t.pending_title }}</h2>
+    <p>{{ t.pending_text.format(rashi=rashi_label) }}</p>
+  </section>
+  {% endif %}
+
+  {% if facts.lucky or facts.panchang or facts.moon %}
+  <div class="facts day-facts">
+    {% if facts.lucky %}
+    <section class="fact" id="lucky" aria-label="{{ t.lucky_heading }}">
+      <dl>
+        <dt>{{ t.lucky_colour }}</dt><dd><span class="swatch swatch--{{ facts.lucky.colour_key }}" aria-hidden="true"></span>{{ facts.lucky.colour }}</dd>
+        <dt>{{ t.lucky_number }}</dt><dd>{{ facts.lucky.number }}</dd>
+      </dl>
+      <p class="fact__sub">{{ facts.lucky.why }}</p>
+    </section>
+    {% endif %}
+    {% if facts.panchang %}
+    <section class="fact" id="panchang" aria-label="{{ t.panchang_heading }}">
+      <dl>
+        <dt>{{ t.panchang_heading }}</dt>
+        <dd>{{ facts.panchang.vara }} · {{ facts.panchang.tithi }} <span class="fact__sub">{{ facts.panchang.tithi_until }}</span></dd>
+        <dt>{{ t.nakshatra }}</dt>
+        <dd>{{ facts.panchang.nakshatra }} <span class="fact__sub">{{ facts.panchang.nakshatra_until }}</span></dd>
+      </dl>
+      <p class="fact__sub">{{ t.sunrise }} {{ facts.panchang.sunrise }}. {{ facts.panchang.note }}</p>
+    </section>
+    {% endif %}
+    {% if facts.moon %}
+    <section class="fact" id="moon" aria-label="{{ t.moon_heading }}">
+      <dl><dt>{{ t.moon_heading }}</dt><dd>{{ facts.moon.bala }}</dd></dl>
+      <p class="fact__sub">{{ facts.moon.line }}</p>
+    </section>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  <div class="ad-slot" data-ad-slot="{{ ad_slots[1] }}" hidden></div>
+
+  <section class="block" id="transit-facts" aria-labelledby="facts-heading">
+    <h2 id="facts-heading">{{ facts_heading }}</h2>
+    <p class="muted small">{{ facts.as_of }}</p>
+    <div class="table-wrap">
+      <table class="table--positions">
+        <thead><tr><th>{{ t.col_graha }}</th><th>{{ t.col_sign }}</th><th>{{ t.col_nakshatra }}</th><th>{{ house_heading }}</th><th>{{ t.col_motion }}</th></tr></thead>
+        <tbody>
+          {% for row in facts.positions %}
+          <tr{% if row.retrograde %} class="is-noted"{% endif %}><th scope="row">{{ row.graha }}</th><td>{{ row.sign }}</td><td>{{ row.nakshatra }}</td><td>{{ row.house }}</td><td>{{ row.motion }}</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="block" id="transit-events" aria-labelledby="events-heading">
+    <h2 id="events-heading">{{ t.events_heading }}</h2>
+    {% if facts.events %}
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>{{ t.col_date }}</th><th>{{ t.col_event }}</th></tr></thead>
+        <tbody>
+          {% for row in facts.events %}
+          <tr><th scope="row">{{ row.date }} <span class="cell-sub">{{ row.time }} {{ t.ist }}</span></th><td>{{ row.text }}</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <p>{{ t.no_events }}</p>
+    {% endif %}
+  </section>
+
+  {% if facts.stays %}
+  <section class="block" id="slow-grahas" aria-labelledby="stays-heading">
+    <h2 id="stays-heading">{{ t.stays_heading }}</h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>{{ t.col_graha }}</th><th>{{ t.col_sign }}</th><th>{{ house_heading }}</th><th>{{ t.col_from }}</th><th>{{ t.col_to }}</th></tr></thead>
+        <tbody>
+          {% for row in facts.stays %}
+          <tr><th scope="row">{{ row.graha }}</th><td>{{ row.sign }}</td><td>{{ row.house }}</td><td>{{ row.from }}</td><td>{{ row.to }}</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+  {% endif %}
+
+  <section class="block" id="saturn-status" aria-labelledby="saturn-heading">
+    <h2 id="saturn-heading">{{ t.saturn_heading }}</h2>
+    {% for line in facts.saturn %}<p>{{ line }}</p>{% endfor %}
+  </section>

@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{# Permanent "your purchase" page, /order/{token}. The token is the credential: noindex, no-store, no referrer.
+   All words come from app/payments/order_page.py (`order`), in the language of the order. Keep the ids, classes and
+   data-* attributes: pay.js and scripts/browser_check_payments.py depend on them. #}
+
+{% block title %}{{ order.labels.title }} - {{ site_name }}{% endblock %}
+{% block meta_description %}{{ order.labels.description }}{% endblock %}
+{% block head_extra %}
+<meta name="robots" content="noindex, nofollow">
+<meta name="referrer" content="no-referrer">
+{% endblock %}
+
+{% block main %}
+<div class="wrap order">
+  {% include "_order_body.html" %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/js/pay.js?v={{ static_version }}" defer data-pay data-enabled="{{ '1' if payments_enabled else '0' }}"></script>
+{% endblock %}

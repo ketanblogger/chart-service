@@ -1,0 +1,36 @@
+{# An honest dosha guide. Nothing is for sale on this page, deliberately. #}
+{% extends "base.html" %}
+
+{% block title %}{{ words.title }} | {{ site_name }}{% endblock %}
+{% block meta_description %}{{ words.what_body[0][:230] }}{% endblock %}
+
+{% block main %}
+<section class="hero">
+  <div class="wrap"><h1>{{ words.h1 }}</h1></div>
+</section>
+
+<div class="wrap">
+  <section class="block" id="what">
+    <h2>{{ words.what }}</h2>
+    {% for paragraph in words.what_body %}<p>{{ paragraph }}</p>{% endfor %}
+  </section>
+
+  <section class="block" id="how">
+    <h2>{{ words.how }}</h2>
+    {% for paragraph in words.how_body %}<p>{{ paragraph }}</p>{% endfor %}
+  </section>
+
+  <section class="block" id="remedies">
+    <h2>{{ words.remedies }}</h2>
+    {% for paragraph in words.remedies_body %}<p>{{ paragraph }}</p>{% endfor %}
+  </section>
+
+  <p class="reading__ask"><a href="{{ check_href }}">{{ words.check }}</a></p>
+
+  <section class="block" id="others">
+    <ul class="link-list">
+      {% for other in others %}<li><a href="{{ other.href }}">{{ other.label }}</a></li>{% endfor %}
+    </ul>
+  </section>
+</div>
+{% endblock %}

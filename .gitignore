@@ -1,0 +1,11 @@
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.env
+# generated PDFs and other runtime output
+var/
+
+# Built libswe (Astrodienst source, built by deploy/build-libswe.sh). A build artefact, and
+# licensed separately - it must never be committed or reach a publish candidate.
+lib/

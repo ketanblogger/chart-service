@@ -1,0 +1,63 @@
+{# Trust / policy pages in the full-width design. Same copy, same order, same headings - app/web/policies.py
+   is untouched; this decides where the words go.
+
+   A POLICY PAGE IS NOT A DASHBOARD. The container may be 1600px wide but the text column stays at a reading
+   measure, because a 1600px line of legal prose is unreadable and these are the pages where being understood
+   is the entire point. The width buys a CONTENTS LIST beside the text instead - these pages are long, people
+   arrive looking for one clause (refunds, how long data is kept), and a list of headings they can see from
+   the top is worth more than wider lines. #}
+{% extends "base.html" %}
+
+{% block body_class %} class="design-v2"{% endblock %}
+{% block title %}{{ page.title }} | {{ site_name }}{% endblock %}
+{% block meta_description %}{{ meta_description }}{% endblock %}
+{% block head_extra %}
+  <link rel="stylesheet" href="/static/css/design-v2.css?v={{ static_version }}">
+  <script src="/static/js/design-v2.js?v={{ static_version }}" defer></script>
+{% endblock %}
+
+{% block main %}
+<div id="design-v2" class="v2">
+
+<section class="v2-hero v2-hero--slim">
+  <div class="wrap">
+    <h1>{{ h1 }}</h1>
+    <p class="v2-hero__intro">{{ intro }}</p>
+  </div>
+</section>
+
+<div class="wrap v2-policy">
+  {# ON A PHONE the contents come FIRST, closed: a reader on a small screen wants to jump, and a list of
+     fifteen headings between them and the first paragraph is worse than no list. `<details>` keeps every
+     heading in the HTML either way, so nothing is hidden from a crawler. #}
+  <details class="v2-contents v2-readmore" open>
+    <summary>{{ ui.on_this_page if ui.on_this_page is defined else "On this page" }}</summary>
+    <nav aria-label="{{ ui.on_this_page if ui.on_this_page is defined else 'On this page' }}">
+      <ol>
+        {% for section in sections %}
+        <li><a href="#s{{ loop.index }}">{{ section.heading }}</a></li>
+        {% endfor %}
+      </ol>
+    </nav>
+  </details>
+
+  <article class="v2-policy__body">
+    {% for section in sections %}
+    <section id="s{{ loop.index }}">
+      <h2>{{ section.heading }}</h2>
+      {% for block in section.blocks %}
+        {% if block is string %}
+        <p>{{ block }}</p>
+        {% else %}
+        <ul>
+          {% for item in block %}<li>{{ item }}</li>{% endfor %}
+        </ul>
+        {% endif %}
+      {% endfor %}
+    </section>
+    {% endfor %}
+  </article>
+</div>
+
+</div>
+{% endblock %}

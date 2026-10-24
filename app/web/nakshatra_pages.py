@@ -1,0 +1,184 @@
+"""One page per nakshatra, in three trees: 81 pages, written once, with no AI on the path.
+
+Each page is the specific thing plus the shared framing - what a nakshatra IS, how the padas work, what
+gandmool means - because a reader arriving at "mool nakshatra in hindi" has usually never been told the
+general part either, and a page that gives only the specific paragraph is a page that answers half.
+"""
+from __future__ import annotations
+
+from fastapi import Request
+from fastapi.responses import HTMLResponse
+
+from app.engine.constants import nakshatra_info
+from app.web import i18n
+from app.web.nakshatra_data import BY_KEY, NAKSHATRAS
+
+#: Shared framing, per language. The per-nakshatra paragraph is in nakshatra_copy_<lang>.py.
+FRAME = {
+    "en": {
+        "title": "{name} Nakshatra: Meaning, Lord, Deity and Traits",
+        "h1": "{name} nakshatra",
+        "lead": "{name} ({devanagari}) is the {ordinal} of the twenty-seven nakshatras, ruled by "
+                "{lord}.",
+        "what_is": "What a nakshatra is",
+        "what_is_body": (
+            "Before the twelve-sign zodiac, India divided the sky into twenty-seven lunar mansions of "
+            "13 degrees 20 minutes each - roughly one day of the Moon's travel. The nakshatras are "
+            "older than the rashis and carry more specific meaning.",
+            "The nakshatra the Moon occupied at your birth is your janma nakshatra. It is the most "
+            "important single fact in a Vedic chart after the lagna: it gives the traditional first "
+            "letter for naming a child, and it decides where your entire Vimshottari dasha sequence "
+            "begins.",
+        ),
+        "facts": "The facts", "meaning": "What {name} means", "padas": "The four padas",
+        "padas_body": "Every nakshatra divides into four padas of 3 degrees 20 minutes. Which pada the "
+                      "Moon falls in refines the reading and decides the naming syllable - two people "
+                      "with the same nakshatra and different padas are read differently.",
+        "gandmool": "{name} and gandmool",
+        "gandmool_body": (
+            "{name} is one of the six gandmool nakshatras - the ones sitting at the junctions between "
+            "the elemental groups. Tradition holds that a birth here calls for a shanti ritual in the "
+            "first month.",
+            "It is worth being plain about this, because it is one of the most reliable ways to "
+            "frighten a new parent. Gandmool marks a JUNCTION, not a defect. The child is not cursed, "
+            "the chart is not damaged, and anybody selling you an expensive remedy against it is "
+            "selling fear. The ritual is traditional and inexpensive; the anxiety sold alongside it is "
+            "neither.",
+        ),
+        "lord_label": "Ruling graha", "deity_label": "Deity", "symbol_label": "Symbol",
+        "gana_label": "Gana", "number_label": "Number",
+        "find": "Find your own nakshatra", "all": "All twenty-seven nakshatras",
+        "ordinals": ("first", "second", "third", "fourth", "fifth", "sixth", "seventh", "eighth",
+                     "ninth", "tenth", "eleventh", "twelfth", "thirteenth", "fourteenth", "fifteenth",
+                     "sixteenth", "seventeenth", "eighteenth", "nineteenth", "twentieth",
+                     "twenty-first", "twenty-second", "twenty-third", "twenty-fourth",
+                     "twenty-fifth", "twenty-sixth", "twenty-seventh"),
+        "ganas": {"deva": "Deva (divine)", "manushya": "Manushya (human)",
+                  "rakshasa": "Rakshasa (fierce)"},
+    },
+    "hi": {
+        "title": "{devanagari} नक्षत्र ({name}): अर्थ, स्वामी और स्वभाव",
+        "h1": "{devanagari} नक्षत्र - अर्थ और फल",
+        "lead": "{name} ({devanagari}) सत्ताईस नक्षत्रों में {ordinal} है, स्वामी {lord}।",
+        "what_is": "नक्षत्र होता क्या है",
+        "what_is_body": (
+            "बारह राशियों से पहले भारत ने आकाश को सत्ताईस नक्षत्रों में बाँटा - हर एक 13 अंश 20 कला, "
+            "लगभग चंद्र की एक दिन की यात्रा। नक्षत्र राशियों से पुराने हैं और अधिक विशिष्ट अर्थ रखते हैं।",
+            "जन्म के समय चंद्र जिस नक्षत्र में था वह आपका जन्म नक्षत्र है। लग्न के बाद यह कुंडली का "
+            "सबसे महत्वपूर्ण तथ्य है: इसी से नामकरण का पारंपरिक अक्षर आता है, और इसी से तय होता है कि "
+            "आपकी पूरी विंशोत्तरी दशा कहाँ से शुरू होती है।",
+        ),
+        "facts": "तथ्य", "meaning": "{devanagari} नक्षत्र का अर्थ", "padas": "चार पाद",
+        "padas_body": "हर नक्षत्र 3 अंश 20 कला के चार पादों में बँटा है। चंद्र किस पाद में है इससे "
+                      "पाठ और सूक्ष्म होता है और नामाक्षर तय होता है - एक ही नक्षत्र पर अलग पाद वाले "
+                      "दो लोग अलग पढ़े जाते हैं।",
+        "gandmool": "{devanagari} और गंडमूल",
+        "gandmool_body": (
+            "{devanagari} छह गंडमूल नक्षत्रों में से है - वे जो तत्वों की संधि पर पड़ते हैं। परंपरा कहती है "
+            "कि यहाँ जन्म होने पर पहले महीने में शांति विधान कराया जाए।",
+            "इस बारे में स्पष्ट रहना ज़रूरी है, क्योंकि नए माता-पिता को डराने का यह सबसे कारगर तरीक़ा "
+            "है। गंडमूल एक संधि बताता है, दोष नहीं। बच्चा शापित नहीं है, कुंडली बिगड़ी नहीं है, और जो "
+            "इसके विरुद्ध महँगा उपाय बेचे वह डर बेच रहा है। विधान पारंपरिक और सस्ता है; साथ में बेची "
+            "जाने वाली चिंता नहीं।",
+        ),
+        "lord_label": "स्वामी ग्रह", "deity_label": "देवता", "symbol_label": "प्रतीक",
+        "gana_label": "गण", "number_label": "क्रम",
+        "find": "अपना नक्षत्र जानिए", "all": "सत्ताईसों नक्षत्र",
+        "ordinals": tuple(f"{n}वाँ" for n in ("पहला", "दूसरा", "तीसरा", "चौथा", "पाँचवाँ", "छठा",
+                                              "सातवाँ", "आठवाँ", "नौवाँ", "दसवाँ", "ग्यारहवाँ",
+                                              "बारहवाँ", "तेरहवाँ", "चौदहवाँ", "पंद्रहवाँ",
+                                              "सोलहवाँ", "सत्रहवाँ", "अठारहवाँ", "उन्नीसवाँ",
+                                              "बीसवाँ", "इक्कीसवाँ", "बाईसवाँ", "तेईसवाँ",
+                                              "चौबीसवाँ", "पच्चीसवाँ", "छब्बीसवाँ", "सत्ताईसवाँ")),
+        "ganas": {"deva": "देव", "manushya": "मनुष्य", "rakshasa": "राक्षस"},
+    },
+    "mr": {
+        "title": "{devanagari} नक्षत्र ({name}): अर्थ, स्वामी आणि स्वभाव",
+        "h1": "{devanagari} नक्षत्र - अर्थ आणि फल",
+        "lead": "{name} ({devanagari}) हे सत्तावीस नक्षत्रांपैकी {ordinal} आहे, स्वामी {lord}.",
+        "what_is": "नक्षत्र म्हणजे काय",
+        "what_is_body": (
+            "बारा राशींच्या आधी भारताने आकाश सत्तावीस नक्षत्रांत वाटले - प्रत्येक 13 अंश 20 कला, "
+            "म्हणजे चंद्राचा सुमारे एका दिवसाचा प्रवास. नक्षत्रे राशींपेक्षा जुनी आहेत.",
+            "जन्मावेळी चंद्र ज्या नक्षत्रात होता ते तुमचे जन्मनक्षत्र. लग्नानंतरचे हे पत्रिकेतील "
+            "सर्वात महत्त्वाचे तथ्य आहे: त्यावरून नामकरणाचे पारंपरिक अक्षर येते, आणि तुमची संपूर्ण "
+            "विंशोत्तरी दशा कुठून सुरू होते हे ठरते.",
+        ),
+        "facts": "तथ्ये", "meaning": "{devanagari} नक्षत्राचा अर्थ", "padas": "चार चरणे",
+        "padas_body": "प्रत्येक नक्षत्र 3 अंश 20 कलांच्या चार चरणांत विभागले आहे. चंद्र कोणत्या "
+                      "चरणात आहे यावरून वाचन अधिक नेमके होते आणि नामाक्षर ठरते.",
+        "gandmool": "{devanagari} आणि गंडमूळ",
+        "gandmool_body": (
+            "{devanagari} हे सहा गंडमूळ नक्षत्रांपैकी एक आहे - जी तत्त्वांच्या संधीवर येतात. परंपरा सांगते "
+            "की इथे जन्म झाल्यास पहिल्या महिन्यात शांती करावी.",
+            "याबद्दल स्पष्ट बोलणे गरजेचे आहे, कारण नव्या पालकांना घाबरवण्याचा हा सर्वात परिणामकारक "
+            "मार्ग आहे. गंडमूळ संधी दर्शवते, दोष नाही. मूल शापित नाही, पत्रिका बिघडलेली नाही, आणि "
+            "याविरुद्ध महागडा उपाय विकणारा भीती विकतो आहे. शांती पारंपरिक आणि स्वस्त आहे; सोबत "
+            "विकली जाणारी चिंता नाही.",
+        ),
+        "lord_label": "स्वामी ग्रह", "deity_label": "देवता", "symbol_label": "चिन्ह",
+        "gana_label": "गण", "number_label": "क्रम",
+        "find": "तुमचे नक्षत्र पाहा", "all": "सत्तावीस नक्षत्रे",
+        "ordinals": ("पहिले", "दुसरे", "तिसरे", "चौथे", "पाचवे", "सहावे", "सातवे", "आठवे", "नववे",
+                     "दहावे", "अकरावे", "बारावे", "तेरावे", "चौदावे", "पंधरावे", "सोळावे",
+                     "सतरावे", "अठरावे", "एकोणिसावे", "विसावे", "एकविसावे", "बाविसावे",
+                     "तेविसावे", "चोविसावे", "पंचविसावे", "सव्विसावे", "सत्ताविसावे"),
+        "ganas": {"deva": "देव", "manushya": "मनुष्य", "rakshasa": "राक्षस"},
+    },
+}
+
+
+def view(key: str, lang: str) -> dict:
+    nakshatra = BY_KEY[key]
+    engine = nakshatra_info(nakshatra.index - 1)
+    words = FRAME[lang]
+    return {
+        "key": key,
+        "name": engine["name"],
+        "devanagari": engine["devanagari"],
+        "lord": engine["lord"],
+        "index": nakshatra.index,
+        "ordinal": words["ordinals"][nakshatra.index - 1],
+        "deity": nakshatra.deity,
+        "symbol": nakshatra.symbol,
+        "gana": words["ganas"][nakshatra.gana],
+        "gandmool": nakshatra.gandmool,
+    }
+
+
+def add_routes(router, page_context, respond, _json_ld) -> None:
+    for lang in i18n.PAGES["nakshatra"]:
+        for nakshatra in NAKSHATRAS:
+            _add(router, page_context, respond, _json_ld, lang, nakshatra.key)
+
+
+def _add(router, page_context, respond, _json_ld, lang: str, key: str) -> None:
+    def nakshatra_page(request: Request):
+        from app.web import seo as _seo
+
+        words = FRAME[lang]
+        facts = view(key, lang)
+        meaning = _meaning(key, lang)
+        context = page_context("nakshatra", lang, nakshatra=key)
+        path = i18n.url_for("nakshatra", lang, nakshatra=key)
+        title = words["title"].format(**facts)
+        context.update(
+            words=words, n=facts, meaning=meaning,
+            title=title,
+            others=[{"name": nakshatra_info(other.index - 1)["name"],
+                     "href": i18n.url_for("nakshatra", lang, nakshatra=other.key)}
+                    for other in NAKSHATRAS if other.key != key],
+            json_ld=[_json_ld(_seo.breadcrumbs([(context["ui"]["home"], i18n.url_for("home", lang)),
+                                                (facts["name"], path)]))])
+        return respond(request, "nakshatra.html", context)
+
+    router.add_api_route(i18n.url_for("nakshatra", lang, nakshatra=key), nakshatra_page,
+                         methods=["GET"], response_class=HTMLResponse,
+                         name=f"nakshatra-{key.lower().replace(' ', '-')}-{lang}")
+
+
+def _meaning(key: str, lang: str) -> str:
+    from app.web import nakshatra_copy_en, nakshatra_copy_hi, nakshatra_copy_mr
+
+    return {"en": nakshatra_copy_en.MEANINGS, "hi": nakshatra_copy_hi.MEANINGS,
+            "mr": nakshatra_copy_mr.MEANINGS}[lang][key]

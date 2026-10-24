@@ -1,0 +1,58 @@
+{# One nakshatra: the specific meaning plus the shared framing. No AI on this path. #}
+{% extends "base.html" %}
+
+{% block title %}{{ title }} | {{ site_name }}{% endblock %}
+{% block meta_description %}{{ meaning[:230] }}{% endblock %}
+
+{% block main %}
+<section class="hero">
+  <div class="wrap">
+    <h1>{{ words.h1.format(**n) }}</h1>
+    <p class="hero__sub">{{ words.lead.format(**n) }}</p>
+  </div>
+</section>
+
+<div class="wrap">
+  <section class="card" id="facts" aria-labelledby="facts-heading">
+    <h2 id="facts-heading">{{ words.facts }}</h2>
+    <dl class="nakshatra__facts">
+      <dt>{{ words.number_label }}</dt><dd>{{ n.index }} / 27</dd>
+      <dt>{{ words.lord_label }}</dt><dd>{{ n.lord }}</dd>
+      <dt>{{ words.deity_label }}</dt><dd>{{ n.deity }}</dd>
+      <dt>{{ words.symbol_label }}</dt><dd>{{ n.symbol }}</dd>
+      <dt>{{ words.gana_label }}</dt><dd>{{ n.gana }}</dd>
+    </dl>
+  </section>
+
+  <section class="block" id="meaning">
+    <h2>{{ words.meaning.format(**n) }}</h2>
+    <p>{{ meaning }}</p>
+  </section>
+
+  {% if n.gandmool %}
+  {# SAID PLAINLY, because this is the single most effective way to frighten a new parent. #}
+  <section class="block" id="gandmool">
+    <h2>{{ words.gandmool.format(**n) }}</h2>
+    {% for paragraph in words.gandmool_body %}<p>{{ paragraph.format(**n) }}</p>{% endfor %}
+  </section>
+  {% endif %}
+
+  <section class="block" id="what-is">
+    <h2>{{ words.what_is }}</h2>
+    {% for paragraph in words.what_is_body %}<p>{{ paragraph }}</p>{% endfor %}
+  </section>
+
+  <section class="block" id="padas">
+    <h2>{{ words.padas }}</h2>
+    <p>{{ words.padas_body }}</p>
+    <p class="reading__ask"><a href="{{ href('kundali') }}">{{ words.find }}</a></p>
+  </section>
+
+  <section class="block" id="all">
+    <h2>{{ words.all }}</h2>
+    <ul class="link-list nakshatra__all">
+      {% for other in others %}<li><a href="{{ other.href }}">{{ other.name }}</a></li>{% endfor %}
+    </ul>
+  </section>
+</div>
+{% endblock %}
