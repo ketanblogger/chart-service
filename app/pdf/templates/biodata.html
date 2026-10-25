@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="{{ lang }}">
+<head>
+<meta charset="utf-8">
+<title>{{ title }}</title>
+<style>
+{{ css }}
+:root {
+  --ink: {{ design.tokens.ink }};
+  --accent: {{ design.tokens.accent }};
+  --paper: {{ design.tokens.paper }};
+  --band: {{ design.tokens.band }};
+  --head: {{ design.tokens.head }};
+  --body: {{ design.tokens.body }};
+}
+</style>
+</head>
+<body class="biodata biodata--{{ design.key }} orn-{{ design.ornament }}">
+<div class="sheet">
+
+  {# Every ornament below is geometry drawn here. No traced motif, no stock flourish, no photograph
+     of anything but the person's own picture - and no image of a deity: the Ganesh designs carry the
+     written invocation, which is what the real sheets print. #}
+  {% if design.ornament == 'woven-border' %}
+    <svg class="orn orn--frame" viewBox="0 0 100 140" preserveAspectRatio="none" aria-hidden="true">
+      <rect x="1.2" y="1.2" width="97.6" height="137.6" fill="none" stroke="var(--accent)" stroke-width=".55"/>
+      <rect x="3.0" y="3.0" width="94.0" height="134.0" fill="none" stroke="var(--accent)" stroke-width=".22"/>
+      <path d="M3 9 L9 3 M3 131 L9 137 M97 9 L91 3 M97 131 L91 137" stroke="var(--accent)" stroke-width=".4" fill="none"/>
+    </svg>
+  {% elif design.ornament == 'corner-brackets' %}
+    <svg class="orn orn--frame" viewBox="0 0 100 140" preserveAspectRatio="none" aria-hidden="true">
+      <path d="M2 14 L2 2 L14 2 M86 2 L98 2 L98 14 M98 126 L98 138 L86 138 M14 138 L2 138 L2 126"
+            fill="none" stroke="var(--accent)" stroke-width=".7"/>
+    </svg>
+  {% elif design.ornament == 'scallop' %}
+    <svg class="orn orn--frame" viewBox="0 0 100 140" preserveAspectRatio="none" aria-hidden="true">
+      <rect x="2" y="2" width="96" height="136" fill="none" stroke="var(--accent)" stroke-width=".45"
+            stroke-dasharray="3 1.4"/>
+    </svg>
+  {% endif %}
+
+  <header class="bd-head">
+    {% if design.invocation %}<p class="bd-invocation">{{ design.invocation }}</p>{% endif %}
+
+    {% if design.ornament == 'arch' %}
+      <svg class="orn orn--arch" viewBox="0 0 120 26" aria-hidden="true">
+        <path d="M4 25 L4 14 A56 56 0 0 1 116 14 L116 25" fill="none" stroke="var(--accent)" stroke-width="1"/>
+      </svg>
+    {% endif %}
+
+    <div class="bd-headline">
+      {% if photo %}
+        <figure class="bd-photo bd-photo--{{ frame }}">
+          {# A DATA URI. The upload is held in memory for this render and never written to disk - see
+             app/biodata/sheet.py. There is no file to serve, so there is no URL to leak. #}
+          <img src="{{ photo }}" alt="">
+        </figure>
+      {% endif %}
+      <div class="bd-titles">
+        <h1>{{ heading }}</h1>
+        {% if subheading %}<p class="bd-sub">{{ subheading }}</p>{% endif %}
+      </div>
+    </div>
+
+    {% if design.ornament in ('rule', 'double-rule') %}
+      <hr class="bd-rule bd-rule--{{ design.ornament }}">
+    {% elif design.ornament == 'lotus-rule' %}
+      <svg class="orn orn--rule" viewBox="0 0 120 8" aria-hidden="true">
+        <path d="M0 4 L48 4 M72 4 L120 4" stroke="var(--accent)" stroke-width=".5"/>
+        <path d="M60 1 C64 4 64 4 60 7 C56 4 56 4 60 1 Z" fill="var(--accent)"/>
+        <path d="M54 4 C57 2.5 57 5.5 54 4 Z M66 4 C63 2.5 63 5.5 66 4 Z" fill="var(--accent)"/>
+      </svg>
+    {% elif design.ornament == 'diamond-row' %}
+      <svg class="orn orn--rule" viewBox="0 0 120 8" aria-hidden="true">
+        <path d="M0 4 L40 4 M80 4 L120 4" stroke="var(--accent)" stroke-width=".5"/>
+        {% for x in (50, 60, 70) %}
+        <path d="M{{ x }} 1.6 L{{ x + 3 }} 4 L{{ x }} 6.4 L{{ x - 3 }} 4 Z" fill="var(--accent)"/>
+        {% endfor %}
+      </svg>
+    {% endif %}
+  </header>
+
+  {% if kundli %}
+  <section class="bd-section bd-section--kundli">
+    <h2>{{ kundli_title }}</h2>
+    <dl class="bd-rows">
+      {% for row in kundli_rows %}
+      <div class="bd-row{% if not row.known %} bd-row--unsettled{% endif %}">
+        <dt>{{ row.label }}</dt>
+        <dd>{{ row.text }}</dd>
+      </div>
+      {% endfor %}
+    </dl>
+    {% if kundli_note %}<p class="bd-note">{{ kundli_note }}</p>{% endif %}
+  </section>
+  {% endif %}
+
+  {% for section in sections %}
+  <section class="bd-section">
+    <h2>{{ section.title }}</h2>
+    <dl class="bd-rows">
+      {% for row in section.rows %}
+      <div class="bd-row">
+        <dt>{{ row.label }}</dt>
+        <dd>{% if row.lines %}{% for line in row.lines %}{{ line }}{% if not loop.last %}<br>{% endif %}{% endfor %}{% else %}{{ row.value }}{% endif %}</dd>
+      </div>
+      {% endfor %}
+    </dl>
+  </section>
+  {% endfor %}
+
+  {% if qr %}
+  <section class="bd-qr">
+    <img src="{{ qr.image }}" alt="">
+    <p class="bd-qr__text">{{ qr.caption }}</p>
+  </section>
+  {% endif %}
+
+  <footer class="bd-foot">
+    {% if made_on %}<p class="bd-made">{{ made_on }}</p>{% endif %}
+  </footer>
+</div>
+</body>
+</html>

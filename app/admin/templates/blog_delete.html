@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}Delete {{ post.title }}{% endblock %}
+{% block heading %}Delete this draft?{% endblock %}
+{% block sub %}<a href="/admin/blog">Blog</a> &middot; <code>{{ post.slug }}</code>{% endblock %}
+{% block body %}
+
+{# THE CONFIRMATION IS A PAGE, NOT A DIALOG. The admin dashboard carries no JavaScript anywhere, so a
+   confirm() would be the only script in it - and one that silently does nothing wherever script is
+   blocked, turning a guarded button into an unguarded one. A page also says what a dialog cannot. #}
+
+<div class="note warn">
+  <b>This cannot be undone.</b> The draft, its check report and the record of every fix made to it are
+  deleted together. There is no bin to take it out of.
+</div>
+
+<div class="card">
+  <table>
+    <tbody>
+      <tr><th>Title</th><td>{{ post.title }}</td></tr>
+      <tr><th>Slug</th><td><code>{{ post.slug }}</code></td></tr>
+      <tr><th>Language</th><td>{{ post.language or 'en' }}</td></tr>
+      <tr><th>Length</th><td>{{ post.words }} words</td></tr>
+      <tr><th>Arrived</th><td>{{ post.created_on or 'unknown' }}</td></tr>
+      <tr><th>Last touched</th><td>{{ post.updated_on or 'never' }}</td></tr>
+    </tbody>
+  </table>
+</div>
+
+{% if translations %}
+<div class="note warn">
+  <b>{{ translations|length }} post(s) name this one as their original.</b> They are not deleted - a
+  translation is somebody's work too - but they will no longer be linked to it:
+  <ul>
+    {% for other in translations %}
+    <li><a href="/admin/blog/{{ other.slug }}">{{ other.title }}</a> ({{ other.language }})</li>
+    {% endfor %}
+  </ul>
+</div>
+{% endif %}
+
+<div class="card">
+  <form method="post" action="/admin/blog/{{ post.slug }}/delete" style="display:inline">
+    <input type="hidden" name="token" value="{{ delete_token }}">
+    <button type="submit">Yes, delete this draft</button>
+  </form>
+  <a href="/admin/blog/{{ post.slug }}">No, keep it</a>
+  <p class="sub">If you only want to stop it publishing itself, go back and hold it instead - that is
+    reversible and this is not.</p>
+</div>
+
+{% endblock %}

@@ -1,0 +1,24 @@
+[Unit]
+Description=RashiKundli: nightly test suite
+
+[Timer]
+# 01:15 IST, AND THE TIMEZONE IS NOT OPTIONAL. This said "02:40" with no zone, which systemd reads
+# in the system timezone - UTC on this box - so it would have fired at 08:10 IST: not nightly at
+# all, and landing on daily-summary (08:00) and ten minutes before the morning traffic. Every other
+# unit here names Asia/Kolkata; this one did not.
+#
+# The window is chosen to be clear of the site's own jobs:
+#   00:05 IST  rashifal-refresh     <- finishes before this starts
+#   01:15 IST  THIS, up to 3h       -> worst case ends 04:20 with the randomised delay
+#   05:30 IST  rashifal-refresh     <- 70 minutes of clearance
+#   08:00 IST  daily-summary
+#   09:30 IST  blog-release
+#   10:30 IST  unpaid-mail
+# alerts.timer is the one it cannot avoid - it runs every 15 minutes, all day - and that is what the
+# idle CPU/IO priority in the .service is for: a 15-second alert check beside a 3-hour suite.
+OnCalendar=*-*-* 01:15:00 Asia/Kolkata
+Persistent=true
+RandomizedDelaySec=300
+
+[Install]
+WantedBy=timers.target

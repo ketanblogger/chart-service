@@ -1,0 +1,133 @@
+/* THE LAST FALLBACK, AND ONLY THAT.
+ *
+ * This file used to declare the subset under the family name "Noto Sans Devanagari" with local() first,
+ * hoping a device that already had the family would download nothing. Safari and Firefox ignore local()
+ * for fingerprinting reasons, so on those browsers the file was fetched anyway - which is why wiring it
+ * in was measured at 0.27s and left undone.
+ *
+ * SO IT IS A FAMILY OF ITS OWN NOW, named something no device ships, and it sits LAST in the Devanagari
+ * stack in site.css - after Noto Sans Devanagari, Nirmala UI, Mangal and Kohinoor Devanagari. A browser
+ * downloads a webfont only when it actually needs it to draw a glyph, so a device carrying any of those
+ * four never reaches this face and never asks for the file. No local() hint to be ignored, and nothing
+ * for a browser to decide.
+ *
+ * unicode-range keeps it to Devanagari (the same coverage print.css declares, which is what the subset
+ * was built to). Latin letters, digits and punctuation fall outside it, so an English word inside a
+ * Marathi sentence never pulls this file in.
+ *
+ * font-display: swap, WITH A PRELOAD IN base.html, AND THE PRELOAD IS WHAT MAKES IT CHEAP.
+ *
+ * Three configurations were measured on the Marathi rashifal and Hindi home pages under Lighthouse's
+ * Slow 4G profile (1.6 Mbit/s, 150 ms RTT), cold cache, median of three:
+ *
+ *                      first view        LCP                      CLS
+ *   optional           BOXES             852 / 904 ms             0.137 / 0.098
+ *   block + preload    correct           2068 / 2072 ms (+1200)   0.049 / 0.039
+ *   swap + preload     correct            992 / 1084 ms (+140)    0.051 / 0.039
+ *
+ * `optional` was shipped first for CLS, and it was the wrong trade: it does not reflow for a late face,
+ * it simply declines to use it, so a reader with no Devanagari font saw BOXES on their first page and
+ * correct text only from the second. On the two trees those readers use, that is not a page that looks
+ * slightly off - it is a page that looks broken.
+ *
+ * `block` fixes the text and costs 1.2 seconds of LCP, because it holds the text invisible until the
+ * face lands and on these pages LCP IS a text paint.
+ *
+ * `swap` with the preload gets both: the face arrives around first paint, so there is almost nothing
+ * laid out in the fallback left to shift - which is why swap here costs 0.05 CLS where swap WITHOUT a
+ * preload measured 0.38-0.60. Note the throttled numbers above are the honest ones; the same pages read
+ * CLS 0.0000 on a fast local connection, which is a measurement of the connection, not the page.
+ *
+ * THE NUMBERS ABOVE WERE TAKEN ON A PAGE THAT DOWNLOADED THIS FILE TWICE. The preload in base.html
+ * carried `?v=<static_version>` while the src below has no query - a preload only satisfies a request
+ * whose URL matches it exactly, so the two were separate cache entries: 61 KB fetched twice on every
+ * Hindi and Marathi page, and the preload satisfying nothing. Chromium had been printing "preloaded
+ * using link preload but not used" the entire time; a browser check that counted woff2 requests found
+ * it (3 on one Hindi page: the preload, plus Regular and Bold from this file).
+ *
+ * Fixed, and re-measured on the same two pages under the same profile: MR rashifal LCP 1084 ms / CLS
+ * 0.0510, HI home 1276 ms / CLS 0.0421 - the same as the table within run-to-run noise. So the fix buys
+ * 61 KB per page view and no measurable time, which is worth having on mobile data and is not the
+ * speed-up it might look like. The table stands as the record of the configuration choice; it simply
+ * was not measuring what it claimed to measure.
+ *
+ * BECAUSE NEITHER URL CARRIES A VERSION NOW, a changed subset needs a NEW FILENAME.
+ *
+ * WHAT IT COSTS: `rel=preload` is unconditional, so the 61 KB is now fetched on every Hindi and Marathi
+ * page view - including by the majority of phones that already have one of the six system families
+ * listed ahead of this one in the stack and will never draw a glyph from it. Those readers still render
+ * instantly from their own font; they just also carry the download. That is the price of the preload,
+ * and it was taken deliberately rather than discovered later.
+ */
+@font-face {
+  font-family: "RK Devanagari Fallback";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/static/fonts/NotoSansDevanagari-Regular.subset.woff2") format("woff2");
+  unicode-range: U+0900-097F, U+1CD0-1CFF, U+200C-200D, U+20B9, U+25CC, U+A830-A839, U+A8E0-A8FF;
+}
+
+@font-face {
+  font-family: "RK Devanagari Fallback";
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("/static/fonts/NotoSansDevanagari-Bold.subset.woff2") format("woff2");
+  unicode-range: U+0900-097F, U+1CD0-1CFF, U+200C-200D, U+20B9, U+25CC, U+A830-A839, U+A8E0-A8FF;
+}
+
+
+/* THE METRICS-MATCHED FALLBACK, used only in the moment before the webfont lands.
+ *
+ * The shift this removes is not a line-height problem, it is a LINE-COUNT problem. On a device with no
+ * Devanagari font the browser draws .notdef boxes whose advance widths have nothing to do with the
+ * glyphs they stand in for, so the text wraps to a different number of lines; when the real face arrives
+ * the paragraph changes height and everything under it moves. On /mr/kundali-pdf that measured CLS
+ * 0.1337 - above the 0.1 "good" threshold - and /hi/kundli-pdf 0.0997, exactly at it.
+ *
+ * So this face exists to be WRONG IN THE SAME SHAPE as the real one. Its overrides come from the subset
+ * itself: unitsPerEm 1000, hhea ascent 896, descent -408, lineGap 0. `size-adjust` is tuned by
+ * measurement, not arithmetic - see the figure below - because what has to match is the width of a box
+ * standing in for a glyph, which no table states.
+ *
+ * WHAT IT MEASURED, Slow 4G at 390px, before -> after:
+ *
+ *   /mr/kundali-pdf              0.1337 -> 0.0189      (was above the 0.1 threshold)
+ *   /hi/kundli-pdf               0.0997 -> 0.0001      (was exactly at it)
+ *   /mr/ai-jyotish               0.0629 -> 0.0003
+ *   /mr/rashi-bhavishya/.../aaj  0.0590 -> 0.0037
+ *   /hi                          0.0421 -> 0.0077
+ *   /mr                          0.0250 -> 0.0078
+ *
+ * size-adjust was swept rather than calculated: 100% down to 60%, reading the change in page height
+ * between a blocked webfont and a loaded one. 68% is the value where the WORST of the six pages is
+ * best. Lower values fix /mr/kundali-pdf outright and make both home pages worse, which is the wrong
+ * trade - the number that matters is the worst page, not the average.
+ *
+ * LCP across five pages moved between -16 ms and +12 ms, which is noise on this machine.
+ *
+ * WHERE IT DOES NOT WORK, which bounds the whole result. local() is how a stand-in borrows a font the
+ * device already has, and this file says a few paragraphs up that Safari and Firefox ignore local() for
+ * fingerprinting reasons - which is why the subset is a family of its own. The same applies here: on
+ * those browsers this face never matches, the stack falls straight through to the Latin families, and
+ * the shift is what it was before. Nothing breaks and nothing is downloaded; the improvement simply is
+ * not there. The numbers above were measured in Chromium and are a claim about Chromium - which is most
+ * of this site's traffic, and is not all of it.
+ *
+ * IT IS NOT IN THE STACK AHEAD OF ANYTHING REAL. It sits immediately after the webfont and before the
+ * Latin families, so: a device with a Devanagari font of its own never reaches either face; a device
+ * without one renders this while the subset downloads and then the subset itself. THE FINAL RENDERING IS
+ * UNCHANGED - this face is never what a reader ends up looking at, which is the condition the whole
+ * change was accepted under.
+ */
+@font-face {
+  font-family: "RK Devanagari Metrics";
+  src: local("DejaVu Sans"), local("Liberation Sans"), local("Arial"), local("Helvetica"),
+       local("Segoe UI"), local("Roboto");
+  ascent-override: 89.6%;
+  descent-override: 40.8%;
+  line-gap-override: 0%;
+  size-adjust: 68%;
+  unicode-range: U+0900-097F, U+1CD0-1CFF, U+200C-200D, U+20B9, U+25CC, U+A830-A839, U+A8E0-A8FF;
+}

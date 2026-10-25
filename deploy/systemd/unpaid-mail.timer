@@ -1,0 +1,19 @@
+# Once a day, mid-morning IST.
+#
+# THE HOUR IS A DECISION ABOUT THE CUSTOMER, not about the server. This is the only message these
+# people get, and it lands in a personal inbox: 10:30 is after the morning rush and inside working
+# hours, so it is read rather than buried overnight. Nothing about the job needs a quiet hour - it
+# sends a handful of mails and touches one column.
+#
+# Persistent=true so a run missed to a reboot happens once on the next start rather than being skipped
+# for a day. That is safe here because the per-order stamp makes a second send impossible.
+[Unit]
+Description=Unpaid-order mail, daily at 10:30 IST
+
+[Timer]
+OnCalendar=*-*-* 10:30:00 Asia/Kolkata
+Persistent=true
+RandomizedDelaySec=300
+
+[Install]
+WantedBy=timers.target

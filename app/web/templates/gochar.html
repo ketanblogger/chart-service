@@ -1,0 +1,54 @@
+{# One slow graha's year: computed dates, then the house that is from each of the twelve rashis.
+   No AI on this path - the house meanings are written once and reused. #}
+{% extends "base.html" %}
+
+{% block title %}{{ title }}{% endblock %}
+{% block meta_description %}{{ meta_description }}{% endblock %}
+
+{% block main %}
+<section class="hero">
+  <div class="wrap">
+    <h1>{{ h1 }}</h1>
+    <p class="hero__sub">{{ words.lead }}</p>
+  </div>
+</section>
+
+<article class="wrap content">
+  <h2>{{ words.dates_heading }}</h2>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th scope="col">{{ words.cols[0] }}</th><th scope="col">{{ words.cols[2] }}</th>
+                 <th scope="col">{{ words.cols[3] }}</th></tr></thead>
+      <tbody>
+        {% for stay in stays %}
+        <tr>
+          <th scope="row" data-label="{{ words.cols[0] }}">
+            {% if deva %}{{ stay.graha.devanagari }} {{ stay.sign.devanagari }}{% else %}{{ stay.graha.name }} {{ stay.sign.name }}{% endif %}</th>
+          <td data-label="{{ words.cols[2] }}">{{ stay.start }}</td>
+          <td data-label="{{ words.cols[3] }}">{{ stay.end }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <h2>{{ words.houses_heading }}</h2>
+  <div class="gochar-rashis">
+    {% for row in rows %}
+    <section class="gochar-rashi">
+      <h3><a href="{{ row.path }}">{{ row.name }}</a></h3>
+      <ul class="plain">
+        {% for span in row.spans %}
+        <li>{{ words.house_word }} {{ span.house }} &middot; {{ span.start }} &ndash; {{ span.end }}
+          <span class="quiet">{{ span.meaning }}</span></li>
+        {% endfor %}
+      </ul>
+    </section>
+    {% endfor %}
+  </div>
+
+  <p class="fact__sub">{{ words.note }}</p>
+  <p><a class="btn btn--cta" href="{{ kundali_path }}">{{ words.kundli_cta }} <span aria-hidden="true">&rarr;</span></a></p>
+  <p><a href="{{ year_hub_path }}">{{ words.houses_heading }}</a></p>
+</article>
+{% endblock %}

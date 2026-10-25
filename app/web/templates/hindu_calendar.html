@@ -1,0 +1,55 @@
+{# The year's festivals month by month, with the ekadashis, amavasyas and purnimas beside them. #}
+{% extends "base.html" %}
+{% block title %}{{ title }}{% endblock %}
+{% block meta_description %}{{ meta_description }}{% endblock %}
+{% block main %}
+<section class="hero">
+  <div class="wrap">
+    <h1>{{ h1 }}</h1>
+    <p class="hero__sub">{{ lede }}</p>
+    <p class="hero__actions"><a class="button button--primary" href="{{ print_path }}" rel="nofollow">{{ words.print }}</a></p>
+  </div>
+</section>
+<article class="wrap content">
+  <div class="mu-months">
+    {% for month in months %}
+    <section class="mu-month{% if not month.festivals %} mu-month--empty{% endif %}">
+      <h2>{{ month.name }}</h2>
+      {% if month.festivals %}
+      <ul class="fp-list">
+        {% for item in month.festivals %}
+        <li><span class="fp-day">{{ item.day }}</span> {{ item.name }}</li>
+        {% endfor %}
+      </ul>
+      {% endif %}
+    </section>
+    {% endfor %}
+  </div>
+
+  <section class="fp-tithis">
+    <div>
+      <h2>{{ words.amavasya_heading }}</h2>
+      <p class="mu-nakshatras">{{ amavasyas | join(' · ') }}</p>
+    </div>
+    <div>
+      <h2>{{ words.purnima_heading }}</h2>
+      <p class="mu-nakshatras">{{ purnimas | join(' · ') }}</p>
+    </div>
+  </section>
+
+  <section class="mu-limits">
+    <h2>{{ words.convention_heading }}</h2>
+    <p>{{ words.convention }}</p>
+  </section>
+
+  <nav class="mu-next">
+    {# The DIWALI page's own heading, not this page's. `h1` here is the calendar's, so the button
+       linked to Diwali while announcing itself as the calendar - the third time in this batch a
+       button has been labelled with the wrong thing, and the third time a screenshot found it. #}
+    <a class="button" href="{{ diwali_path }}">{{ diwali_label }}</a>
+    <a class="button" href="{{ ekadashi_path }}">{{ words.ekadashi_heading }}</a>
+    <a class="button button--quiet" href="{{ muhurat_path }}">{{ words.cta_muhurat.format(year=year) }}</a>
+  </nav>
+  {% if guides %}{% include "_copy_blocks.html" %}{% endif %}
+</article>
+{% endblock %}

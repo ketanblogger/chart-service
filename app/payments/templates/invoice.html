@@ -1,0 +1,224 @@
+<!doctype html>
+{#
+  The GST tax invoice for one order. Standalone on purpose: no base.html, no site navigation, no external
+  asset, one <style> block. A tax invoice gets saved, e-mailed on, printed and opened years later from a
+  folder, and every one of those is a context where a page that depends on the rest of the site is a page
+  that has stopped working. app/payments/invoice.py explains why this is HTML and not a PDF.
+
+  Words are English only, like /terms and /privacy: this is a document for an accountant and an assessing
+  officer. The product name is the one the buyer saw, in the language they bought in, because an invoice
+  line has to match what was on the page they paid on.
+#}
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<meta name="referrer" content="no-referrer">
+<title>Tax invoice {{ number }} - {{ seller.site }}</title>
+<style>
+  /* Deliberately plain and self-contained. `system-ui` rather than a web font: a font request is a request,
+     and this document has to render identically when it is opened from a downloaded file with no network. */
+  :root { color-scheme: light; }
+  * { box-sizing: border-box; }
+  body { margin: 0; padding: 24px 16px; background: #f6f5f2; color: #1c1b19;
+         font: 16px/1.55 system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans Devanagari", sans-serif; }
+  .sheet { max-width: 720px; margin: 0 auto; background: #fff; padding: 28px 24px 24px;
+           border: 1px solid #ddd9d2; border-radius: 6px; }
+  h1 { font-size: 1.25rem; margin: 0 0 2px; letter-spacing: .06em; text-transform: uppercase; }
+  .brand { font-weight: 600; font-size: 1.05rem; margin: 0 0 4px; }
+  .muted { color: #5c574f; }
+  .small { font-size: .85rem; }
+  .head { display: flex; flex-wrap: wrap; gap: 20px; justify-content: space-between; align-items: flex-start;
+          border-bottom: 2px solid #1c1b19; padding-bottom: 14px; margin-bottom: 18px; }
+  .head__meta { text-align: right; }
+  address { font-style: normal; }
+  dl.pair { display: grid; grid-template-columns: auto 1fr; gap: 2px 10px; margin: 0; }
+  dl.pair dt { color: #5c574f; }
+  dl.pair dd { margin: 0; }
+  .parties { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; }
+  h2 { font-size: .8rem; text-transform: uppercase; letter-spacing: .08em; color: #5c574f;
+       margin: 0 0 6px; font-weight: 600; }
+  table { width: 100%; border-collapse: collapse; }
+  th, td { padding: 8px 6px; text-align: left; border-bottom: 1px solid #e6e2da; vertical-align: top; }
+  th { font-size: .8rem; text-transform: uppercase; letter-spacing: .06em; color: #5c574f; }
+  .num { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+  tfoot td { border-bottom: none; padding-top: 6px; }
+  tfoot .total td { border-top: 2px solid #1c1b19; font-weight: 700; font-size: 1.05rem; }
+  .notes { margin-top: 22px; border-top: 1px solid #e6e2da; padding-top: 14px; }
+  .notes p { margin: 0 0 6px; }
+  /* One keystroke in any browser turns this into the PDF, which is the whole reason it is not one already:
+     drop the page chrome, keep the sheet, and let the table break across pages if it ever needs to. */
+  @media print {
+    /* A4, because this is an Indian tax document and Chromium's default is US Letter - and the PDF
+       download (app/pdf/service.ensure_document_pdf) prints with prefer_css_page_size, so this rule is
+       what decides the page size of the file a customer forwards to an accountant. */
+    @page { size: A4; margin: 14mm; }
+    body { background: #fff; padding: 0; font-size: 11pt; }
+    /* Keep the two header blocks side by side on paper. The seller's address is one long line, and with
+       `flex-wrap: wrap` it pushed the document title and its number onto a second row - which reads as a
+       different, worse document than the one the browser shows. */
+    .head { flex-wrap: nowrap; }
+    .head address { max-width: 58%; }
+    .head__meta dd { white-space: nowrap; }   /* a date is one thing; it may not wrap */
+    .sheet { max-width: none; border: none; border-radius: 0; padding: 0; }
+    .no-print { display: none; }
+    tr { break-inside: avoid; }
+  }
+  @media (max-width: 520px) {
+    .parties { grid-template-columns: 1fr; }
+    .head__meta { text-align: left; }
+  }
+{# Only when this document is about to be PRINTED: headless Chromium has no system fonts, so
+     `system-ui` above gives it nothing for Devanagari and app/pdf/browser.py refuses to print a document with
+     no loaded face. The font files are served beside the document by the renderer, so these URLs are relative
+     and would 404 on the HTTP-served copy - which is exactly why the HTTP copy does not carry them. #}
+{% if print_css %}{{ print_css }}{% endif %}
+</style>
+</head>
+<body>
+<div class="sheet">
+  <div class="head">
+    <div>
+      <p class="brand">{{ seller.name }}</p>
+      <address class="small muted">
+        {{ seller.address }}<br>
+        {{ seller.email }}
+      </address>
+      <p class="small" style="margin:6px 0 0"><strong>GSTIN: {{ seller.gstin }}</strong></p>
+    </div>
+    <div class="head__meta">
+      <h1>Tax invoice</h1>
+      <dl class="pair small">
+        <dt>Invoice no.</dt><dd><strong>{{ number }}</strong></dd>
+        <dt>Invoice date</dt><dd>{{ date }}</dd>
+      </dl>
+    </div>
+  </div>
+
+  <div class="parties">
+    <div>
+      <h2>Billed to (e-mail)</h2>
+      {# The address the order was placed with is all that is held. Labelled as an e-mail so an absent
+         postal address reads as "not collected" rather than as a missing field on a legal document. #}
+      <p style="margin:0">{% if buyer_name %}{{ buyer_name }}<br>{% endif %}{{ buyer_email or "—" }}</p>
+      <p class="small muted" style="margin:4px 0 0">Unregistered recipient (no GSTIN provided)</p>
+    </div>
+    <div>
+      <h2>Payment</h2>
+      <dl class="pair small">
+        <dt>Order reference</dt><dd>{{ reference }}</dd>
+        {% if payment_id %}<dt>Payment id</dt><dd>{{ payment_id }}</dd>{% endif %}
+        <dt>Currency</dt><dd>{{ currency }}</dd>
+        {% if place_of_supply %}<dt>Place of supply</dt><dd>{{ place_of_supply }}</dd>{% endif %}
+        {# Rule 46(p): a tax invoice must SAY whether tax is payable on reverse charge, and "No" is an
+           answer while silence is not. It is always No here - reverse charge moves the liability to the
+           recipient in specific supplies (goods transport, legal services, an unregistered supplier to a
+           registered one), and none of them is a prepaid PDF sold to an individual. Hard-coded rather
+           than computed for that reason: a field that could vary would need something to vary WITH, and
+           there is nothing. If we ever sell B2B to a registered recipient, this is one of the fields that
+           has to start thinking. #}
+        <dt>Reverse charge</dt><dd>No</dd>
+      </dl>
+    </div>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th scope="col">Description</th>
+        <th scope="col">HSN/SAC</th>
+        <th scope="col" class="num">Taxable value</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>{{ line.description }}</td>
+        <td>{{ line.sac }}</td>
+        <td class="num">₹{{ line.base }}</td>
+      </tr>
+    </tbody>
+    <tfoot>
+      <tr>
+        <td colspan="2">Taxable value</td>
+        <td class="num">₹{{ line.base }}</td>
+      </tr>
+      {# Head-wise when the place of supply is known, composite when it is not. Both sum to the same tax and
+         to the same total: the split is a classification, and inventing one for an order that never recorded a
+         state would put a CGST/SGST claim on a document against a state nobody collected. #}
+      {% if export %}
+      {# A zero-rated export has no head to file under, so it gets the treatment by name rather than a split -
+         and NO AMOUNT CELL. A "₹0.00" in the tax column would assert that tax was collected and was nil, which
+         is a different claim from "no tax was chargeable on this supply" and the wrong one on an export. Same
+         principle as the sales with no recorded place of supply: state what is true, never an invented zero. #}
+      <tr>
+        <td colspan="3">{{ treatment }} (GST 0%)</td>
+      </tr>
+      {% elif heads %}
+      {% for head in heads %}
+      <tr>
+        <td colspan="2">{{ head.name }} @ {{ head.rate }}%</td>
+        <td class="num">₹{{ head.amount }}</td>
+      </tr>
+      {% endfor %}
+      {% else %}
+      <tr>
+        <td colspan="2">GST @ {{ line.rate }}%</td>
+        <td class="num">₹{{ line.gst }}</td>
+      </tr>
+      {% endif %}
+      <tr class="total">
+        <td colspan="2">Total paid</td>
+        <td class="num">₹{{ line.total }}</td>
+      </tr>
+    </tfoot>
+  </table>
+
+  <div class="notes small muted">
+    <p>Supply of online information and database access or retrieval services, delivered electronically.
+       HSN/SAC {{ line.sac }}.</p>
+    {% if refund %}
+    {# Stated, not silently omitted: an invoice that says nothing about a refund asserts by omission that the
+       money was kept. This line is NOT itself the reversal - a refund is reversed by a credit note under
+       section 34, with its own consecutive series - so it reports what happened and NAMES the note that did
+       it. Before 2026-09-29 there were no notes to name, and it said one would follow; the wording still
+       falls back to that, because a refund on a pre-GST sale has no note and never will. #}
+    <p><strong>Refunded:</strong> {{ refund.amount }}
+       ({{ 'in full' if refund.state == 'full' else 'in part' }}){% if refund.on %} on
+       {{ refund.on }}{% endif %}. Refund reference {{ refund.id }}.
+       {% if credit_notes %}Reversed by credit note{{ 's' if credit_notes|length > 1 else '' }} {{ credit_notes|join(', ') }}.{% else %}A credit note for this reversal is issued separately.{% endif %}</p>
+    {% endif %}
+    {% if export %}
+    {# Neither the inclusive/exclusive sentence nor the intra/inter one is TRUE of an export: no tax was
+       computed in either direction and there is no seller's-state comparison to report. Saying which it was
+       would describe an arithmetic that did not happen, so the export says what did. #}
+    <p>The place of supply is outside India, so this is an export of service and is <strong>zero rated under a
+       Letter of Undertaking</strong>, supplied without payment of integrated tax. No CGST, SGST or IGST is
+       charged, and the amount paid is the whole of the consideration for the supply.</p>
+    {% else %}
+    {# One of these is true and the other is a false statement about how tax was computed. Branching rather
+       than wording it vaguely: an invoice is read by an assessing officer, and "GST is included somewhere in
+       here" is not a description of a computation. #}
+    {% if inclusive %}
+    <p>The listed price includes GST at {{ line.rate }}%; the taxable value and the tax shown above are
+       contained within the total paid.</p>
+    {% else %}
+    <p>The listed price is exclusive of GST; GST at {{ line.rate }}% was added and is included in the total
+       paid above.</p>
+    {% endif %}
+    {# The footnote exists only for sales made before the checkout asked for a state. Those cannot be split,
+       and saying so is the honest document; the alternative was inventing a place of supply for a past sale. #}
+    {% if place_of_supply %}
+    <p>{% if intra_state %}The place of supply is the seller's own state, so the tax is charged as CGST and
+       SGST.{% else %}The place of supply is outside the seller's state, so the tax is charged as IGST.{% endif %}
+       Supply to an unregistered recipient.</p>
+    {% else %}
+    <p>Place of supply was not recorded for this sale, which predates its collection at checkout; GST is
+       stated above at the composite rate charged.</p>
+    {% endif %}
+    {% endif %}
+    <p>This is a computer-generated invoice and does not require a signature.</p>
+  </div>
+</div>
+</body>
+</html>

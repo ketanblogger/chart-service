@@ -1,0 +1,45 @@
+[Unit]
+Description=RashiKundli: run the whole test suite and report
+Documentation=file:///srv/astrology/scripts/nightly_suite.sh
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=astro
+Group=astro
+WorkingDirectory=/srv/astrology
+# NOT the serving database - the script sets APP_DB to a scratch file, and this is the second belt.
+Environment=APP_DB=/srv/astrology/var/nightly-tmp/nightly.db
+Environment=TMPDIR=/srv/astrology/var/nightly-tmp
+# INERT ON THE PRODUCTION BOX. Empty values here win over .env, because load_dotenv does not
+# override a variable that is already set - so the suite cannot reach a paid API, a mail provider or
+# a payment gateway even though the real credentials are sitting in /srv/astrology/.env. The script
+# re-derives this list from .env by shape and then REFUSES TO START if anything is still readable,
+# so a credential added later is caught rather than assumed.
+Environment=ANTHROPIC_API_KEY=
+Environment=OPENAI_API_KEY=
+Environment=RESEND_API_KEY=
+Environment=RAZORPAY_KEY_ID=
+Environment=RAZORPAY_KEY_SECRET=
+Environment=RAZORPAY_WEBHOOK_SECRET=
+Environment=ADMIN_PASSWORD=
+Environment=SESSION_SECRET=
+Environment=ALERT_EMAIL_TO=
+Environment=EMAIL_FROM=
+Environment=REPORT_EMAIL_ENABLED=0
+Environment=RASHIFAL_SCHEDULER=0
+Environment=BLOG_AUTOPUBLISH=0
+# Outbound HTTP goes to a closed port; localhost is exempt, which is all the suite needs.
+Environment=HTTP_PROXY=http://127.0.0.1:9
+Environment=HTTPS_PROXY=http://127.0.0.1:9
+Environment=NO_PROXY=localhost,127.0.0.1,::1
+ExecStart=/srv/astrology/scripts/nightly_suite.sh
+# Three hours of tests next to a live site: lowest priority for CPU and disk so a reader's page
+# render always wins. The suite taking longer at night costs nothing; a slow page does.
+Nice=19
+IOSchedulingClass=idle
+CPUSchedulingPolicy=idle
+TimeoutStartSec=4h
+
+[Install]
+WantedBy=multi-user.target

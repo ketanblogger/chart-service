@@ -1,0 +1,88 @@
+{# The muhurta finder. A NEW page, so it carries the full-width design unconditionally - there is no
+   previous design of it to fall back to. noindex and outside the URL registry while the feature is behind
+   its flag; see app/web/muhurta_routes.py for why. #}
+{% extends "base.html" %}
+
+{% block body_class %} class="design-v2"{% endblock %}
+{% block title %}{{ copy.title }} | {{ site_name }}{% endblock %}
+{% block meta_description %}{{ copy.lede[:155] }}{% endblock %}
+{% block head_extra %}
+  <meta name="robots" content="noindex, nofollow">
+  <link rel="stylesheet" href="/static/css/design-v2.css?v={{ static_version }}">
+{% endblock %}
+
+{% block main %}
+<div class="v2">
+  <section class="v2-hero">
+    <div class="wrap">
+      <h1>{{ copy.heading }}</h1>
+      <p class="v2-hero__tagline">{{ copy.subline }}</p>
+      <p class="v2-hero__note muted small">{{ copy.lede }}</p>
+    </div>
+  </section>
+
+  <div class="wrap v2-muhurta">
+    <section class="card">
+      <form id="muhurta-form" class="v2-muhurta__form" novalidate>
+        <div class="field">
+          <label for="m-purpose">{{ copy.purpose }}</label>
+          <select id="m-purpose" name="purpose">
+            {% for choice in purposes %}<option value="{{ choice.key }}">{{ choice.label }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="field">
+          <label for="m-from">{{ copy["from"] }}</label>
+          <input type="date" id="m-from" name="from_date" value="{{ default_from }}">
+        </div>
+        <div class="field">
+          <label for="m-to">{{ copy.to }}</label>
+          <input type="date" id="m-to" name="to_date" value="{{ default_to }}">
+        </div>
+        <div class="field">
+          <label for="m-city">{{ copy.place }}</label>
+          <input type="text" id="m-city" name="city" autocomplete="off" role="combobox"
+                 aria-expanded="false" aria-controls="m-city-list" aria-autocomplete="list">
+          <ul id="m-city-list" class="city-list" hidden></ul>
+        </div>
+        <button type="submit" class="btn btn--primary" id="m-submit">{{ copy.submit }}</button>
+      </form>
+      <p class="muted small v2-prose">{{ copy.basis }}</p>
+    </section>
+
+    <section id="m-result" class="card" hidden aria-live="polite"
+             data-found-one="{{ copy.found_one }}" data-found-many="{{ copy.found_many }}"
+             data-refused="{{ copy.refused }}">
+      <p id="m-count" class="v2-muhurta__count"></p>
+      <div class="table-wrap">
+        <table id="m-table" class="v2-muhurta__table">
+          <thead><tr>{% for column in copy.columns %}<th>{{ column }}</th>{% endfor %}</tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <p id="m-none" class="muted v2-prose" hidden>{{ copy.none }}</p>
+      {# The paid report: the same dates with the full panchang for each, as a PDF. Offered only once a
+         search has actually found something - a button to buy an empty report would be a trap. #}
+      {# FREE, so there is no price and no product id on it. The sign-in is what the daily cap is counted
+         against; a reader already signed in sees no extra step. #}
+      <div id="m-buy" class="v2-muhurta__buy" hidden>
+        <button type="button" class="btn btn--primary" id="m-pdf-btn"
+                data-working="{{ copy.searching }}">{{ copy.pdf }}</button>
+        <a class="v2-muhurta__ask" id="m-ask-ai" href="{{ chat_path }}"
+           data-chat="{{ chat_path }}" data-prompt="{{ copy.ask_ai }}">{{ copy.ask_ai }}</a>
+        {# The finder asks for nothing; the astrologer does. Said HERE, next to the link, rather than
+           discovered on the next page - a sign-in that arrives unannounced reads as a bait and switch. #}
+        <p class="v2-muhurta__asknote muted small">{{ copy.ask_ai_note }}</p>
+        <p id="m-pdf-note" class="muted small" hidden></p>
+      </div>
+    </section>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+{# `?v=` IS NOT DECORATION. Without it this file is served `max-age=3600` with a URL that never changes,
+   so a browser that saw this page under the previous deploy keeps yesterday's script for an hour - and
+   yesterday's script binds a button id that today's HTML no longer has. The button then does nothing, with
+   no console error, which is exactly how it was reported. Every other script tag on the site has carried
+   this since the beginning; this one was written without it. #}
+<script src="/static/js/muhurta.js?v={{ static_version }}" defer></script>
+{% endblock %}

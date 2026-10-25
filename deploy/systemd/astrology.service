@@ -1,0 +1,46 @@
+# The web app (uvicorn behind nginx). Install:
+#   sudo cp deploy/systemd/astrology.service /etc/systemd/system/
+#   sudo systemctl daemon-reload && sudo systemctl enable --now astrology
+#   systemctl status astrology ; journalctl -u astrology -n 100 -f
+# With APP_ENV=production a bad configuration makes the unit fail at start with the reason in the journal
+# (SESSION_SECRET missing, BASE_URL not https, REPORTS_UNLOCKED set, var/ not writable).
+[Unit]
+Description=AI Astrology Platform (uvicorn)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=astro
+Group=astro
+WorkingDirectory=/srv/astrology
+# No EnvironmentFile on purpose: the app loads /srv/astrology/.env itself (python-dotenv). systemd's parser does not
+# strip inline "# comments", so APP_ENV=production  # ... would reach the app as a garbage value and - because
+# variables already in the environment win over .env - silently switch production mode off.
+# 2 workers: SQLite (WAL) + database leases make every job safe across processes. --proxy-headers trusts
+# X-Forwarded-* from nginx on localhost only. Never bind to 0.0.0.0: nginx is the only way in.
+# --no-access-log: nginx already logs every request with order tokens and query strings stripped; uvicorn would log them raw.
+ExecStart=/srv/astrology/.venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8000 --workers 2 \
+    --proxy-headers --forwarded-allow-ips 127.0.0.1 --no-server-header --no-access-log --log-level info
+Restart=always
+RestartSec=3
+TimeoutStopSec=30
+# A report in progress is not lost by a restart: the order stays paid and is resumed at startup.
+
+# Hardening. Headless Chromium runs with Playwright's --no-sandbox, so none of this conflicts with it; do NOT add
+# MemoryDenyWriteExecute (V8 needs a JIT). If PDFs fail only under systemd, comment these out one by one.
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=/srv/astrology/var
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+LockPersonality=true
+UMask=0027
+LimitNOFILE=8192
+
+[Install]
+WantedBy=multi-user.target

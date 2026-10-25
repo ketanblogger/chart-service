@@ -1,0 +1,34 @@
+{# Diwali, with the Lakshmi puja window computed for each city from its own sunset. #}
+{% extends "base.html" %}
+{% block title %}{{ title }}{% endblock %}
+{% block meta_description %}{{ meta_description }}{% endblock %}
+{% block main %}
+<section class="hero">
+  <div class="wrap">
+    <h1>{{ h1 }}</h1>
+    <p class="hero__sub">{{ lede }}</p>
+  </div>
+</section>
+<article class="wrap content">
+  <section>
+    <h2>{{ words.muhurat_heading }}</h2>
+    <table class="mu-table fp-cities">
+      <thead><tr><th scope="col">{{ words.city }}</th><th scope="col">{{ words.from }}</th><th scope="col">{{ words.to }}</th></tr></thead>
+      <tbody>
+        {% for row in cities %}
+        <tr><td class="mu-date">{{ row.city }}</td><td>{{ row['from'] }}</td><td>{{ row.to }}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </section>
+  <section class="mu-limits">
+    <h2>{{ words.convention_heading }}</h2>
+    <p>{{ words.convention }}</p>
+  </section>
+  <nav class="mu-next">
+    <a class="button" href="{{ calendar_path }}">{{ calendar_label }}</a>
+    <a class="button button--quiet" href="{{ panchang_path }}">{{ words.cta_panchang }}</a>
+  </nav>
+  {% if guides %}{% include "_copy_blocks.html" %}{% endif %}
+</article>
+{% endblock %}

@@ -1,0 +1,93 @@
+{# One year, all twelve rashis. The transits and the eclipses are the same sky for everybody; the
+   twelve cards lead to the pages where the house from each rashi is what differs. #}
+{% extends "base.html" %}
+{% import "_copy_blocks.html" as blocks %}
+
+{% block title %}{{ title }}{% endblock %}
+{% block meta_description %}{{ meta_description }}{% endblock %}
+
+{% block main %}
+<section class="hero">
+  <div class="wrap">
+    {% if crumbs %}
+    <nav class="breadcrumbs" aria-label="{{ ui.breadcrumb_aria|default('Breadcrumb') }}">
+      {% for name, href in crumbs[:-1] %}<a href="{{ href }}">{{ name }}</a>
+        <span aria-hidden="true">›</span> {% endfor %}
+    </nav>
+    {% endif %}
+    <h1>{{ h1 }}</h1>
+    <p class="hero__sub">{{ copy.intro }}</p>
+  </div>
+</section>
+
+<article class="wrap content">
+  <h2>{{ labels.cards_heading }}</h2>
+  <div class="year-cards">
+    {% for card in cards %}
+    <a class="year-card" href="{{ card.path }}">{{ card.label }}</a>
+    {% endfor %}
+  </div>
+  <p><a class="btn btn--cta" href="{{ kundali_path }}">{{ labels.kundli_cta }} <span aria-hidden="true">&rarr;</span></a></p>
+
+  <h2>{{ labels.transits_heading }}</h2>
+  <div class="table-wrap">
+    <table>
+      <thead><tr>{% for col in labels.transit_cols %}<th scope="col">{{ col }}</th>{% endfor %}</tr></thead>
+      <tbody>
+        {% for stay in transits %}
+        <tr>
+          <th scope="row" data-label="{{ labels.transit_cols[0] }}">{{ stay.graha.devanagari if lang in ("hi","mr") else stay.graha.name }}</th>
+          <td data-label="{{ labels.transit_cols[1] }}">{{ stay.sign.devanagari if lang in ("hi","mr") else stay.sign.name }}</td>
+          <td data-label="{{ labels.transit_cols[2] }}">{{ stay.start }}</td>
+          <td data-label="{{ labels.transit_cols[3] }}">{{ stay.end }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {% if gochar_links %}
+  <ul class="plain gochar-links">
+    {% for link in gochar_links %}<li><a href="{{ link.path }}">{{ link.label }}</a></li>{% endfor %}
+  </ul>
+  {% endif %}
+
+  <h2>{{ labels.eclipses_heading }}</h2>
+  {# EVERY ECLIPSE OF THE YEAR, including the penumbral ones, each labelled for what it is. A list
+     that quietly omits three of five is one a reader cannot check anywhere else. #}
+  <ul class="eclipse-list">
+    {% for e in eclipses %}
+    <li>
+      <p class="eclipse-list__head">
+        <strong>{{ e.date }}</strong>
+        <span class="eclipse-list__label">{{ e.kind_label }}</span>
+        <span class="eclipse-list__label">{{ e.sign_label }} / {{ e.nakshatra_label }}</span>
+      </p>
+      <p class="eclipse-list__tags">
+        <span class="tag {{ 'tag--yes' if e.visible_in_india else 'tag--no' }}">{{ labels.eclipse_visible if e.visible_in_india else labels.eclipse_not_visible }}</span>
+        {% if e.visible_in_india and not e.observed_as_grahan %}
+        <span class="tag">{{ labels.eclipse_not_grahan }}</span>
+        {% endif %}
+      </p>
+      {% if e.note %}<p class="quiet">{{ e.note }}</p>{% endif %}
+      {% if e.cities %}
+      <div class="table-wrap">
+        <table>
+          <tbody>
+            {% for city in e.cities %}
+            <tr><th scope="row" data-label="City">{{ city.label }}</th>
+                <td data-label="Starts">{{ city.starts }}</td>
+                <td data-label="Maximum">{{ city.maximum }}</td>
+                <td data-label="Ends">{{ city.ends }}</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% endif %}
+    </li>
+    {% endfor %}
+  </ul>
+
+  {{ blocks.faq(copy, ui.faq_heading) }}
+</article>
+{% endblock %}

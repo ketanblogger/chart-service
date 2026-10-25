@@ -1,0 +1,43 @@
+{# "marriage biodata format in word". The intent is a FILE, so the file is the first thing on the
+   page - not three paragraphs explaining what a biodata is to somebody who already knows. #}
+{% extends "base.html" %}
+
+{% block title %}{{ title }}{% endblock %}
+{% block meta_description %}{{ meta_description }}{% endblock %}
+
+{% block main %}
+<section class="hero">
+  <div class="wrap">
+    <h1>{{ h1 }}</h1>
+    <p class="hero__sub">{{ words.lede }}</p>
+    <p class="hero__actions">
+      <a class="button button--primary" href="{{ download_path }}" rel="nofollow">{{ words.download }}</a>
+    </p>
+  </div>
+</section>
+
+<article class="wrap content">
+  <section>
+    <h2>{{ words.filled_heading }}</h2>
+    <p>{{ words.filled_line }}</p>
+    {# The button says where it GOES, not what the heading above it already said. A button labelled
+       with its own section heading tells a reader nothing they have not just read. #}
+    <p><a class="button" href="{{ maker_path }}">{{ maker_words.open_maker }}</a></p>
+  </section>
+
+  <section>
+    <h2>{{ words.what_heading }}</h2>
+    {% for section in sections %}
+    <h3>{{ section.title }}</h3>
+    <p class="bd-fieldlist">{{ section.fields | join(' · ') }}</p>
+    {% endfor %}
+  </section>
+
+  <section>
+    <h2>{{ words.editing_heading }}</h2>
+    <p>{{ words.editing }}</p>
+  </section>
+
+  {% if guides %}{% include "_copy_blocks.html" %}{% endif %}
+</article>
+{% endblock %}

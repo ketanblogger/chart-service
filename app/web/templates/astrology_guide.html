@@ -1,0 +1,46 @@
+{# The pillar page: a long guide with a table of contents and an anchor per section.
+   Words: `guide` (app/web/astrology_guide.py). Sections: `parts`, each with its own id and h2. #}
+{% extends "base.html" %}
+
+{% block title %}{{ guide.title }} | {{ site_name }}{% endblock %}
+{% block meta_description %}{{ guide.intro[:230] }}{% endblock %}
+
+{% block main %}
+<section class="hero">
+  <div class="wrap">
+    <h1>{{ guide.h1 }}</h1>
+    <p class="hero__sub">{{ guide.intro }}</p>
+  </div>
+</section>
+
+<div class="wrap">
+  {# A real table of contents, not a decoration: this page is long by design, and a reader who wants the
+     dasha section should not have to scroll past the history to find it. #}
+  <nav class="card guide__toc" aria-labelledby="toc-heading">
+    <h2 id="toc-heading">{{ guide.toc }}</h2>
+    <ol>
+      {% for part in parts %}<li><a href="#{{ part.anchor }}">{{ part.heading }}</a></li>{% endfor %}
+      <li><a href="#faq">{{ guide.faq }}</a></li>
+    </ol>
+  </nav>
+
+  {% for part in parts %}
+  <section class="block guide__part" id="{{ part.anchor }}">
+    <h2>{{ part.heading }}</h2>
+    {% for paragraph in part.paragraphs %}<p>{{ paragraph }}</p>{% endfor %}
+    {% if part.link %}
+    <p class="reading__ask"><a href="{{ part.link.href }}">{{ part.link.label }}</a></p>
+    {% endif %}
+  </section>
+  {% endfor %}
+
+  <section class="block" id="faq" aria-labelledby="faq-heading">
+    <h2 id="faq-heading">{{ guide.faq }}</h2>
+    <dl class="faq">
+      {% for question, answer in guide.faqs %}
+      <dt>{{ question }}</dt><dd>{{ answer }}</dd>
+      {% endfor %}
+    </dl>
+  </section>
+</div>
+{% endblock %}

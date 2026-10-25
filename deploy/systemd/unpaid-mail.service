@@ -1,0 +1,37 @@
+# The one e-mail to an order abandoned at checkout. Installed with its timer:
+#   sudo cp deploy/systemd/unpaid-mail.* /etc/systemd/system/
+#   sudo systemctl daemon-reload && sudo systemctl enable --now unpaid-mail.timer
+#   systemctl list-timers unpaid-mail.timer ; journalctl -u unpaid-mail.service -n 50
+#
+# --created-after IS PART OF THE COMMAND AND MUST NOT BE DROPPED. It is the deploy moment, and it is
+# what stops this ever reaching somebody who abandoned a checkout before we decided to write about
+# them at all. The script refuses to --send without it, so a unit that loses the flag fails loudly
+# rather than mailing the wrong people.
+#
+# The date does NOT need moving as time passes. It is a floor, not a window: every order placed after
+# it stays eligible, and the rolling 20-hour-to-14-day window decides when each one is due. Moving it
+# forward would silently skip everybody in between.
+#
+# Each address is owed exactly ONE of these, ever. The stamp is written before the send, inside the
+# database, so a daily run cannot write to anybody twice even if it overlaps itself.
+[Unit]
+Description=Unpaid-order mail: one nudge to a checkout that was never completed
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=astro
+Group=astro
+WorkingDirectory=/srv/astrology
+# .env is read by the app itself (python-dotenv); nothing secret lives in this unit.
+ExecStart=/srv/astrology/.venv/bin/python scripts/unpaid_mail.py --created-after '2026-10-23 08:15' --send
+TimeoutStartSec=30m
+Nice=10
+# The job writes one column on the orders it mails; var/ is all it touches.
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=/srv/astrology/var
+UMask=0027

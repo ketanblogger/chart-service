@@ -1,0 +1,37 @@
+{# The eight kootas and their points. A REAL TABLE, because "36 gun milan table" is a search in its
+   own right and a bulleted list is not what somebody typing it wants - it is also the shape a search
+   engine lifts into a result.
+
+   The data is in app/web/content/<lang>.py, one row per koota, and a test asserts the points sum to
+   36 in every language: a table of the 36 gunas that does not add to 36 is worse than no table. #}
+<section class="block" id="koot-table" aria-labelledby="koot-heading">
+  <h2 id="koot-heading">{{ koot_heading }}</h2>
+  <table class="koot-table">
+    <thead>
+      <tr><th scope="col">{{ ui.koot_col_name }}</th><th scope="col">{{ ui.koot_col_points }}</th>
+          <th scope="col">{{ ui.koot_col_measures }}</th></tr>
+    </thead>
+    <tbody>
+      {% for name, points, measures in koot_table %}
+      {# data-label: on a phone this stops being a table and becomes one block per koota, and the CSS
+         prints each value's column name in front of it. #}
+      {# BHAKOOT AND NADI LINK TO THEIR GUIDES, by ROW INDEX and not by name: the row is called
+         "Nadi", "नाड़ी" and "नाडी" in the three trees, and matching on the word would work in one of
+         them. These are the two kootas that carry fifteen of the thirty-six points between them, so
+         they are where a score collapses and what a frightened couple gets sold something about -
+         which is why the guide has to be a click from the table rather than only from a result that
+         happens to report a dosha. Until this link existed, six pages (including "nadi dosh", a
+         50,000-a-month search) were reachable from nothing on the site at all. #}
+      {% set koot_guide = koot_guides.get(loop.index0) if koot_guides else none %}
+      <tr><th scope="row" data-label="{{ ui.koot_col_name }}">{% if koot_guide %}<a href="{{ koot_guide }}">{{ name }}</a>{% else %}{{ name }}{% endif %}</th>
+          <td data-label="{{ ui.koot_col_points }}">{{ points }}</td>
+          <td data-label="{{ ui.koot_col_measures }}">{{ measures }}</td></tr>
+      {% endfor %}
+    </tbody>
+    <tfoot>
+      <tr><th scope="row" data-label="{{ ui.koot_col_name }}">{{ ui.koot_col_total }}</th>
+          <td data-label="{{ ui.koot_col_points }}">{{ koot_table | sum(attribute=1) }}</td><td></td></tr>
+    </tfoot>
+  </table>
+  <p class="fact__sub">{{ koot_note }}</p>
+</section>

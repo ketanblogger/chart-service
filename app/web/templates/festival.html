@@ -1,0 +1,114 @@
+{# A festival's date and its puja window per city.
+
+   The window is set by sunset and the rising sign, so it is different in every city: Lakshmi Puja 2026 is
+   17:54-19:50 in Delhi and 18:27-20:27 in Mumbai. One time printed for the whole country is wrong for
+   almost all of it, which is why the table is per city and the picker exists.
+
+   THE PICKER IS A PLAIN GET FORM. The CSP has no 'unsafe-inline' and this page has to work with no
+   JavaScript, so there is nothing here to execute - choosing a city reloads the page. #}
+{% extends "base.html" %}
+{% block title %}{{ title }}{% endblock %}
+{% block meta_description %}{{ meta_description }}{% endblock %}
+
+{% macro window(w) %}
+  {%- if w.muhurta -%}
+    {{ w.muhurta.start | clock }} &ndash; {{ w.muhurta.end | clock }}
+  {%- else -%}
+    <span class="muted">&mdash;</span>
+  {%- endif -%}
+{% endmacro %}
+
+{% block main %}
+<article class="wrap v2-body">
+  <nav class="breadcrumbs" aria-label="{{ ui.breadcrumb_aria }}">
+    {% for name, path in crumbs %}<a href="{{ path }}">{{ name }}</a>{% if not loop.last %} <span aria-hidden="true">›</span> {% endif %}{% endfor %}
+  </nav>
+  <h1>{{ h1 }}</h1>
+  <p class="lede">{{ copy.intro }}</p>
+
+  {# When a city has been chosen, its own window comes FIRST and large: that is the one thing the reader
+     came for, and making them find their row in a table of eight is making them work for it. #}
+  {% if picked %}
+  <section class="festival-picked" aria-labelledby="picked">
+    <h2 id="picked">{{ labels.picked_heading }}</h2>
+    <p class="festival-picked__window">
+      {% if picked.muhurta %}<strong>{{ picked.muhurta.start | clock }} &ndash; {{ picked.muhurta.end | clock }}</strong>
+      {% else %}<strong>{{ picked.pradosh.start | clock }} &ndash; {{ picked.pradosh.end | clock }}</strong>{% endif %}
+    </p>
+    <p class="small">{{ labels.th_sunset }} {{ picked.sunset | clock }} &middot;
+       {{ labels.th_pradosh }} {{ picked.pradosh.start | clock }} &ndash; {{ picked.pradosh.end | clock }}</p>
+  </section>
+  {% endif %}
+
+  <section aria-labelledby="cities">
+    <h2 id="cities">{{ labels.table_heading }}</h2>
+    <div class="table-wrap">
+      <table class="copy-table">
+        <thead><tr>
+          <th>{{ labels.th_city }}</th><th>{{ labels.th_muhurta }}</th>
+          <th>{{ labels.th_pradosh }}</th><th>{{ labels.th_sunset }}</th>
+        </tr></thead>
+        <tbody>
+        {% for row in rows %}
+        <tr>
+          <td>{{ row.city.name }}</td>
+          <td>{{ window(row) }}</td>
+          <td>{{ row.pradosh.start | clock }} &ndash; {{ row.pradosh.end | clock }}</td>
+          <td>{{ row.sunset | clock }}</td>
+        </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% if not reference.muhurta %}<p class="small">{{ labels.no_muhurta }}</p>{% endif %}
+  </section>
+
+  <section aria-labelledby="picker">
+    <h2 id="picker">{{ labels.picker_heading }}</h2>
+    <form method="get" action="{{ form_action }}" class="festival-picker">
+      <label for="festival-city">{{ labels.picker_label }}</label>
+      <select id="festival-city" name="city">
+        {% for name in city_options %}
+        <option value="{{ name }}"{% if picked and picked.city.name == name %} selected{% endif %}>{{ name }}</option>
+        {% endfor %}
+      </select>
+      <button type="submit" class="btn btn--primary">{{ labels.picker_submit }}</button>
+    </form>
+  </section>
+
+  {# WHY THIS DATE, in the page itself. A reader whose printed calendar names the day after a different
+     tithi will otherwise conclude the page is wrong, and the honest answer is short. #}
+  <section aria-labelledby="why">
+    <h2 id="why">{{ labels.tithi_heading }}</h2>
+    <p>{{ labels.tithi_text }}</p>
+    <p class="small">{{ labels.source_note }}</p>
+  </section>
+
+  {# Only when the finder is actually served: site.MUHURTA is off by default, and a button to an
+     unrouted path is a 404 of our own making. #}
+  {% if muhurta_path %}
+  <section class="cta" aria-labelledby="cta-muhurta">
+    <h2 id="cta-muhurta">{{ labels.chart_heading }}</h2>
+    <p>{{ labels.chart_text }}</p>
+    <a class="btn btn--primary" href="{{ muhurta_path }}">{{ labels.chart_button }}</a>
+  </section>
+  {% endif %}
+
+  <section class="cta" aria-labelledby="cta-chat">
+    <h2 id="cta-chat">{{ labels.chat_heading }}</h2>
+    <p>{{ labels.chat_text }}</p>
+    <a class="btn btn--ghost" href="{{ chat_path }}">{{ labels.chat_button }}</a>
+  </section>
+
+  {% if copy.faqs %}
+  <section aria-labelledby="faq">
+    <h2 id="faq">{{ ui.faq_heading }}</h2>
+    <dl>
+      {% for question, answer in copy.faqs %}
+      <dt>{{ question }}</dt><dd>{{ answer }}</dd>
+      {% endfor %}
+    </dl>
+  </section>
+  {% endif %}
+</article>
+{% endblock %}

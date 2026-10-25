@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% block title %}Blog{% endblock %}
+{% block sub %}{{ drafts|length }} draft(s){% if held %}, {{ held|length }} held{% endif %}, {{ live|length }} live, {{ image_count }} image(s).
+  Posts arrive from the writer as drafts and go live from this page.{% endblock %}
+{% block body %}
+
+{% if done == 'deleted' %}<div class="note"><b>Draft deleted.</b> It is gone; the audit log keeps what
+  it was.</div>{% endif %}
+
+<div class="tiles">
+  <div class="tile"><div class="k">Waiting for you</div>
+    <div class="v">{{ drafts|length }}</div>
+    <div class="n">drafts, of which {{ blocked|length }} cannot be published yet</div></div>
+  <div class="tile"><div class="k">Live</div>
+    <div class="v">{{ live|length }}</div>
+    <div class="n"><a href="{{ blog_path }}">{{ blog_path }}</a></div></div>
+  <div class="tile"><div class="k">Autopublish</div>
+    <div class="v">{% if autopublish %}<span class="unknown">ON</span>{% else %}off{% endif %}</div>
+    <div class="n">{% if autopublish %}a post that passes every check goes live without this page{% else %}
+      BLOG_AUTOPUBLISH is off: nothing goes live except from here{% endif %}</div></div>
+</div>
+
+{% if not registered %}
+<div class="note warn"><b>The blog is not in the URL registry yet.</b> The pages serve, but
+  <code>/blog</code> and the post URLs are not in <code>sitemap.xml</code> and have no entry in
+  <code>app/web/i18n.py</code>, so nothing links to them from the site chrome. The two entries needed are
+  in <code>app/blog/paths.py</code>.</div>
+{% endif %}
+
+{% for problem in config_problems %}
+<div class="note warn">{{ problem }}</div>
+{% endfor %}
+
+<div class="note">The publishing token: {{ token_note }}. It is compared in constant time and is never
+  logged, echoed or returned - see <code>app/blog/config.py</code>. With no token configured,
+  <code>/api/blog</code> answers 404 to every caller.</div>
+
+<h2>Posts</h2>
+<div class="card scroll">
+  <table>
+    <thead><tr><th>Title</th><th>Slug</th><th>Status</th><th class="n">Words</th><th>Tool</th>
+      <th>Categories</th><th>Updated</th><th>Checks</th></tr></thead>
+    <tbody>
+    {% for post in posts %}
+      <tr>
+        <td><a href="/admin/blog/{{ post.slug }}">{{ post.title }}</a></td>
+        <td class="mono">{{ post.slug }}</td>
+        <td>{% if post.is_published %}<span class="pill ok">live</span>
+          {% elif post.is_held %}<span class="pill">draft</span> <span class="pill no">held</span>
+          {% else %}<span class="pill">draft</span>{% endif %}</td>
+        <td class="n">{{ post.words }}</td>
+        <td class="mono">{{ post.tool }}</td>
+        <td class="quiet">{{ post.categories_view|join(', ') }}</td>
+        <td class="mono">{{ post.updated_on }}</td>
+        <td>{% if post.blocking %}<span class="pill no">{{ post.blocking|length }} blocking</span>
+          {% elif post.warnings %}<span class="pill">{{ post.warnings|length }} warning(s)</span>
+          {% else %}<span class="pill ok">clean</span>{% endif %}</td>
+      </tr>
+    {% else %}
+      <tr><td colspan="8" class="quiet">No post has been submitted yet. The writer posts to
+        <code>/api/blog/posts</code>; the shapes are in <code>docs/BLOG_API.md</code>.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<p class="sub">A draft is a 404 on the public site - there is no preview URL and no <code>?draft=1</code>,
+  because a guessable preview link is an unpublished page published to anybody who guesses. The only
+  place to read one is here.</p>
+{% endblock %}

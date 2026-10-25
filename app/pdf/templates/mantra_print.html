@@ -1,0 +1,36 @@
+{# The free PDF: the whole text, large, printable, our name at the foot and nothing else.
+
+   NO SIGN-UP AND NO WATERMARK ACROSS THE VERSE. The download is the reason a lot of people come to
+   the page; making it ugly or gated would waste the visit. Our name goes in the footer where a
+   printed sheet carries it without getting in the way of reading. #}
+<!doctype html>
+<html lang="hi">
+<head>
+<meta charset="utf-8">
+<title>{{ name }}</title>
+<style>
+{{ css }}
+  @page { size: A4; margin: 16mm 15mm 14mm; }
+  body { font-family: Report Devanagari, DejaVu Sans, sans-serif; color: #161616;
+         margin: 0; font-size: 13pt; line-height: 1.95; }
+  h1 { font-size: 20pt; margin: 0 0 2mm; }
+  .sub { color: #666; font-size: 9.5pt; margin: 0 0 6mm; }
+  p.v { margin: 0 0 2.2mm; }
+  .n { color: #999; font-size: 8pt; margin-right: 2mm; }
+  footer { margin-top: 8mm; padding-top: 3mm; border-top: .4pt solid #ccc;
+           color: #666; font-size: 8.5pt; line-height: 1.5; }
+</style>
+</head>
+<body>
+  <h1>{{ name }}</h1>
+  <p class="sub">{{ author }} &middot; {{ site }}</p>
+  {% for verse in verses %}
+  <p class="v"><span class="n">{{ verse.n }}</span>{{ verse.text }}</p>
+  {% endfor %}
+  <footer>
+    {{ words.sources_heading }}:
+    {% for source in sources %}{{ source.label }}{{ ", " if not loop.last }}{% endfor %}<br>
+    {{ byline }} &middot; {{ site }}
+  </footer>
+</body>
+</html>

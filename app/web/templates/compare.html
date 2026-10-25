@@ -1,0 +1,33 @@
+{# An honest, dated comparison. No logos, no implied affiliation, and each competitor's row says where
+   they are genuinely better than us. #}
+{% extends "base.html" %}
+{% block title %}{{ words.title }} | {{ site_name }}{% endblock %}
+{% block meta_description %}{{ words.intro[:230] }}{% endblock %}
+{% block main %}
+<section class="hero"><div class="wrap">
+  <h1>{{ words.h1 }}</h1><p class="hero__sub">{{ words.intro }}</p>
+</div></section>
+<div class="wrap">
+  <p class="banner banner--info" id="checked">{{ words.checked }}</p>
+  <section class="block" id="rows">
+    <h2>{{ words.rows_heading }}</h2>
+    <dl class="compare">
+      {% for name, text in words.rows %}
+      <dt>{{ name }}</dt><dd>{{ text }}</dd>
+      {% endfor %}
+    </dl>
+  </section>
+  <section class="block" id="fair">
+    <h2>{{ words.fair_heading }}</h2>
+    {% for paragraph in words.fair %}<p>{{ paragraph }}</p>{% endfor %}
+  </section>
+  <section class="block" id="sources">
+    <h2>{{ words.sources_heading }}</h2>
+    <ul class="link-list">
+      {% for name, url in sources %}
+      <li><a href="{{ url }}" rel="nofollow noopener" target="_blank">{{ name }}</a></li>
+      {% endfor %}
+    </ul>
+  </section>
+</div>
+{% endblock %}

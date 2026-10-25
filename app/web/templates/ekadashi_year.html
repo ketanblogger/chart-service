@@ -1,0 +1,31 @@
+{# Every ekadashi of the year, with its paksha. #}
+{% extends "base.html" %}
+{% block title %}{{ title }}{% endblock %}
+{% block meta_description %}{{ meta_description }}{% endblock %}
+{% block main %}
+<section class="hero">
+  <div class="wrap">
+    <h1>{{ h1 }}</h1>
+    <p class="hero__sub">{{ lede }}</p>
+  </div>
+</section>
+<article class="wrap content">
+  <table class="mu-table fp-ekadashi">
+    <thead><tr><th scope="col">{{ words.date }}</th><th scope="col">{{ words.paksha }}</th></tr></thead>
+    <tbody>
+      {% for item in ekadashis %}
+      <tr><td class="mu-date">{{ item.date_text }}</td><td>{{ item.paksha }}</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  <section class="mu-limits">
+    <h2>{{ words.convention_heading }}</h2>
+    <p>{{ words.convention }}</p>
+  </section>
+  <nav class="mu-next">
+    <a class="button" href="{{ calendar_path }}">{{ calendar_label }}</a>
+    <a class="button button--quiet" href="{{ panchang_path }}">{{ words.cta_panchang }}</a>
+  </nav>
+  {% if guides %}{% include "_copy_blocks.html" %}{% endif %}
+</article>
+{% endblock %}

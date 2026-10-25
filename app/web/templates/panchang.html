@@ -1,0 +1,119 @@
+{# Today's panchang, from the ephemeris. No AI, nothing stored, nothing to refresh overnight.
+   Words: `words` (app/web/panchang.py COPY). Data: `panchang` (its view()). #}
+{% extends "base.html" %}
+
+{% block title %}{{ words.title }} | {{ site_name }}{% endblock %}
+{% block meta_description %}{{ words.intro }}{% endblock %}
+{% block head_extra %}{% if noindex %}<meta name="robots" content="noindex, follow">{% endif %}{% endblock %}
+
+{% block main %}
+<section class="hero">
+  <div class="wrap">
+    <h1>{{ words.h1 }}</h1>
+    <p class="hero__sub">{{ panchang.city.name }} · {{ panchang.date.strftime('%-d %b %Y') }}</p>
+  </div>
+</section>
+
+<div class="wrap">
+  {# THE PICKER. A plain GET form: it works with scripting off, it is bookmarkable, and the browser's own
+     date control is better than anything we would build. `min`/`max` bound it to the range the engine
+     will answer for, so a reader cannot land on a page that silently fell back to today. #}
+  <form class="card panchang__pick" method="get" action="">
+    <label>{{ words.city }}
+      <select name="city">
+        {% for name in panchang.cities %}
+        <option value="{{ name }}"{% if name == panchang.city.name %} selected{% endif %}>{{ name }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>{{ words.date }}
+      <input type="date" name="date" value="{{ panchang.date.isoformat() }}"
+             min="{{ panchang.min_date }}" max="{{ panchang.max_date }}">
+    </label>
+    <button type="submit">{{ words.show }}</button>
+  </form>
+
+  {# THE TEN-SECOND READ: what is good and what to avoid, before any of the detail. This is what somebody
+     who typed "aaj ka panchang" actually wants. #}
+  <div class="panchang__times">
+    <section class="card panchang__good" aria-labelledby="good-heading">
+      <h2 id="good-heading">{{ words.good_times }}</h2>
+      <dl>
+        {% for w in panchang.good %}
+        <dt>{{ w.label }}</dt>
+        <dd>{% if w.void %}<span class="muted">{{ words.abhijit_void }}</span>{% else %}{{ w.from }} – {{ w.to }}{% endif %}</dd>
+        {% endfor %}
+      </dl>
+      <p class="fact__sub">{{ words.brahma_note }}</p>
+    </section>
+    <section class="card panchang__bad" aria-labelledby="bad-heading">
+      <h2 id="bad-heading">{{ words.bad_times }}</h2>
+      <dl>
+        {% for w in panchang.bad %}
+        <dt>{{ w.label }}</dt><dd>{{ w.from }} – {{ w.to }}</dd>
+        {% endfor %}
+      </dl>
+    </section>
+  </div>
+
+  <section class="card" id="limbs" aria-labelledby="limbs-heading">
+    <h2 id="limbs-heading">{{ words.limbs }}</h2>
+    <div class="table-wrap">
+      <table>
+        <tbody>
+          {% for l in panchang.limbs %}
+          <tr>
+            <th scope="row">{{ l.label }}</th>
+            <td>{{ l.name }}{% if l.latin != l.name %} <span class="cell-sub">{{ l.latin }}</span>{% endif %}</td>
+            <td>{% if l.ends_at %}{{ words.until }} {{ l.ends_at }}{% endif %}</td>
+          </tr>
+          {% endfor %}
+          <tr><th scope="row">{{ words.paksha }}</th><td colspan="2">{{ panchang.paksha }}</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="card" id="sun-moon" aria-labelledby="sun-moon-heading">
+    <h2 id="sun-moon-heading">{{ words.sun_moon }}</h2>
+    <div class="table-wrap">
+      <table>
+        <tbody>
+          <tr><th scope="row">{{ words.sunrise }}</th><td>{{ panchang.sunrise }}</td>
+              <th scope="row">{{ words.sunset }}</th><td>{{ panchang.sunset }}</td></tr>
+          <tr><th scope="row">{{ words.moonrise }}</th>
+              <td>{% if panchang.no_moonrise %}<span class="muted">{{ words.no_moonrise }}</span>{% else %}{{ panchang.moonrise }}{% endif %}</td>
+              <th scope="row">{{ words.moonset }}</th><td>{{ panchang.moonset }}</td></tr>
+          <tr><th scope="row">{{ words.moon_sign }}</th><td>{{ panchang.moon_sign.name }}</td>
+              <th scope="row">{{ words.sun_sign }}</th><td>{{ panchang.sun_sign.name }}</td></tr>
+        </tbody>
+      </table>
+    </div>
+    {# THE METHOD, SAID OUT LOUD. A reader who compares this page with another panchang will find a
+       four-minute difference; without this line they conclude we are wrong rather than different. #}
+    <p class="fact__sub">{{ words.sunrise_note }}</p>
+  </section>
+
+  <section class="card" id="calendar" aria-labelledby="calendar-heading">
+    <h2 id="calendar-heading">{{ words.calendar }}</h2>
+    <dl class="panchang__calendar">
+      <dt>{{ words.masa }}</dt>
+      <dd>{{ panchang.masa.amanta }} <span class="cell-sub">({{ words.amanta }})</span>
+        {% if panchang.masa_differ %} · {{ panchang.masa.purnimanta }} <span class="cell-sub">({{ words.purnimanta }})</span>{% endif %}</dd>
+      <dt>{{ words.samvat }}</dt>
+      <dd>{{ panchang.samvat.vikram }} Vikram · {{ panchang.samvat.shaka }} Shaka</dd>
+    </dl>
+    {% if panchang.masa_differ %}<p class="fact__sub">{{ words.masa_note }}</p>{% endif %}
+  </section>
+
+  {# Every panchang page points at the things a reader who came for "aaj ka panchang" wants next. #}
+  <section class="block" id="more" aria-labelledby="more-heading">
+    <h2 id="more-heading">{{ words.more }}</h2>
+    <ul class="link-list">
+      <li><a href="{{ href('rashifal-hub') }}">{{ ui.nav_rashifal }}</a></li>
+      <li><a href="{{ href('kundali') }}">{{ ui.nav_kundali }}</a></li>
+      <li><a href="{{ href('consultation') }}">{{ ui.nav_consultation }}</a></li>
+    </ul>
+  </section>
+</div>
+{% endblock %}

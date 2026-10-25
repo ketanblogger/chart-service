@@ -1,0 +1,169 @@
+{# One blog post. `post.html` is markup built by app/blog/markdown.py from an escaped body - it is the
+   ONLY place on this site a template prints markup that came from outside the codebase, and that
+   module's docstring is where the reason it is safe is written down. Read it before changing anything
+   here.
+
+   EVERY IMAGE CARRIES width AND height. The hero sits above the fold and the cards below it; without
+   intrinsic sizes the page reflows as each one decodes, which is the layout shift the rest of this
+   batch has spent its time removing. #}
+{% extends "base.html" %}
+
+{% block title %}{{ title }} | {{ site_name }}{% endblock %}
+{% block meta_description %}{{ meta_description }}{% endblock %}
+{% block og_type %}article{% endblock %}
+
+{% block main %}
+<div class="wrap post">
+  <nav class="breadcrumbs" aria-label="{{ ui.breadcrumb_aria }}">
+    {% for name, path in crumbs %}<a href="{{ path }}">{{ name }}</a>{% if not loop.last %} <span aria-hidden="true">›</span> {% endif %}{% endfor %}
+  </nav>
+
+  <header class="post__head">
+    <h1>{{ post.title }}</h1>
+    {# THE DATE, VISIBLY. A dateline in the structured data and nothing on the page is a date written
+       for a crawler and withheld from the reader. "Updated" appears only when it differs. #}
+    {# THE BYLINE NAMES THE PUBLICATION, never a person - the house rule everywhere on this site. It
+       also says where the numbers come from, because a post that explains a calculation should say
+       what did the calculating in the same breath as who wrote it. #}
+    <p class="post__byline">{{ words.byline }}
+      <span aria-hidden="true">&middot;</span> {{ words.byline_source }}
+      <span aria-hidden="true">&middot;</span>
+      <time datetime="{{ post.updated_on or post.published_on }}">{{ words.byline_updated.format(date=post.dates.updated or post.dates.published) }}</time>
+    </p>
+    <p class="post__meta">
+      <time datetime="{{ post.published_on }}">{{ words.published_label }} {{ post.dates.published }}</time>
+      &middot; {{ words.reading_time.format(minutes=post.reading_minutes) }}
+    </p>
+    {% if post.categories_view %}
+    <p class="chips">{% for category in post.categories_view %}<span class="chip chip--quiet">{{ category.label }}</span>{% endfor %}</p>
+    {% endif %}
+  </header>
+
+  {% if post.hero_url %}
+  <figure class="post__hero">
+    <img src="{{ post.hero_url }}" alt="{{ post.title }}" width="1200" height="630"
+         fetchpriority="high" decoding="async">
+  </figure>
+  {% endif %}
+
+  <article class="post__body">
+    <p class="lede">{{ post.summary }}</p>
+
+    {# KEY POINTS, only where an author wrote them. Three to five takeaways, from the API's own field.
+       A post without them gets the contents box below and nothing else - deriving takeaways from
+       headings would be this site writing claims nobody wrote. #}
+    {% if post.key_points %}
+    <aside class="post__points" aria-labelledby="key-points">
+      <h2 id="key-points">{{ words.key_points }}</h2>
+      <ul>{% for point in post.key_points %}<li>{{ point }}</li>{% endfor %}</ul>
+    </aside>
+    {% endif %}
+
+    {# WHAT THIS POST COVERS - the post's own headings, labelled as what they are. Nothing is
+       collapsed: the reading stays open top to bottom, as everywhere else on this site. #}
+    {% if post.contents|length > 1 %}
+    <nav class="post__contents" aria-labelledby="contents-heading">
+      <h2 id="contents-heading">{{ words.contents }}</h2>
+      <ol>{% for item in post.contents %}<li><a href="#{{ item.id }}">{{ item.text }}</a></li>{% endfor %}</ol>
+    </nav>
+    {% endif %}
+
+    {# THE TOOL, HERE AND AT THE END. A reader who already knows what they want should be able to
+       leave at the top rather than scroll a thousand words to find the link; one who stayed to the end
+       gets it again. Compact here, a full card there - two identical blocks would read as a repeat. #}
+    {% if post.tool %}
+    <p class="post__tool-inline">
+      <a class="btn btn--small" href="{{ post.tool.path }}">{{ post.tool.cta }} <span aria-hidden="true">&rarr;</span></a>
+    </p>
+    {% endif %}
+
+    {{ post.html }}
+  </article>
+
+  {# THE RAIL, AT 1200px AND WIDER ONLY. A wide screen was leaving a third of itself empty beside a
+     68ch column. This puts the contents, the tool and three others into that space and makes them
+     sticky, so the way out of the article is on screen wherever the reader has got to.
+
+     IT IS NOT NEW MATERIAL. Everything here is already on the page further up; the CSS hides the
+     inline copies at the same breakpoint, so nothing is said twice at any width. Below 1200px this
+     whole block is display:none and the page is exactly what it was. #}
+  <aside class="post__rail" aria-label="{{ words.contents }}">
+    <div class="post__rail-inner">
+      {% if post.contents|length > 1 %}
+      <nav class="post__rail-contents" aria-labelledby="rail-contents">
+        <h2 id="rail-contents">{{ words.contents }}</h2>
+        <ol>{% for item in post.contents %}<li><a href="#{{ item.id }}">{{ item.text }}</a></li>{% endfor %}</ol>
+      </nav>
+      {% endif %}
+
+      {% if post.tool %}
+      <div class="card post__rail-cta">
+        <h2>{{ words.tool_label }}</h2>
+        <p>{{ words.tool_text }}</p>
+        <p><a class="btn btn--cta" href="{{ post.tool.path }}">{{ post.tool.cta }} <span aria-hidden="true">&rarr;</span></a></p>
+      </div>
+      {% endif %}
+
+      {% if rail_tools %}
+      <nav class="post__rail-tools" aria-labelledby="rail-tools">
+        <h2 id="rail-tools">{{ words.rail_tools_heading }}</h2>
+        <ul>{% for tool in rail_tools %}<li><a href="{{ tool.path }}">{{ tool.label }}</a></li>{% endfor %}</ul>
+      </nav>
+      {% endif %}
+    </div>
+  </aside>
+
+  {# THE TOOL, TWICE: once after the opening, where somebody who already knows what they want can
+     leave, and once at the end for the reader who stayed. `tool` is a required field on every post so
+     neither block can be missing - a post that answers a question and then lets the reader leave has
+     done half its job. #}
+  {% if post.tool %}
+  <aside class="card post__tool" aria-labelledby="tool-end">
+    <h2 id="tool-end">{{ words.tool_label }}</h2>
+    <p>{{ words.tool_text }}</p>
+    <p><a class="btn btn--cta" href="{{ post.tool.path }}">{{ post.tool.cta }} <span aria-hidden="true">&rarr;</span></a></p>
+  </aside>
+  {% endif %}
+
+  {# ON EVERY POST, APPENDED HERE RATHER THAN STORED. It says what this whole section of the site is,
+     so it is not a sentence any single post gets to leave out - and with autopublish on, a post can
+     reach a reader before anybody here has read it.
+
+     THE BRAND IS NOT NAMED IN THIS FILE, not even in a comment. tests/test_seo.py reads every
+     template as TEXT and asserts the name appears in none of them, because it is configuration -
+     one environment variable, read in one place. A comment never renders, and the test is still
+     right to refuse it: the rule is about where the name lives, not about what the reader sees. #}
+  <p class="post__disclaimer">{{ words.disclaimer }}</p>
+
+  {% if share %}
+  <p class="post__share"><button type="button" class="btn btn--share" data-share="blog"
+     data-share-text="{{ share.text }}" data-share-url="{{ share.url }}"
+     hidden>{{ share.label }}</button></p>
+  {% endif %}
+
+  {% if others %}
+  <section class="post__more" aria-labelledby="more-heading">
+    <h2 id="more-heading">{{ words.read_next }}</h2>
+    <ul class="cards">
+      {% for other in others %}
+      <li class="card post-card">
+        {% if other.hero_url %}
+        <a href="{{ other.path }}" tabindex="-1" aria-hidden="true" class="post-card__image">
+          <img src="{{ other.hero_url }}" alt="" width="1200" height="630" loading="lazy" decoding="async">
+        </a>
+        {% endif %}
+        <div class="post-card__text">
+          <h3><a href="{{ other.path }}">{{ other.title }}</a></h3>
+          <p class="post__meta">{{ other.dates.published }} &middot;
+            {{ words.reading_time.format(minutes=other.reading_minutes) }}</p>
+          <p>{{ other.summary }}</p>
+        </div>
+      </li>
+      {% endfor %}
+    </ul>
+  </section>
+  {% endif %}
+
+  <p class="reading__ask"><a href="{{ blog_path }}"><span aria-hidden="true">&larr;</span> {{ words.all_posts }}</a></p>
+</div>
+{% endblock %}

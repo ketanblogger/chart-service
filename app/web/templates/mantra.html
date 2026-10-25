@@ -1,0 +1,107 @@
+{# One text: the verse first, then the download, then the Roman, then what it means.
+
+   THE ORDER IS THE BRIEF'S AND IT IS THE SEARCHER'S ORDER. Somebody who types "hanuman chalisa"
+   wants the verse on the screen, not an introduction to it - so the full Devanagari is the first
+   thing under the H1, at a size that can be read from a phone held at arm's length, and everything
+   we wrote comes after it. #}
+{% extends "base.html" %}
+{% block title %}{{ title }}{% endblock %}
+{% block meta_description %}{{ meta_description }}{% endblock %}
+{% block head_extra %}
+<style>
+  .mn-verse { font-size: 1.42rem; line-height: 2.1; margin: 0 0 1.5rem; }
+  .mn-verse p { margin: 0 0 .55rem; }
+  .mn-verse .mn-n { color: var(--muted); font-size: .8rem; margin-right: .5rem; }
+  .mn-dl { display: flex; flex-wrap: wrap; gap: .75rem 1rem; align-items: center;
+           padding: 1rem 1.1rem; border: 1px solid var(--line); border-radius: 10px;
+           margin: 0 0 1.75rem; }
+  .mn-dl__note { color: var(--muted); font-size: .9rem; margin: 0; }
+  .mn-roman { color: var(--ink-2); line-height: 1.85; }
+  .mn-roman p { margin: 0 0 .5rem; }
+  .mn-meta { font-size: .92rem; color: var(--muted); }
+  .mn-meta dt { font-weight: 600; color: var(--ink-2); margin-top: .6rem; }
+  .mn-meta dd { margin: .15rem 0 0; }
+  .mn-meta a { word-break: break-all; }
+  @media (max-width: 640px) { .mn-verse { font-size: 1.3rem; line-height: 1.95; } }
+</style>
+{% endblock %}
+{% block main %}
+<section class="hero">
+  <div class="wrap">
+    <h1>{{ h1 }}</h1>
+    <p class="hero__sub">{{ lede }}</p>
+  </div>
+</section>
+<article class="wrap content">
+  <section>
+    <h2>{{ words.text_heading.format(name=name) }}</h2>
+    <div class="mn-verse" lang="hi">
+      {% for verse in verses %}
+      <p><span class="mn-n">{{ verse.n }}</span>{{ verse.text }}</p>
+      {% endfor %}
+    </div>
+  </section>
+
+  <div class="mn-dl">
+    <a class="btn btn--primary" href="{{ pdf_path }}" download>{{ words.download }}</a>
+    <p class="mn-dl__note">{{ words.download_note }}</p>
+  </div>
+
+  <section>
+    <h2>{{ words.translit_heading.format(name=name) }}</h2>
+    <p class="mn-dl__note">{{ words.transliteration_note }}</p>
+    <div class="mn-roman">
+      {% for line in roman %}<p>{{ line }}</p>{% endfor %}
+    </div>
+  </section>
+
+  <section>
+    <h2>{{ words.meaning_heading.format(name=name) }}</h2>
+    {% for group in explainer.groups %}
+    <h3>{{ group.heading }}</h3>
+    <p>{{ group.body }}</p>
+    {% endfor %}
+  </section>
+
+  <section>
+    <h2>{{ words.recitation_heading.format(name=name) }}</h2>
+    <p>{{ explainer.recitation }}</p>
+    <h3>{{ words.tradition_heading }}</h3>
+    <p>{{ explainer.tradition }}</p>
+  </section>
+
+  <section>
+    <h2>{{ words.faq_heading.format(name=name) }}</h2>
+    {% for item in explainer.faq %}
+    <h3>{{ item.q }}</h3>
+    <p>{{ item.a }}</p>
+    {% endfor %}
+  </section>
+
+  {% if related %}
+  <section>
+    <h2>{{ words.related_heading }}</h2>
+    <ul>
+      {% for item in related %}<li><a href="{{ item.path }}">{{ item.name }}</a></li>{% endfor %}
+    </ul>
+  </section>
+  {% endif %}
+
+  {# WHERE THE TEXT CAME FROM, on the page and not only in the repository. A reader who wants to
+     check a line against another copy can see which copies we used. #}
+  <section>
+    <h2>{{ words.sources_heading }}</h2>
+    <dl class="mn-meta">
+      <dt>{{ words.author_label }}</dt><dd>{{ author }}</dd>
+      {% for source in sources %}
+      <dt>{{ words.source_label if loop.first else words.checked_label }}</dt>
+      <dd><a href="{{ source.url }}" rel="nofollow noopener" target="_blank">{{ source.label }}</a></dd>
+      {% endfor %}
+      <dt>{{ words.updated_label }}</dt><dd>{{ updated }}</dd>
+    </dl>
+    <p class="mn-meta">{{ byline }} &middot;
+      <a href="{{ about_path }}">{{ words.about }}</a> &middot;
+      <a href="{{ disclaimer_path }}">{{ words.disclaimer }}</a></p>
+  </section>
+</article>
+{% endblock %}

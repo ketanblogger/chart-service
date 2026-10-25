@@ -1,0 +1,33 @@
+# The month-end "accounts ready" message. Installed with its timer:
+#   sudo cp deploy/systemd/accounts-email.* /etc/systemd/system/
+#   sudo systemctl daemon-reload && sudo systemctl enable --now accounts-email.timer
+#   systemctl list-timers accounts-email.timer ; journalctl -u accounts-email.service -n 50
+#
+# A TIMER RATHER THAN THE CRON LINE in app/admin/accounting.py's docstring. Both work; systemd is what
+# every other scheduled job here uses, it carries the timezone itself rather than depending on the
+# server's, and `systemctl list-timers` answers "will this fire?" without reading a crontab.
+#
+# No --month: with no argument the job reports the month that just ENDED, which is what running it on
+# the 1st is for. Sending is deduplicated in the database, so a retry after a timeout, a manual run, or
+# a timer that fires twice cannot send the month twice.
+[Unit]
+Description=Month-end accounts e-mail: invoices, credit notes and the totals, as a link
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=astro
+Group=astro
+WorkingDirectory=/srv/astrology
+# .env is read by the app itself (python-dotenv); nothing secret lives in this unit.
+ExecStart=/srv/astrology/.venv/bin/python -m app.admin.accounting --email
+TimeoutStartSec=30m
+Nice=10
+# Reads the month and writes one dedupe row; var/ is all it touches.
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=/srv/astrology/var
+UMask=0027

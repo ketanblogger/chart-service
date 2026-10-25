@@ -1,0 +1,54 @@
+{# "My orders": what this address has bought, and the documents for each.
+
+   NO BIRTH DATA, deliberately. This is a list of purchases; the order page already shows what the customer
+   entered. A page that prints a date of birth is a page that leaks one the first time a session is wrong. #}
+{% extends "base.html" %}
+
+{% block body_class %} class="design-v2"{% endblock %}
+{% block title %}{{ auth.orders_title }} | {{ site_name }}{% endblock %}
+{% block meta_description %}{{ auth.orders_title }}{% endblock %}
+{% block head_extra %}
+  <meta name="robots" content="noindex, nofollow">
+  <link rel="stylesheet" href="/static/css/design-v2.css?v={{ static_version }}">
+{% endblock %}
+
+{% block main %}
+<div id="design-v2" class="v2">
+<div class="wrap v2-orders">
+  <header class="v2-orders__head">
+    <h1>{{ auth.orders_h1 }}</h1>
+    <p class="muted">{{ auth.signed_in_as }} <strong>{{ email }}</strong>
+      <button type="button" class="btn btn--ghost" id="sign-out">{{ auth.sign_out }}</button></p>
+  </header>
+
+  {% if orders %}
+  <p class="v2-orders__intro">{{ auth.orders_intro.replace('{email}', email) }}</p>
+  <ul class="v2-orderlist">
+    {% for order in orders %}
+    <li class="v2-order">
+      <div class="v2-order__what">
+        <strong>{{ order.product_label or order.product }}</strong>
+        <span class="muted small">{{ order.created_label or order.created_at }}</span>
+      </div>
+      <div class="v2-order__amount">₹{{ order.amount_inr if order.amount_inr is defined else (order.amount_paise // 100) }}</div>
+      <div class="v2-order__links">
+        {# Paths come from app/payments/routes.public_paths - the module that owns them - rather than being
+           spelled here, so this page cannot drift from the routes it links to. #}
+        <a href="{{ order.paths.order }}">{{ auth.open }}</a>
+        <a href="{{ order.paths.invoice }}">{{ auth.invoice }}</a>
+        {% for note in order.credit_notes %}<a href="{{ note }}">{{ auth.credit_note }}</a>{% endfor %}
+      </div>
+    </li>
+    {% endfor %}
+  </ul>
+  <p class="small muted">{{ auth.orders_none_note }}</p>
+  {% else %}
+  <p class="v2-orders__empty">{{ auth.orders_empty }}</p>
+  {% endif %}
+</div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/js/auth.js?v={{ static_version }}" defer></script>
+{% endblock %}

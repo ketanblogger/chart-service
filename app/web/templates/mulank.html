@@ -1,0 +1,70 @@
+{# One mulank. The copy was written once under the site's checker and committed - no model on this
+   path, and nothing here costs anything per view. #}
+{% extends "base.html" %}
+{% import "_copy_blocks.html" as blocks %}
+
+{% block title %}{{ title }}{% endblock %}
+{% block meta_description %}{{ meta_description }}{% endblock %}
+
+{% block main %}
+<section class="hero">
+  <div class="wrap">
+    <h1>{{ h1 }}</h1>
+    <p class="hero__sub">{{ page.intro }}</p>
+  </div>
+</section>
+
+<article class="wrap content">
+  <p class="quiet">{{ days|join(', ') }} &middot; {{ sections.ruled_by }}: {{ planet }}</p>
+
+  {# HEADINGS, NOT SIX PARAGRAPHS IN A ROW. The text is exactly what it was; a reader looking for
+     what work suits this number used to have to read all of it to find out whether the answer was
+     in there. The h1 is in the hero, so it is not repeated here. #}
+  <h2>{{ sections.personality }}</h2>
+  <p>{{ page.traits }}</p>
+  <p>{{ page.strengths }}</p>
+
+  <h2>{{ sections.work }}</h2>
+  <p>{{ page.work }}</p>
+
+  <h2>{{ sections.compatible }}</h2>
+  <p>{{ page.compatible }}</p>
+
+  <h2>{{ sections.lucky }}</h2>
+  <p>{{ page.lucky }}</p>
+
+  <h2>{{ sections.bhagyank }}</h2>
+  <p>{{ page.bhagyank }}</p>
+
+  {# The FAQ, through the site's own macro and with the site's own FAQPage schema - not a third way
+     of writing a question list. Every answer is assembled from this page's data. #}
+  {{ blocks.faq({"faqs": faqs}, sections.faq) }}
+
+  {# THE REPORT FIRST, like the calculator page: it is the finished product and the chat is the
+     open-ended alternative for somebody who did not want it. #}
+  {% if report_cta %}
+  {% include "_numerology_report_card.html" %}
+  {% endif %}
+
+  {% if ask %}
+  <section class="ask-box" aria-labelledby="ask-heading">
+    <h2 id="ask-heading">{{ ask.heading }}</h2>
+    <p>{{ ask.lead }}</p>
+    <ul class="ask-box__chips">
+      {% for chip in ask.chip_links %}<li><a href="{{ chip.path }}">{{ chip.text }}</a></li>{% endfor %}
+    </ul>
+    <p><a class="btn btn--cta" href="{{ ask.path }}">{{ ask.cta }} <span aria-hidden="true">&rarr;</span></a></p>
+    <p class="quiet">{{ ask.note }}</p>
+  </section>
+  {% endif %}
+
+  <p><a class="btn btn--cta" href="{{ numerology_path }}">{{ back_label }} <span aria-hidden="true">&rarr;</span></a></p>
+  {# The same strip as the calculator page, and the same fix: it was nine bare digits under
+     aria-label="1-9", which gives a screen-reader user the range and not the purpose. #}
+  <p class="mulank-others__label" id="mulank-chips-label">{{ chips_label }}</p>
+  <nav class="mulank-others" aria-labelledby="mulank-chips-label">
+    {% for other in others %}<a href="{{ other.path }}"
+       aria-label="{{ chips_label|trim(':') }} {{ other.number }}">{{ other.number }}</a>{% endfor %}
+  </nav>
+</article>
+{% endblock %}

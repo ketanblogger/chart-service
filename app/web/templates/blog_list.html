@@ -1,0 +1,111 @@
+{# The blog index, one per language tree. Copy and data come from app/blog/pages.py; see that module
+   for which trees exist and why a post appears in exactly one of them. No path is spelled here: every
+   href is prepared by the route.
+
+   THE FILTER IS PLAIN LINKS WITH A SCRIPT ON TOP. Without JavaScript every post is listed and the
+   chips are ordinary anchors to the same page; with it they hide the cards that do not match. A
+   filter that needs a round trip to show four posts is slower than showing all four. #}
+{% extends "base.html" %}
+
+{% block title %}{{ title }} | {{ site_name }}{% endblock %}
+{% block meta_description %}{{ meta_description }}{% endblock %}
+
+{% block main %}
+<div class="wrap post">
+  <nav class="breadcrumbs" aria-label="{{ ui.breadcrumb_aria }}">
+    {% for name, path in crumbs %}<a href="{{ path }}">{{ name }}</a>{% if not loop.last %} <span aria-hidden="true">›</span> {% endif %}{% endfor %}
+  </nav>
+
+  <header class="post__head">
+    <h1>{{ words.h1 }}</h1>
+    {# ONE PARAGRAPH. The promise that used to sit here as a second paragraph is at the foot now, under
+       "About this blog" - it is the most important thing on the page and it was a hurdle before the
+       first post. #}
+    {% for paragraph in words.intro %}<p class="lede">{{ paragraph }}</p>{% endfor %}
+  </header>
+
+  {% if posts %}
+  {% if filters|length > 1 %}
+  <nav class="chips chips--filter" id="blog-filter" aria-label="{{ words.filter_label }}">
+    <button type="button" class="chip is-on" data-filter="" aria-pressed="true">{{ words.filter_all }}</button>
+    {% for item in filters %}
+    <button type="button" class="chip" data-filter="{{ item.key }}" aria-pressed="false">{{ item.label }}</button>
+    {% endfor %}
+  </nav>
+  {% endif %}
+
+  {# THE LATEST POST, LARGER. An index where every card is the same size asks the reader to choose;
+     this answers the question they arrived with. It is not repeated in the grid below. #}
+  {% if featured %}
+  <a class="card featured" href="{{ featured.path }}">
+    <img src="{{ featured.hero_url }}" alt="" width="1200" height="630" decoding="async">
+    <div class="featured__text">
+      <p class="chips"><span class="chip chip--quiet">{{ words.featured }}</span></p>
+      <h2>{{ featured.title }}</h2>
+      <p class="post__meta">{{ featured.dates.published }} &middot;
+        {{ words.reading_time.format(minutes=featured.reading_minutes) }}
+        {%- for category in featured.categories_view %} &middot; {{ category.label }}{% endfor %}</p>
+      <p>{{ featured.summary }}</p>
+    </div>
+  </a>
+  {% endif %}
+
+  <ul class="cards" id="blog-cards">
+    {% for post in rest %}
+    <li class="card post-card" data-categories="{{ post.categories|join(' ') }}">
+      <a href="{{ post.path }}" tabindex="-1" aria-hidden="true" class="post-card__image">
+        <img src="{{ post.hero_url }}" alt="" width="1200" height="630" loading="lazy" decoding="async">
+      </a>
+      <div class="post-card__text">
+        <h2><a href="{{ post.path }}">{{ post.title }}</a></h2>
+        <p class="post__meta">{{ post.dates.published }} &middot;
+          {{ words.reading_time.format(minutes=post.reading_minutes) }}
+          {%- for category in post.categories_view %} &middot; {{ category.label }}{% endfor %}</p>
+        <p>{{ post.summary }}</p>
+      </div>
+    </li>
+    {% endfor %}
+  </ul>
+  <p class="post__empty" id="blog-none" hidden>{{ words.filter_none }}</p>
+  <script src="/static/js/blog-filter.js?v={{ static_version }}" defer></script>
+  {% else %}
+  {# An index with nothing in it says so, and then sends the reader somewhere useful. #}
+  <p class="lede">{{ words.empty }}</p>
+  {% endif %}
+
+  {# SIX CARDS, THEN A LINK TO THE REST. Fourteen links in a column is a directory, not a
+     recommendation, and nobody reads to the end of one. #}
+  <section class="block" id="tools">
+    <h2>{{ words.tools_heading }}</h2>
+    {% include "_tool_icons.html" %}
+    <ul class="tool-grid">
+      {% for tool in tool_cards %}
+      <li><a class="card tool-card" href="{{ tool.path }}">
+        <svg class="tool-card__icon" width="24" height="24" aria-hidden="true"><use href="#{{ tool.icon }}"/></svg>
+        <span class="tool-card__name">{{ tool.label }}</span>
+        {% if tool.blurb %}<span class="tool-card__line">{{ tool.blurb }}</span>{% endif %}
+      </a></li>
+      {% endfor %}
+    </ul>
+    {# SIX CARDS AND A LINK - except on an index with no posts, where the whole value of the page IS
+       the tool directory and the copy above says in so many words that they are all here. Promising
+       all of them and then showing six would be a small lie on the emptiest page we have. #}
+    {% if posts %}
+    <p><a href="{{ tools_path }}">{{ words.tools_more }} &rarr;</a></p>
+    {% else %}
+    <ul class="link-list">
+      {% for tool in tools %}<li><a href="{{ tool.path }}">{{ tool.label }}</a></li>{% endfor %}
+    </ul>
+    {% endif %}
+    {# THE TRUST RULE: a block that names the AI astrologer says in the same breath what the numbers
+       come from. tests/test_trust_copy.py checks every section on every page for it. #}
+    <p class="fact__sub">{{ words.tools_note }}</p>
+  </section>
+
+  {# The promise, at the foot where it reads as a standing commitment rather than a hurdle. #}
+  <section class="block" id="about" aria-labelledby="about-heading">
+    <h2 id="about-heading">{{ words.about_heading }}</h2>
+    <p>{{ words.about }}</p>
+  </section>
+</div>
+{% endblock %}
