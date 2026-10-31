@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block title %}Mantra pages{% endblock %}
+{% block sub %}{{ live_count }} live, {{ scheduled_count }} scheduled, {{ blocked|length }} not
+  releasable. {{ pages_per_day }} pages a day. Release is a pure function of the date: nothing on
+  this page can change it, and nothing needs to be pressed on release morning.{% endblock %}
+{% block body %}
+
+<div class="tiles">
+  <div class="tile"><div class="k">Live today</div>
+    <div class="v">{{ live_count }}</div>
+    <div class="n">{{ live_count * 2 }} pages, Hindi and English</div></div>
+  <div class="tile"><div class="k">Scheduled</div>
+    <div class="v">{{ scheduled_count }}</div>
+    <div class="n">answering 404 until their date</div></div>
+  <div class="tile"><div class="k">Cannot release</div>
+    <div class="v">{% if blocked %}<span class="unknown">{{ blocked|length }}</span>{% else %}0{% endif %}</div>
+    <div class="n">not verified, so no release date</div></div>
+</div>
+
+{% if missing_explainers %}
+<div class="note warn"><b>{{ missing_explainers|length }} verified text(s) are missing an
+  explainer</b> in one language. The page would render with an empty meaning section, so the
+  generator needs to be run for:
+  {% for row in missing_explainers %}<code>{{ row.slug }}</code>{{ ", " if not loop.last }}{% endfor %}.
+</div>
+{% endif %}
+
+{% if upcoming %}
+<h2>Next out</h2>
+<table>
+  <thead><tr><th>Date</th><th>Texts</th></tr></thead>
+  <tbody>
+    {% for day, items in upcoming %}
+    <tr><td>{{ day }}</td>
+      <td>{% for row in items %}{{ row.name }} <span class="n">({{ row.slug }})</span>{{ ", " if not loop.last }}{% endfor %}</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endif %}
+
+<h2>Every text</h2>
+<table>
+  <thead><tr>
+    <th>Text</th><th>Kind</th><th>Padas</th><th>Sources</th><th>Read</th>
+    <th>Release</th><th>Status</th><th>Pages</th>
+  </tr></thead>
+  <tbody>
+    {% for row in rows %}
+    <tr>
+      <td>{{ row.name }}<br><span class="n">{{ row.english }}</span></td>
+      <td>{{ row.kind }}</td>
+      <td>{{ row.verses or "-" }}</td>
+      <td>{{ row.sources }}</td>
+      <td>{% if row.reviewed %}yes{% else %}<span class="unknown">no</span>{% endif %}</td>
+      <td>{{ row.release or "-" }}</td>
+      <td>{% if row.live %}live{% elif not row.verified %}<span class="unknown">{{ row.status }}</span>{% else %}{{ row.status }}{% endif %}</td>
+      <td>
+        {% if row.live %}
+          {% for path in row.paths %}<a href="{{ path }}">{{ path }}</a><br>{% endfor %}
+        {% else %}
+          <span class="n">{{ row.explainers|join(", ") or "no explainer" }}</span>
+        {% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

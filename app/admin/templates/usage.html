@@ -1,0 +1,224 @@
+{% extends "base.html" %}
+{% block title %}Usage{% endblock %}
+{% block sub %}Who came, what they used, what it cost and what it earned - in IST calendar days.{% endblock %}
+{% block body %}
+
+<div class="note">
+  <b>Range:</b>
+  {% for value, label in ranges %}
+    {% if value == days %}<b>{{ label }}</b>{% else %}<a href="/admin/usage?days={{ value }}{{ '&include_admin=1' if include_admin }}">{{ label }}</a>{% endif %}
+    {% if not loop.last %}·{% endif %}
+  {% endfor %}
+  &nbsp;|&nbsp;
+  <form method="get" action="/admin/usage" style="display:inline">
+    <input type="number" name="days" min="1" max="365" value="{{ days }}" style="width:5em">
+    {% if include_admin %}<input type="hidden" name="include_admin" value="1">{% endif %}
+    <button type="submit">days</button>
+  </form>
+  &nbsp;|&nbsp;
+  {% if include_admin %}
+    <a href="/admin/usage?days={{ days }}">Hide my own usage</a>
+  {% else %}
+    <a href="/admin/usage?days={{ days }}&include_admin=1">Include my own usage</a>
+  {% endif %}
+  <br>{{ report["from"] }} to {{ report.to }}.
+  {% if report.admin_events_excluded %}
+    <b>{{ report.admin_events_excluded }}</b> of your own events are left out of everything below.
+  {% endif %}
+</div>
+
+<h2>People</h2>
+<div class="tiles">
+  <div class="tile"><div class="k">Unique visitors</div><div class="v">{{ report.visitors }}</div></div>
+  <div class="tile"><div class="k">Page views</div><div class="v">{{ report.views }}</div></div>
+  <div class="tile"><div class="k">Cost</div><div class="v">{{ report.cost_inr|rupees }}</div></div>
+  {# REVENUE IS WHAT WE KEEP, not what the customer paid. The figure here used to be the sum of the
+     usage events, which carry the tax-INCLUSIVE charge - so the margin beside it counted 18% that is
+     collected for the government and remitted. Both are shown: the gross is the right number next to a
+     payment fee, the net is the only one a margin may be taken on. #}
+  <div class="tile"><div class="k">Revenue (ex GST)</div><div class="v">{{ report.revenue_net_inr|rupees }}</div>
+    <div class="note">{{ report.revenue_gross_inr|rupees }} charged, of which
+      {{ report.gst_collected_inr|rupees }} is GST collected and remitted.
+      {% if report.unsplit_orders %}{{ report.unsplit_orders }} order(s) predate the tax columns and are
+      counted at the full charge.{% endif %}</div>
+  </div>
+  <div class="tile"><div class="k">Margin</div><div class="v">{{ report.margin_inr|rupees }}</div>
+    {% if report.estimated_cost_events %}
+    {# The estimate is kept APART from the measured margin and labelled, never folded into it. An
+       estimate presented as a measurement is how a page stops being worth reading. #}
+    <div class="note">With an estimated cost for the {{ report.estimated_cost_events }} event(s) that
+      have none: <strong>{{ report.margin_with_estimate_inr|rupees }}</strong> (estimated -
+      {{ report.estimated_cost_inr|rupees }} added, the median of comparable events).</div>
+    {% endif %}
+    {% if report.estimated_cost_no_basis %}
+    <div class="note">{{ report.estimated_cost_no_basis }} event(s) could not be estimated: nothing of
+      the same kind has a recorded cost to estimate from.</div>
+    {% endif %}
+    {% if report.undated_orders %}
+    <div class="note">{{ report.undated_orders }} paid order(s) worth
+      {{ report.undated_inr|rupees }} carry no payment date, so they are in no date range on this page.</div>
+    {% endif %}
+    {% if report.cost_unknown %}
+    {# An over-statement, and it must say so: every chat sat at 0.00 for months and the margin was simply
+       the revenue, with nothing on the page to suggest otherwise. #}
+    <div class="note">{{ report.cost_unknown }} chat/report event{{ '' if report.cost_unknown == 1 else 's' }}
+      in this range have no cost recorded, so this margin is higher than the real one.</div>
+    {% endif %}
+  </div>
+</div>
+<p class="muted">A visitor is a daily salted hash of IP and user agent. No raw IP is stored, and the hash
+  cannot be followed from one day to the next. Obvious crawlers are not counted.</p>
+
+<h2>By day</h2>
+<table>
+  <thead><tr><th>Day</th><th>Visitors</th><th>Views</th><th>Cost</th><th>Revenue</th></tr></thead>
+  <tbody>
+    {% set money = {} %}{% for row in report.cost_by_day %}{% set _ = money.update({row.day: row}) %}{% endfor %}
+    {% for row in report.per_day %}
+    <tr>
+      <td>{{ row.day }}</td><td>{{ row.people }}</td><td>{{ row.views }}</td>
+      <td>{{ (money.get(row.day, {}).get('cost') or 0)|rupees }}</td>
+      <td>{{ (money.get(row.day, {}).get('revenue') or 0)|rupees }}</td>
+    </tr>
+    {% else %}<tr><td colspan="5" class="muted">Nothing recorded in this range.</td></tr>{% endfor %}
+  </tbody>
+</table>
+
+<h2>What was used</h2>
+<table>
+  <thead><tr><th>Feature</th><th>Action</th><th>Times</th><th>Worked</th><th>Cost</th><th>Revenue</th></tr></thead>
+  <tbody>
+    {% for row in report.features %}
+    <tr>
+      <td>{{ row.feature }}</td><td>{{ row.action }}</td><td>{{ row.n }}</td>
+      <td>{{ row.ok }}{% if row.ok != row.n %} <b>({{ row.n - row.ok }} failed)</b>{% endif %}</td>
+      <td>{{ (row.cost or 0)|rupees }}</td><td>{{ (row.revenue or 0)|rupees }}</td>
+    </tr>
+    {% else %}<tr><td colspan="6" class="muted">Nothing recorded in this range.</td></tr>{% endfor %}
+  </tbody>
+</table>
+
+<h2>Top pages</h2>
+<table>
+  <thead><tr><th>Path</th><th>Views</th></tr></thead>
+  <tbody>
+    {% for row in report.top_pages %}<tr><td>{{ row.path }}</td><td>{{ row.views }}</td></tr>
+    {% else %}<tr><td colspan="2" class="muted">Nothing yet.</td></tr>{% endfor %}
+  </tbody>
+</table>
+
+<h2>Languages</h2>
+<table>
+  <thead><tr><th>Tree</th><th>Views</th></tr></thead>
+  <tbody>
+    {% for row in report.languages %}<tr><td>{{ row.lang or '—' }}</td><td>{{ row.views }}</td></tr>
+    {% else %}<tr><td colspan="2" class="muted">Nothing yet.</td></tr>{% endfor %}
+  </tbody>
+</table>
+
+<h2>Costliest accounts</h2>
+<p class="muted">By account id, which is already a hash - there is no address on this page to mask.</p>
+<table>
+  <thead><tr><th>Account</th><th>Events</th><th>Cost</th></tr></thead>
+  <tbody>
+    {% for row in report.top_users %}
+    <tr><td><code>{{ mask(row.account_id) }}</code></td><td>{{ row.n }}</td><td>{{ (row.cost or 0)|rupees }}</td></tr>
+    {% else %}<tr><td colspan="3" class="muted">Nothing yet.</td></tr>{% endfor %}
+  </tbody>
+</table>
+
+<h2>From arriving to paying</h2>
+<p class="note">Each step counts PEOPLE, not events - one person asking nine questions is one person, or
+  the middle of the funnel would be wider than its top. The share is against visitors in the same window.</p>
+<table>
+  <tr><th>Step</th><th>People</th><th>Share</th><th>English</th><th>हिंदी</th><th>मराठी</th></tr>
+  {% for step in funnel %}
+  <tr>
+    <td>{{ step.label }}</td>
+    <td><b>{{ step.people }}</b></td>
+    <td>{{ step.share }}%</td>
+    {% for lang in ('en', 'hi', 'mr') %}
+    <td class="muted">{{ funnel_by_language[lang][loop.index0].people
+                         if funnel_by_language[lang]|length > loop.index0 else 0 }}</td>
+    {% endfor %}
+  </tr>
+  {% endfor %}
+</table>
+
+{% if quiet_accounts %}
+<h2>Signed up, never asked</h2>
+<p class="note">Each of these did the hard part - gave an address, waited for a code, came back - and then
+  asked nothing. Whatever is in their way is costing us the people who were most willing.</p>
+<table>
+  <tr><th>Account</th><th>Signed up</th><th>Language</th><th>Source</th></tr>
+  {% for row in quiet_accounts %}
+  <tr><td><code>{{ mask(row.account_id) }}</code></td>
+      <td>{{ row.signed_up|ist }}</td>
+      <td>{{ row.lang or '—' }}</td>
+      <td>{{ row.source or 'direct' }}</td></tr>
+  {% endfor %}
+</table>
+{% endif %}
+
+<h2>Where our own pages sent them</h2>
+<p class="note">Most of the traffic lands on a rashifal page. This is whether any of it goes on to a chart
+  or the astrologer - people, not views, so somebody reading nine readings and opening one chat is one
+  journey. Only the SECTION is kept, never which sign they were reading.</p>
+<table>
+  <tr><th>From</th><th>To</th><th>People</th></tr>
+  {% for row in journeys %}
+  <tr><td>{{ row.came_from }}</td><td>{{ row.went_to }}</td><td>{{ row.people }}</td></tr>
+  {% else %}<tr><td colspan="3" class="muted">No internal journeys recorded in this range.</td></tr>{% endfor %}
+</table>
+
+<h2>Where they came from</h2>
+<p class="note">A source is one word from a fixed list, worked out from the referrer or a utm tag and then
+  forgotten - no URL, no search term, nothing joining a source to a person. <b>Proved</b> is how many of
+  those arrivals ran the page in a real browser; the gap between visitors and proved is the honest answer
+  to why 500 visitors a day and 7 search clicks can both be true.</p>
+<table>
+  <tr><th>Source</th><th>Visitors</th><th>Views</th><th>Proved a browser</th><th>Suspect</th>
+      <th>Sign-ups</th><th>Revenue</th></tr>
+  {% for row in report.by_source %}
+  <tr>
+    <td>{{ row.source }}</td>
+    <td>{{ row.visitors }}</td>
+    <td>{{ row.views }}</td>
+    <td>{{ row.proven }}{% if row.views %} <span class="muted">({{ (100 * row.proven / row.views)|round|int }}%)</span>{% endif %}</td>
+    <td>{% if row.suspect %}<b>{{ row.suspect }}</b>{% else %}0{% endif %}</td>
+    <td>{{ row.signups }}</td>
+    <td>{{ (row.revenue or 0)|rupees }}</td>
+  </tr>
+  {% else %}<tr><td colspan="7" class="muted">No visits recorded in this range.</td></tr>{% endfor %}
+</table>
+
+<h2>What failed</h2>
+<table>
+  <thead><tr><th>Feature</th><th>Action</th><th>Detail</th><th>Times</th></tr></thead>
+  <tbody>
+    {% for row in report.errors %}
+    <tr><td>{{ row.feature }}</td><td>{{ row.action }}</td><td>{{ row.detail or '—' }}</td><td>{{ row.n }}</td></tr>
+    {% else %}<tr><td colspan="4" class="muted">Nothing failed in this range.</td></tr>{% endfor %}
+  </tbody>
+</table>
+
+<h2>Event log</h2>
+<p class="muted"><b>No chat text is on this page, and none can be.</b> The log says who, when, which feature,
+  what it cost and whether it worked. Reading what somebody actually asked is a separate act that is not
+  built here - see <code>app/admin/chat_access.py</code> for the guard and the audit trail it would need.</p>
+<table>
+  <thead><tr><th>When (IST)</th><th>Account</th><th>Feature</th><th>Action</th><th>Lang</th><th>Cost</th><th>OK</th><th>Detail</th></tr></thead>
+  <tbody>
+    {% for row in events %}
+    <tr>
+      <td>{{ row.ts|ist }}</td>
+      <td><code>{{ mask(row.account_id) }}</code>{% if row.is_admin %} <b>admin</b>{% endif %}</td>
+      <td>{{ row.feature }}</td><td>{{ row.action }}</td><td>{{ row.lang or '—' }}</td>
+      <td>{{ (row.cost_inr or 0)|rupees }}</td>
+      <td>{{ 'yes' if row.ok else 'NO' }}</td>
+      <td>{{ row.detail or '—' }}</td>
+    </tr>
+    {% else %}<tr><td colspan="8" class="muted">Nothing recorded yet.</td></tr>{% endfor %}
+  </tbody>
+</table>
+{% endblock %}

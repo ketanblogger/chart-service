@@ -1,0 +1,175 @@
+{# One month's GST records. NO CUSTOMER NAME AND NO FULL ADDRESS ON THIS PAGE - the spreadsheet in the
+   download has both, because a tax invoice is issued to a named buyer, and taking the download is written
+   to the audit log. See `accounting.month_page`, which is what decides that rather than this template. #}
+{% extends "base.html" %}
+{% block title %}Accounting{% endblock %}
+{% block heading %}Accounting &middot; {{ view.label }}{% endblock %}
+{% block sub %}Every invoice and every credit note issued in {{ view.label }}, IST. Internal orders are
+  <b>included and flagged</b>, never filtered: an issued invoice is a GST record whatever the revenue
+  figures make of the sale. Addresses are masked here; the download carries the full records.{% endblock %}
+{% block body %}
+
+<form class="filters" method="get" action="/admin/accounting">
+  <label>Month<input type="month" name="month" value="{{ view.key }}"></label>
+  <input type="submit" value="Show">
+</form>
+<form class="filters" method="get" action="/admin/accounting/download">
+  <input type="hidden" name="month" value="{{ view.key }}">
+  <button type="submit">Download month</button>
+  <span class="quiet">One ZIP: every invoice and credit note of {{ view.label }} as a PDF, plus
+    <code>accounts-{{ view.key }}.xlsx</code> (Invoices, Credit notes, Summary).</span>
+</form>
+
+{% if months %}
+<p class="sub">Months with documents:
+  {% for key in months %}<a href="/admin/accounting?month={{ key }}">{{ key }}</a>{% if not loop.last %} &middot; {% endif %}{% endfor %}
+</p>
+{% endif %}
+
+<div class="tiles">
+  <div class="tile"><div class="k">Invoices</div><div class="v">{{ view.totals.invoices.count }}</div>
+    <div class="n">{% if view.internal_invoices %}{{ view.internal_invoices }} internal, included{% else %}none internal{% endif %}</div></div>
+  <div class="tile"><div class="k">Charged</div><div class="v">{{ (view.totals.invoices.total_paise / 100)|rupees }}</div>
+    <div class="n">taxable {{ (view.totals.invoices.base_paise / 100)|rupees }}</div></div>
+  <div class="tile"><div class="k">Tax invoiced</div><div class="v">{{ (view.totals.invoices.tax_paise / 100)|rupees }}</div>
+    <div class="n">CGST+SGST+IGST{% if view.totals.invoices.unclassified_paise %} + not classified{% endif %}</div></div>
+  <div class="tile"><div class="k">Credit notes</div><div class="v">{{ view.totals.credit_notes.count }}</div>
+    <div class="n">{{ (view.totals.credit_notes.total_paise / 100)|rupees }} credited back</div></div>
+  <div class="tile"><div class="k">Net</div><div class="v">{{ (view.totals.net.total_paise / 100)|rupees }}</div>
+    <div class="n">invoices less credit notes</div></div>
+</div>
+
+{% if view.unreadable or view.orphans %}
+<div class="note warn"><b>{{ view.unreadable }} invoice number(s) with no recorded GST split and
+  {{ view.orphans }} credit note(s) this file cannot describe.</b> Both are data repairs rather than gaps in
+  the month: an invoice number is allocated only to an order with a recorded split, so a row with one and no
+  figures was written by hand. The ZIP's <code>README.txt</code> names the counts too.</div>
+{% endif %}
+
+<h2>Totals by tax head</h2>
+<div class="card scroll">
+  <table>
+    <thead><tr><th></th><th class="n">Taxable value</th><th class="n">CGST</th><th class="n">SGST</th>
+      <th class="n">IGST</th><th class="n">Not classified</th><th class="n">Total</th><th class="n">Documents</th></tr></thead>
+    <tbody>
+    {% for label, block in (('Invoices', view.totals.invoices), ('Credit notes', view.totals.credit_notes), ('Net', view.totals.net)) %}
+      <tr><td>{{ label }}</td>
+        <td class="n">{{ (block.base_paise / 100)|rupees }}</td>
+        <td class="n">{{ (block.cgst_paise / 100)|rupees }}</td>
+        <td class="n">{{ (block.sgst_paise / 100)|rupees }}</td>
+        <td class="n">{{ (block.igst_paise / 100)|rupees }}</td>
+        <td class="n">{{ (block.unclassified_paise / 100)|rupees }}</td>
+        <td class="n">{{ (block.total_paise / 100)|rupees }}</td>
+        <td class="n">{{ block.count }}</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+<p class="sub"><b>Not classified</b> is tax that was charged and collected on an order with no recorded place
+  of supply. It is real tax that cannot be filed under CGST/SGST or IGST, so it has a column of its own
+  rather than being dropped - every row's taxable value plus its four tax figures equals its total, which is
+  what makes these sums reconcile to the paisa.</p>
+
+<h2>By state &mdash; place of supply (GSTR-1 B2C)</h2>
+<div class="card scroll">
+  <table>
+    <thead><tr><th>Code</th><th>State</th><th class="n">Invoices</th><th class="n">Taxable</th>
+      <th class="n">Tax</th><th class="n">Total</th><th class="n">Credit notes</th><th class="n">Credited</th>
+      <th class="n">Net taxable</th><th class="n">Net total</th></tr></thead>
+    <tbody>
+    {% for row in view.by_state %}
+      <tr><td class="mono">{{ row.key or '-' }}</td><td>{{ row.label }}</td>
+        <td class="n">{{ row.invoices.count }}</td>
+        <td class="n">{{ (row.invoices.base_paise / 100)|rupees }}</td>
+        <td class="n">{{ (row.invoices.tax_paise / 100)|rupees }}</td>
+        <td class="n">{{ (row.invoices.total_paise / 100)|rupees }}</td>
+        <td class="n">{{ row.credit_notes.count }}</td>
+        <td class="n">{{ (row.credit_notes.total_paise / 100)|rupees }}</td>
+        <td class="n">{{ (row.net.base_paise / 100)|rupees }}</td>
+        <td class="n">{{ (row.net.total_paise / 100)|rupees }}</td></tr>
+    {% else %}
+      <tr><td colspan="10" class="quiet">Nothing was issued in {{ view.label }}.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<h2>By product</h2>
+<div class="card scroll">
+  <table>
+    <thead><tr><th>Product</th><th>Description</th><th class="n">Invoices</th><th class="n">Taxable</th>
+      <th class="n">Tax</th><th class="n">Total</th><th class="n">Credit notes</th><th class="n">Credited</th>
+      <th class="n">Net total</th></tr></thead>
+    <tbody>
+    {% for row in view.by_product %}
+      <tr><td class="mono">{{ row.key or '-' }}</td><td>{{ row.label }}</td>
+        <td class="n">{{ row.invoices.count }}</td>
+        <td class="n">{{ (row.invoices.base_paise / 100)|rupees }}</td>
+        <td class="n">{{ (row.invoices.tax_paise / 100)|rupees }}</td>
+        <td class="n">{{ (row.invoices.total_paise / 100)|rupees }}</td>
+        <td class="n">{{ row.credit_notes.count }}</td>
+        <td class="n">{{ (row.credit_notes.total_paise / 100)|rupees }}</td>
+        <td class="n">{{ (row.net.total_paise / 100)|rupees }}</td></tr>
+    {% else %}
+      <tr><td colspan="9" class="quiet">Nothing was issued in {{ view.label }}.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<h2>Invoices</h2>
+<div class="card scroll">
+  <table>
+    <thead><tr><th>Invoice no</th><th>Date (IST)</th><th>Order</th><th>State</th><th>Product</th>
+      <th>E-mail</th><th class="n">Taxable</th><th class="n">CGST</th><th class="n">SGST</th>
+      <th class="n">IGST</th><th class="n">Not cl.</th><th class="n">Total</th><th>Status</th>
+      <th>Credit notes</th><th>Internal</th></tr></thead>
+    <tbody>
+    {% for row in view.invoices %}
+      <tr><td class="mono">{{ row.number }}</td>
+        <td class="mono">{{ row.when.strftime('%d %b %H:%M') if row.when else '-' }}</td>
+        <td><a href="/admin/orders/{{ row.order_id }}">open</a></td>
+        <td>{{ row.state_name }}</td><td>{{ row.product }}</td><td>{{ row.email }}</td>
+        <td class="n">{{ row.base_inr|rupees }}</td><td class="n">{{ row.cgst_inr|rupees }}</td>
+        <td class="n">{{ row.sgst_inr|rupees }}</td><td class="n">{{ row.igst_inr|rupees }}</td>
+        <td class="n">{{ row.unclassified_inr|rupees }}</td><td class="n">{{ row.total_inr|rupees }}</td>
+        <td>{{ row.status }}</td><td class="mono">{{ row.reference or '-' }}</td>
+        <td>{% if row.internal %}<span class="pill no" title="{{ row.internal_reason }}">internal</span>{% else %}<span class="pill ok">customer</span>{% endif %}</td></tr>
+    {% else %}
+      <tr><td colspan="15" class="quiet">No invoice was issued in {{ view.label }}.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<h2>Credit notes</h2>
+<div class="card scroll">
+  <table>
+    <thead><tr><th>Credit note no</th><th>Date (IST)</th><th>Invoice no</th><th>Order</th><th>State</th>
+      <th>Product</th><th>E-mail</th><th class="n">Taxable</th><th class="n">CGST</th><th class="n">SGST</th>
+      <th class="n">IGST</th><th class="n">Not cl.</th><th class="n">Credited</th><th>Refund</th>
+      <th>Internal</th></tr></thead>
+    <tbody>
+    {% for row in view.credit_notes %}
+      <tr><td class="mono">{{ row.number }}</td>
+        <td class="mono">{{ row.when.strftime('%d %b %H:%M') if row.when else '-' }}</td>
+        <td class="mono">{{ row.reference or '-' }}</td>
+        <td><a href="/admin/orders/{{ row.order_id }}">open</a></td>
+        <td>{{ row.state_name }}</td><td>{{ row.product }}</td><td>{{ row.email }}</td>
+        <td class="n">{{ row.base_inr|rupees }}</td><td class="n">{{ row.cgst_inr|rupees }}</td>
+        <td class="n">{{ row.sgst_inr|rupees }}</td><td class="n">{{ row.igst_inr|rupees }}</td>
+        <td class="n">{{ row.unclassified_inr|rupees }}</td><td class="n">{{ row.total_inr|rupees }}</td>
+        <td>{{ row.status }}</td>
+        <td>{% if row.internal %}<span class="pill no" title="{{ row.internal_reason }}">internal</span>{% else %}<span class="pill ok">customer</span>{% endif %}</td></tr>
+    {% else %}
+      <tr><td colspan="15" class="quiet">No credit note was issued in {{ view.label }}.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<p class="sub">A credit note is filed in the month it was <b>issued</b>, which is often a later month than
+  the invoice it reduces - so a note here can reference an invoice that is not in this month's list, and
+  that is correct. The month-end message goes out on the 1st at 09:00 IST from
+  <code>python -m app.admin.accounting --email</code>; it links to this page and attaches nothing.</p>
+{% endblock %}

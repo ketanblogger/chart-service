@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block title %}Orders{% endblock %}
+{% block sub %}No birth date, time or place on this page, and addresses are masked. The full address is on
+  the order page, and opening one is written to the audit log.{% endblock %}
+{% block body %}
+<form class="filters" method="get" action="/admin/orders">
+  <label>Days<select name="days">
+    {% for value in [0, 1, 7, 30, 90] %}<option value="{{ value }}" {{ 'selected' if filters.days == value }}>{{ 'all' if not value else value }}</option>{% endfor %}
+  </select></label>
+  <label>Status<select name="status"><option value="">any</option>
+    {% for value in statuses %}<option value="{{ value }}" {{ 'selected' if filters.status == value }}>{{ value }}</option>{% endfor %}
+  </select></label>
+  <label>Fulfilment<select name="fulfilment"><option value="">any</option>
+    {% for value in fulfilments %}<option value="{{ value }}" {{ 'selected' if filters.fulfilment == value }}>{{ value }}</option>{% endfor %}
+  </select></label>
+  <label>Product<select name="product"><option value="">any</option>
+    {% for value in products %}<option value="{{ value }}" {{ 'selected' if filters.product == value }}>{{ value }}</option>{% endfor %}
+  </select></label>
+  <label>Language<select name="language"><option value="">any</option>
+    {% for value in ['en', 'hi', 'mr'] %}<option value="{{ value }}" {{ 'selected' if filters.language == value }}>{{ value }}</option>{% endfor %}
+  </select></label>
+  <input type="submit" value="Filter">
+</form>
+
+<div class="card scroll">
+  <table>
+    <thead><tr>
+      <th>Paid (IST)</th><th>Product</th><th>Lang</th><th class="n">Net</th><th>Status</th>
+      <th class="n">Gen time</th><th class="n">AI cost</th><th class="n">Margin</th><th>E-mail</th><th>PDF</th><th></th>
+    </tr></thead>
+    <tbody>
+    {% for row in rows %}
+      <tr>
+        <td class="mono">{{ row.when.strftime('%d %b %H:%M') if row.when else '-' }}</td>
+        <td>{{ row.product }}{% if row.kind == 'pack' %} <span class="pill">pack</span>{% endif %}</td>
+        <td>{{ row.language }}</td>
+        <td class="n">{{ row.net_inr|rupees }}{% if not row.gst_recorded %}<span class="quiet" title="no GST split recorded: this is the gross">*</span>{% endif %}</td>
+        <td><span class="pill {{ 'ok' if row.fulfilment == 'ready' else 'no' if row.fulfilment == 'failed' }}">{{ row.status }}/{{ row.fulfilment }}</span>
+            {% if row.attempts and row.attempts > 1 %}<span class="pill">{{ row.attempts }} attempts</span>{% endif %}</td>
+        <td class="n">{{ row.seconds|minutes }}</td>
+        <td class="n">{{ row.cost_inr|rupees }}</td>
+        <td class="n">{{ row.margin_inr|rupees }}{% if row.margin_percent is not none %}<span class="quiet"> {{ row.margin_percent|pct }}</span>{% endif %}</td>
+        <td>{{ row.email }}</td>
+        <td>{% if row.downloaded %}<span class="pill ok">yes</span>{% else %}<span class="pill">no</span>{% endif %}</td>
+        <td><a href="/admin/orders/{{ row.id }}">open</a></td>
+      </tr>
+    {% else %}
+      <tr><td colspan="11" class="quiet">No order matches this filter.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+<p class="sub"><b>E-mail</b> is the masked address captured at checkout; whether the order-link message was
+  actually delivered is <b>not recorded</b> per order (see the order page). <b>PDF</b> is "a PDF file exists
+  for this report", which happens on the first download request - it cannot count repeat downloads and says
+  nothing about a customer who read the report on the web page. <b>Margin</b> is blank when the AI cost is
+  not recorded. <b>*</b> marks an amount with no GST split recorded, shown as the gross.</p>
+{% endblock %}

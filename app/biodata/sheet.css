@@ -1,0 +1,125 @@
+/* The biodata sheet. One stylesheet for twenty designs: everything that differs between them is a
+   custom property set on :root by the template, so a layout fix lands on all twenty at once.
+
+   PRINTS ON A4 AND READS ON A PHONE. The same document is the PDF, the .docx's source of truth and
+   the on-page preview, so the measurements are in millimetres where the page cares and the preview
+   simply scales the whole sheet down. */
+@page { size: A4; margin: 0; }
+
+/* THE SAME TWO FACES, DECLARED THE SAME WAY as app/pdf/templates/print.css, because this sheet
+   inlines THIS stylesheet and not that one - and a document with no @font-face at all renders every
+   Devanagari character as a box. Paths are relative to the document URL, which app/pdf/browser.py
+   serves the fonts from. */
+@font-face { font-family: "Report Devanagari"; font-weight: 400; font-style: normal;
+  src: url("fonts/NotoSansDevanagari-Regular.ttf") format("truetype");
+  unicode-range: U+0900-097F, U+1CD0-1CFF, U+200C-200D, U+20B9, U+25CC, U+A830-A839, U+A8E0-A8FF; }
+@font-face { font-family: "Report Devanagari"; font-weight: 700; font-style: normal;
+  src: url("fonts/NotoSansDevanagari-Bold.ttf") format("truetype");
+  unicode-range: U+0900-097F, U+1CD0-1CFF, U+200C-200D, U+20B9, U+25CC, U+A830-A839, U+A8E0-A8FF; }
+@font-face { font-family: "Report Sans"; font-weight: 400; font-style: normal;
+  src: url("fonts/NotoSans-Regular.ttf") format("truetype"); }
+@font-face { font-family: "Report Sans"; font-weight: 700; font-style: normal;
+  src: url("fonts/NotoSans-Bold.ttf") format("truetype"); }
+
+.biodata {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--body);
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+
+.sheet {
+  position: relative;
+  box-sizing: border-box;
+  width: 210mm;
+  min-height: 297mm;
+  margin: 0 auto;
+  padding: 16mm 16mm 12mm;
+  background: var(--paper);
+}
+
+/* The frame ornaments are stretched over the whole sheet; the rules sit in the flow. */
+.orn { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.orn--arch, .orn--rule { position: static; inset: auto; height: auto; }
+.orn--arch { display: block; width: 46mm; margin: 0 auto 2mm; }
+.orn--rule { display: block; width: 70mm; margin: 3mm auto 0; }
+
+.bd-head { position: relative; text-align: center; }
+.bd-invocation {
+  margin: 0 0 3mm;
+  font-family: var(--head);
+  font-size: 11pt;
+  letter-spacing: .04em;
+  color: var(--accent);
+}
+
+.bd-headline {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8mm;
+}
+.bd-titles { text-align: center; }
+.bd-head h1 {
+  margin: 0;
+  font-family: var(--head);
+  font-size: 22pt;
+  line-height: 1.2;
+  color: var(--ink);
+}
+.bd-sub { margin: 1mm 0 0; font-size: 10pt; color: var(--accent); }
+
+/* The photo. A frame is a SHAPE, not a picture - there is no supplied artwork anywhere in here. */
+.bd-photo { margin: 0; width: 32mm; height: 40mm; overflow: hidden; border: .6mm solid var(--accent); }
+.bd-photo img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.bd-photo--square { border-radius: 0; }
+.bd-photo--rounded { border-radius: 3mm; }
+.bd-photo--oval { border-radius: 50%; }
+.bd-photo--arch { border-radius: 16mm 16mm 1mm 1mm; }
+.bd-photo--ring { border-radius: 50%; border-width: 1.2mm; }
+
+.bd-rule { border: 0; margin: 3mm auto 0; width: 70mm; }
+.bd-rule--rule { border-top: .4mm solid var(--accent); }
+.bd-rule--double-rule { border-top: .4mm solid var(--accent); border-bottom: .2mm solid var(--accent); height: 1.2mm; }
+
+.bd-section { margin: 7mm 0 0; }
+.bd-section h2 {
+  margin: 0 0 2.5mm;
+  padding: 1.4mm 3mm;
+  background: var(--band);
+  font-family: var(--head);
+  font-size: 11.5pt;
+  font-weight: 600;
+  color: var(--ink);
+  border-left: 1mm solid var(--accent);
+}
+
+/* Label and value in two columns, so a long value wraps under itself and not under the label. */
+.bd-rows { margin: 0; display: grid; gap: 1.2mm; }
+.bd-row { display: grid; grid-template-columns: 52mm 1fr; gap: 4mm; align-items: baseline; }
+.bd-row dt { margin: 0; font-size: 10pt; color: var(--accent); }
+.bd-row dd { margin: 0; font-size: 10.5pt; }
+
+/* A row the birth time did not settle. Marked, never hidden: the reader is told it is open. */
+.bd-row--unsettled dd { font-style: italic; }
+
+.bd-note { margin: 2mm 0 0; font-size: 8.5pt; line-height: 1.5; color: var(--accent); }
+
+.bd-qr { margin: 7mm 0 0; display: flex; align-items: center; gap: 5mm; }
+.bd-qr img { width: 24mm; height: 24mm; }
+.bd-qr__text { margin: 0; font-size: 9pt; line-height: 1.5; }
+
+.bd-foot { margin-top: 8mm; text-align: center; }
+/* Small, at the foot. NOT a watermark across the page: this sheet is handed to a prospective family,
+   and a bar through the middle of it would make the tool an embarrassment rather than a credit. */
+.bd-made { margin: 0; font-size: 7.5pt; letter-spacing: .03em; color: var(--accent); opacity: .85; }
+
+/* The on-page preview: the same sheet, scaled, so what is previewed is what prints. */
+.bd-preview { overflow: auto; }
+.bd-preview .sheet { transform: scale(var(--preview-scale, .46)); transform-origin: top left; }
+
+@media screen and (max-width: 560px) {
+  .bd-preview .sheet { transform: scale(var(--preview-scale-phone, .34)); }
+}

@@ -1,0 +1,89 @@
+{# A mobile, vehicle, house or business number: its total, its digit, and how it sits with yours. #}
+{% extends "base.html" %}
+
+{% block title %}{{ title }}{% endblock %}
+{% block meta_description %}{{ meta_description }}{% endblock %}
+
+{% block main %}
+<section class="hero">
+  <div class="wrap">
+    <h1>{{ h1 }}</h1>
+    <p class="hero__sub">{{ words.lead }}</p>
+  </div>
+</section>
+
+<article class="wrap content">
+  <form method="post" class="numerology-form">
+    <p class="field">
+      <label for="num-value">{{ words.number_label }}</label>
+      <input type="text" id="num-value" name="number" maxlength="40" inputmode="numeric"
+             autocomplete="off" value="{{ entered_number }}" required>
+      <span class="field__help">{{ words.number_help }} &mdash; {{ words.kinds|join(' · ') }}</span>
+    </p>
+    {# THE DATE IS OPTIONAL. Somebody checking a number they are about to buy should not have to
+       hand over their birthday to see what it adds up to. #}
+    <fieldset class="field date-parts">
+      <legend>{{ words.fit_heading }}</legend>
+      <select name="day" aria-label="{{ words.day_label|default('Day') }}">
+        <option value="">—</option>
+        {% for d in range(1, 32) %}<option value="{{ d }}"{% if entered_day == d|string %} selected{% endif %}>{{ d }}</option>{% endfor %}
+      </select>
+      <select name="month" aria-label="{{ words.month_label|default('Month') }}">
+        <option value="">—</option>
+        {% for name in month_names %}<option value="{{ loop.index }}"{% if entered_month == loop.index|string %} selected{% endif %}>{{ name }}</option>{% endfor %}
+      </select>
+      <select name="year" aria-label="{{ words.year_label|default('Year') }}">
+        <option value="">—</option>
+        {% for y in years %}<option value="{{ y }}"{% if entered_year == y|string %} selected{% endif %}>{{ y }}</option>{% endfor %}
+      </select>
+    </fieldset>
+    <p><button class="btn btn--cta" type="submit">{{ words.number_heading }}</button></p>
+  </form>
+
+  {% if result %}
+  <div class="numerology-result">
+    {% if result.usable %}
+    <div class="num-cards">
+      <div class="num-card">
+        <h2>{{ words.total_label }}</h2>
+        <p class="num-card__value">{{ result.total }}</p>
+        <p class="quiet">{{ result.digits }}</p>
+      </div>
+      <div class="num-card">
+        <h2>{{ words.number_heading }}</h2>
+        <p class="num-card__value">{{ result.number }}</p>
+        <p class="quiet">{{ words.ruler_label }}: {{ result.ruler }}</p>
+      </div>
+    </div>
+    {% if result.fits %}
+    <h2>{{ words.fit_heading }}</h2>
+    <ul class="plain">
+      {% if result.fits.mulank %}
+      <li>{{ words.fit_mulank }} ({{ result.fits.mulank.against }}):
+        <span class="tag tag--{{ 'yes' if result.fits.mulank.level != 'neutral' else 'no' }}">{{ words.levels[result.fits.mulank.level] }}</span></li>
+      {% endif %}
+      {% if result.fits.bhagyank %}
+      <li>{{ words.fit_bhagyank }} ({{ result.fits.bhagyank.against }}):
+        <span class="tag tag--{{ 'yes' if result.fits.bhagyank.level != 'neutral' else 'no' }}">{{ words.levels[result.fits.bhagyank.level] }}</span></li>
+      {% endif %}
+    </ul>
+    <p class="quiet">{{ words.neutral_note }}</p>
+    {% endif %}
+    {% else %}
+    <p class="quiet">{{ words.unusable }}</p>
+    {% endif %}
+    <p class="fact__sub">{{ words.disclaimer }}</p>
+    {% if report_cta %}
+    <section class="ask-box ask-box--report" aria-labelledby="report-cta-heading">
+      <h2 id="report-cta-heading">{{ report_cta.heading }}</h2>
+      <p>{{ report_cta.body }}</p>
+      <p><a class="btn btn--cta" href="{{ report_cta.path }}">{{ report_cta.button }} <span aria-hidden="true">&rarr;</span></a></p>
+    </section>
+    {% endif %}
+
+  </div>
+  {% endif %}
+
+  <p><a href="{{ numerology_path }}">{{ words.back_to_calculator }}</a></p>
+</article>
+{% endblock %}

@@ -1,0 +1,80 @@
+{# The Lo Shu grid on its own page: the grid first, the planes under it, the convention stated. #}
+{% extends "base.html" %}
+
+{% block title %}{{ title }}{% endblock %}
+{% block meta_description %}{{ meta_description }}{% endblock %}
+
+{% block main %}
+<section class="hero">
+  <div class="wrap">
+    <h1>{{ h1 }}</h1>
+    <p class="hero__sub">{{ words.lead }}</p>
+  </div>
+</section>
+
+<article class="wrap content">
+  <form method="post" class="numerology-form">
+    <fieldset class="field date-parts">
+      <legend>{{ words.dob_label }}</legend>
+      <select name="day" aria-label="{{ words.day_label }}" required>
+        <option value="">{{ words.day_label }}</option>
+        {% for d in range(1, 32) %}<option value="{{ d }}"{% if entered_day == d|string %} selected{% endif %}>{{ d }}</option>{% endfor %}
+      </select>
+      <select name="month" aria-label="{{ words.month_label }}" required>
+        <option value="">{{ words.month_label }}</option>
+        {% for name in month_names %}<option value="{{ loop.index }}"{% if entered_month == loop.index|string %} selected{% endif %}>{{ name }}</option>{% endfor %}
+      </select>
+      <select name="year" aria-label="{{ words.year_label }}" required>
+        <option value="">{{ words.year_label }}</option>
+        {% for y in years %}<option value="{{ y }}"{% if entered_year == y|string %} selected{% endif %}>{{ y }}</option>{% endfor %}
+      </select>
+    </fieldset>
+    <p><button class="btn btn--cta" type="submit">{{ words.submit }}</button></p>
+  </form>
+
+  {% if result %}
+  <div class="numerology-result">
+    <h2>{{ words.grid_heading }}</h2>
+    <table class="lo-shu">
+      <tbody>
+        {% for row in result.rows %}
+        <tr>
+          {% for cell in row %}
+          <td class="lo-shu__cell{% if not cell.count %} lo-shu__cell--empty{% endif %}">
+            <span class="lo-shu__n">{{ cell.number }}</span>
+            {% if cell.count %}<span class="lo-shu__count">{{ cell.number|string * cell.count }}</span>{% endif %}
+          </td>
+          {% endfor %}
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    <p class="quiet">{{ words.repeated_label }}: {{ result.repeated|join(', ') or words.none }}
+      &middot; {{ words.missing_label }}: {{ result.missing|join(', ') or words.none }}</p>
+    <p class="quiet">{{ words.missing_note }}</p>
+
+    <h2>{{ words.planes_heading }}</h2>
+    <ul class="plain">
+      {% for key, cells in planes.items() %}
+      <li>{{ words.plane_names[key] }}:
+        <span class="tag tag--{{ 'yes' if result.planes[key] else 'no' }}">{{ words.complete if result.planes[key] else words.incomplete }}</span></li>
+      {% endfor %}
+    </ul>
+    <p class="fact__sub">{{ words.disclaimer }}</p>
+    {% if report_cta %}
+    <section class="ask-box ask-box--report" aria-labelledby="report-cta-heading">
+      <h2 id="report-cta-heading">{{ report_cta.heading }}</h2>
+      <p>{{ report_cta.body }}</p>
+      <p><a class="btn btn--cta" href="{{ report_cta.path }}">{{ report_cta.button }} <span aria-hidden="true">&rarr;</span></a></p>
+    </section>
+    {% endif %}
+
+  </div>
+  {% endif %}
+
+  <h2>{{ words.method_heading }}</h2>
+  {# WHICH CONVENTION, stated plainly: schools differ on whether the mulank and bhagyank go in. #}
+  <p>{{ words.method[3] }}</p>
+  <p><a href="{{ numerology_path }}">{{ words.back_to_calculator }}</a></p>
+</article>
+{% endblock %}

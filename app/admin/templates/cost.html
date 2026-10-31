@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% block title %}Cost ledger{% endblock %}
+{% block sub %}Every rupee of AI spend over {{ view.days }} IST days, and where it went. Dollar costs are
+  converted at the current USD_INR of {{ '%g'|format(view.usd_inr) }}.{% endblock %}
+{% block body %}
+<div class="tiles">
+  <div class="tile"><div class="k">Spend, {{ view.days }} days</div><div class="v">{{ view.spent_inr|rupees }}</div>
+    <div class="n">against {{ view.net_revenue_inr|rupees }} of net revenue</div></div>
+  <div class="tile"><div class="k">Cost per Rs of revenue</div>
+    <div class="v">{% if view.cost_per_rupee is none %}<span class="unknown">no revenue</span>{% else %}{{ '%.3f'|format(view.cost_per_rupee) }}{% endif %}</div>
+    <div class="n">rupees of AI per rupee kept</div></div>
+  <div class="tile"><div class="k">{{ view.projection.month }}</div><div class="v">{{ view.projection.projected_inr|rupees }}</div>
+    <div class="n">{{ view.projection.spent_inr|rupees }} in {{ view.projection.elapsed_days }} of
+      {{ view.projection.days_in_month }} days, straight-line</div></div>
+</div>
+
+<div class="card">
+  <div class="k quiet">Daily AI spend (Rs), stacked</div>
+  {{ spend_chart|safe }}
+  {{ spend_legend|safe }}
+</div>
+
+<div class="note"><b>The "failed work" bucket is empty and that is not a zero.</b>
+  <code>finish_fulfilment</code> writes <code>cost_inr</code> only when a generation succeeds - deliberately,
+  so a re-fulfilment cannot overwrite what a sale really cost - so tokens burned by a generation that then
+  failed leave no cost anywhere. This page does not estimate it. The size of the hole in this window:
+  <b>{{ view.blind_spot.retried_attempts }}</b> retried attempt(s),
+  <b>{{ view.blind_spot.orders_failed }}</b> order(s) currently failed,
+  <b>{{ view.blind_spot.orders_without_cost }}</b> paid order(s) with no recorded cost at all, and
+  <b>{{ view.blind_spot.consultation_replies_without_cost }}</b> consultation reply(ies) with no recorded cost.</div>
+
+<div class="card scroll">
+  <table>
+    <thead><tr><th>Day</th>{% for label, key in series %}<th class="n">{{ label }}</th>{% endfor %}
+      <th class="n">Total</th><th class="n">Net revenue</th><th class="n">Cost / Rs</th></tr></thead>
+    <tbody>
+    {% for row in view.rows|reverse %}
+      <tr><td class="mono">{{ row.day }}</td>
+        {% for label, key in series %}<td class="n">{{ row.spend[key]|rupees }}</td>{% endfor %}
+        <td class="n"><b>{{ row.total|rupees }}</b></td>
+        <td class="n">{{ row.net_revenue_inr|rupees }}</td>
+        <td class="n">{% if row.cost_per_rupee is none %}<span class="quiet">-</span>{% else %}{{ '%.3f'|format(row.cost_per_rupee) }}{% endif %}</td></tr>
+    {% endfor %}
+    </tbody>
+    <tfoot><tr><th>Total</th>{% for label, key in series %}<th class="n">{{ view.totals[key]|rupees }}</th>{% endfor %}
+      <th class="n">{{ view.spent_inr|rupees }}</th><th class="n">{{ view.net_revenue_inr|rupees }}</th><th></th></tr></tfoot>
+  </table>
+  <p class="sub">A report's cost is counted on the day its order was <b>paid</b>, not the day the file was
+    written: generation follows payment by minutes, and it is the sale's day that makes "cost per rupee of
+    revenue" a ratio of two figures from the same day.</p>
+</div>
+
+<div class="two">
+  <div class="card">
+    <h2 style="margin-top:0">By model</h2>
+    <table>
+      <thead><tr><th>Model</th><th class="n">Cost</th></tr></thead>
+      <tbody>{% for row in view.by_model %}<tr><td class="mono">{{ row.model }}</td><td class="n">{{ row.cost_inr|rupees }}</td></tr>
+      {% else %}<tr><td colspan="2" class="quiet">Nothing costed in this window.</td></tr>{% endfor %}</tbody>
+    </table>
+    <p class="sub">Reports and rashifal. The consultation's model is in its per-message record and its spend
+      is per reply rather than per sale, so it is in the daily table and not here.</p>
+  </div>
+  <div class="card">
+    <h2 style="margin-top:0">By language of the sale</h2>
+    <table>
+      <thead><tr><th>Language</th><th class="n">Orders</th><th class="n">AI cost</th></tr></thead>
+      <tbody>{% for row in view.by_language %}<tr><td>{{ row.language }}</td><td class="n">{{ row.orders }}</td>
+        <td class="n">{{ row.cost_inr|rupees }}</td></tr>
+      {% else %}<tr><td colspan="3" class="quiet">No paid order in this window.</td></tr>{% endfor %}</tbody>
+    </table>
+    <p class="sub">Rashifal is written in all three languages in one run and its report carries no
+      per-language cost, so it is left out of this table rather than divided by three.</p>
+  </div>
+</div>
+<p class="sub"><a href="/admin/export/daily-cost.csv">Download the daily ledger as CSV</a> &mdash; aggregates
+  only, one row per day. There is no export of customer rows.</p>
+{% endblock %}

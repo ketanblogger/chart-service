@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% block title %}Rashifal ops{% endblock %}
+{% block sub %}{{ view.run_count }} run report(s) on disk. {{ view.how_it_runs }}.{% endblock %}
+{% block body %}
+<div class="tiles">
+  <div class="tile"><div class="k">Last run</div>
+    <div class="v">{% if view.last_run %}{{ view.last_run.when.strftime('%d %b %H:%M') }}{% else %}<span class="unknown">none</span>{% endif %}</div>
+    <div class="n">{% if view.last_run %}{{ view.last_run.generated }} generated, {{ view.last_run.failed }} failed,
+      {{ view.last_run.cost_inr|rupees }}{% else %}no run report has been written{% endif %}</div></div>
+  <div class="tile"><div class="k">Stale pages</div>
+    <div class="v">{% if view.stale_total %}<span class="unknown">{{ view.stale_total }}</span>{% else %}0{% endif %}</div>
+    <div class="n">of 60; {{ view.missing_total }} never generated, {{ view.incomplete_total }} missing a language</div></div>
+  <div class="tile"><div class="k">Next window turns over</div>
+    <div class="v">{% if view.next %}{{ view.next.period }}{% else %}-{% endif %}</div>
+    <div class="n">{% if view.next %}{{ view.next['in'] }}, at {{ view.next.at.strftime('%d %b %H:%M') }} IST{% endif %}</div></div>
+</div>
+
+<div class="note">The "next" figure is a window <b>boundary</b>, not a job time. In production the refresh is a
+  systemd timer that this process cannot see, so the page reports what the pages themselves will need and
+  which of the two refresh routes is configured - never an invented "next run at".</div>
+
+<h2>Pages per period</h2>
+<div class="card scroll">
+  <table>
+    <thead><tr><th>Period</th><th>Current window (IST)</th><th class="n">Covering it</th><th class="n">Stale</th>
+      <th class="n">Missing</th><th>Incomplete languages</th></tr></thead>
+    <tbody>
+    {% for row in view.periods %}
+      <tr><td><b>{{ row.period }}</b></td>
+        <td class="mono">{{ row.window_start }} &rarr; {{ row.window_end }}</td>
+        <td class="n">{{ row.fresh }} / {{ row.total }}</td>
+        <td class="n">{% if row.stale %}<span class="unknown">{{ row.stale|length }}</span>{% else %}0{% endif %}</td>
+        <td class="n">{{ row.missing|length }}</td>
+        <td class="quiet">{% for item in row.incomplete %}{{ item.rashi }}:{{ item.missing|join('/') }} {% endfor %}</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  <p class="sub">"Stale" uses <code>window_for</code> from app/rashifal/periods.py - the same function the
+    refresh itself uses - so this list cannot disagree with what the next run will actually regenerate.</p>
+</div>
+
+<h2>Recent runs</h2>
+<div class="card scroll">
+  <table>
+    <thead><tr><th>When (IST)</th><th>Periods</th><th>Model</th><th class="n">Gen</th><th class="n">Partial</th>
+      <th class="n">Skipped</th><th class="n">Failed</th><th class="n">Calls</th><th class="n">Minutes</th>
+      <th class="n">Cost</th><th class="n">Per page</th><th>Checker rejections</th></tr></thead>
+    <tbody>
+    {% for run in view.runs %}
+      <tr><td class="mono">{{ run.when.strftime('%d %b %H:%M') }}{% if run.batch %} <span class="pill">batch</span>{% endif %}</td>
+        <td>{{ run.periods }}</td><td class="mono">{{ run.model }}</td>
+        <td class="n">{{ run.generated }}</td><td class="n">{{ run.partial }}</td><td class="n">{{ run.skipped }}</td>
+        <td class="n">{% if run.failed %}<span class="unknown">{{ run.failed }}</span>{% else %}0{% endif %}</td>
+        <td class="n">{{ run.calls }}</td><td class="n">{{ '%.1f'|format(run.minutes) }}</td>
+        <td class="n">{{ run.cost_inr|rupees }}</td><td class="n">{{ run.cost_per_page|rupees }}</td>
+        <td class="quiet">{% for code, count in run.failed_by_language.items() %}<span class="pill">{{ code }} {{ count }}</span>{% endfor %}</td></tr>
+    {% else %}<tr><td colspan="12" class="quiet">No run report on disk.</td></tr>{% endfor %}
+    </tbody>
+  </table>
+  <p class="sub">Per-language figures: a run report records how many language versions the <b>checker
+    rejected</b>, and nothing else per language - generated and skipped counts are per page across all
+    three. A per-language "generated" would have to be invented by division, and Marathi is exactly the
+    column somebody would act on.</p>
+</div>
+
+<h2>What the checker refused, most recent first</h2>
+<div class="card">
+  <ul class="sub">
+  {% for item in view.rejections %}
+    <li><span class="pill">{{ item.language }}</span> <b>{{ item.rashi }}/{{ item.period }}</b>
+      attempt {{ item.attempt }}: <span class="mono">{{ item.message }}</span></li>
+  {% else %}<li class="quiet">No rejection in any run report on disk.</li>{% endfor %}
+  </ul>
+</div>
+{% endblock %}

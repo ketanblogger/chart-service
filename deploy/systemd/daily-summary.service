@@ -1,0 +1,32 @@
+# Yesterday's business summary to ADMIN_EMAILS. Installed with its timer:
+#   sudo cp deploy/systemd/daily-summary.* /etc/systemd/system/
+#   sudo systemctl daemon-reload && sudo systemctl enable --now daily-summary.timer
+#   systemctl list-timers daily-summary.timer ; journalctl -u daily-summary.service -n 50
+#
+# YESTERDAY, not "the last 24 hours". --digest with no date takes the IST calendar day that just ended,
+# which is the window every other number on the admin uses - two figures measured over different
+# windows cannot be compared, and somebody will compare them anyway.
+#
+# Sending is deduplicated per day in the same table as the alerts, so a manual run, a retry, or a timer
+# that fires twice cannot send two.
+[Unit]
+Description=Daily business summary: yesterday's visitors, orders, revenue and what failed
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=astro
+Group=astro
+WorkingDirectory=/srv/astrology
+# .env is read by the app itself (python-dotenv); nothing secret lives in this unit.
+ExecStart=/srv/astrology/.venv/bin/python -m app.admin.alerts --digest
+TimeoutStartSec=30m
+Nice=10
+# Reads the day and writes one dedupe row; var/ is all it touches.
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=/srv/astrology/var
+UMask=0027

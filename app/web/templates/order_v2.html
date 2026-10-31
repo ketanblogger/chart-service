@@ -1,0 +1,28 @@
+{# The purchase page in the full-width design. The SHELL changes and nothing else: the contents come from
+   _order_body.html, the same file the previous shell includes, so no id, class or data-* attribute that
+   pay.js or the payments browser check depends on can differ between them.
+
+   The invoice and credit-note PRINT layouts are not here and are not touched - they are rendered by
+   app/payments/, and a document that has been issued to a customer does not get restyled. #}
+{% extends "base.html" %}
+
+{% block body_class %} class="design-v2"{% endblock %}
+{% block title %}{{ order.labels.title }} - {{ site_name }}{% endblock %}
+{% block meta_description %}{{ order.labels.description }}{% endblock %}
+{% block head_extra %}
+<meta name="robots" content="noindex, nofollow">
+<meta name="referrer" content="no-referrer">
+<link rel="stylesheet" href="/static/css/design-v2.css?v={{ static_version }}">
+{% endblock %}
+
+{% block main %}
+<div id="design-v2" class="v2">
+<div class="wrap order v2-order-page">
+  {% include "_order_body.html" %}
+</div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/js/pay.js?v={{ static_version }}" defer data-pay data-enabled="{{ '1' if payments_enabled else '0' }}"></script>
+{% endblock %}

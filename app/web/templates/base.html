@@ -1,0 +1,290 @@
+{# Layout of every page. Language, canonical, hreflang, nav, footer and switcher come from routes.page_context();
+   internal links are never spelled here - `href("page-key")` gives the path in the current language. #}
+<!DOCTYPE html>
+<html lang="{{ html_lang }}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}{{ site_name }}{% endblock %}</title>
+  <meta name="description" content="{% block meta_description %}{% endblock %}">
+  {# ROBOTS, SITE-WIDE AND OVERRIDABLE. max-image-preview:large is what lets Google show a full-width
+     picture beside a result instead of a thumbnail, and it is the whole reason the share cards and
+     the sign symbols are worth having in search. A page that must not be indexed overrides this
+     block rather than adding a SECOND robots meta, because two of them is a rule nobody can read off
+     the page. #}
+  <meta name="robots" content="{% block robots %}max-image-preview:large{% endblock %}">
+  <link rel="canonical" href="{{ canonical }}">
+  {% for alt in alternates %}
+  <link rel="alternate" hreflang="{{ alt.hreflang }}" href="{{ alt.href }}">
+  {% endfor %}
+  <meta property="og:type" content="{% block og_type %}website{% endblock %}">
+  <meta property="og:site_name" content="{{ site_name }}">
+  <meta property="og:title" content="{{ self.title() }}">
+  <meta property="og:description" content="{{ self.meta_description() }}">
+  <meta property="og:url" content="{{ canonical }}">
+  <meta property="og:locale" content="{{ og_locale }}">
+  {# THE PICTURE A SHARE ARRIVES WITH. There was none at all until now, so every link sent on WhatsApp
+     showed as a bare blue line - the one moment somebody's friend decides whether to tap. An absolute
+     URL, because a crawler fetching the card has no page to resolve a relative one against.
+     twitter:card is the large-image form; without it X crops to a thumbnail. #}
+  <meta property="og:image" content="{{ og_image }}">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="{{ og_image_alt }}">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:image" content="{{ og_image }}">
+  {% for item in switcher if not item.current and alternates %}
+  <meta property="og:locale:alternate" content="{{ item.lang }}_IN">
+  {% endfor %}
+  <meta name="twitter:card" content="summary">
+  <meta name="theme-color" content="#241B54">
+  {# The SVG comes first so a modern browser takes it: it is drawn for the size rather than downscaled to it.
+     The PNGs are the fallback; /favicon.ico, /apple-touch-icon.png and /site.webmanifest are ALSO served from
+     the root by app/main.py, because a browser asks for those before it has parsed any of this. The manifest
+     carries no ?v= - its URL is its identity to the install prompt. #}
+  <link rel="icon" href="/static/favicon.svg?v={{ static_version }}" type="image/svg+xml">
+  <link rel="icon" href="/static/icons/favicon-32.png?v={{ static_version }}" sizes="32x32" type="image/png">
+  <link rel="icon" href="/static/icons/favicon-16.png?v={{ static_version }}" sizes="16x16" type="image/png">
+  <link rel="apple-touch-icon" href="/static/icons/apple-touch-icon-180.png?v={{ static_version }}">
+  <link rel="manifest" href="/site.webmanifest">
+  <link rel="stylesheet" href="/static/css/site.css?v={{ static_version }}">
+  {# The Devanagari fallback face, on the Hindi and Marathi trees only. The English tree has no Devanagari
+     to draw, so the stylesheet is not even requested there. Linking the sheet costs a small CSS file; the
+     font itself is fetched only by a device whose own Devanagari families are all missing, because the
+     face sits last in the stack and a browser downloads a webfont only when it needs one. #}
+  {# THE ENGLISH TREE LINKS THE SHEET TOO, WITHOUT THE PRELOAD, and the comment above was wrong about
+     why it did not. "The English tree has no Devanagari to draw" is false: every English page carries
+     the language switcher, whose labels are हिन्दी and मराठी in their own scripts - which is right,
+     because somebody looking for the Hindi site looks for that word. On a device with no Devanagari
+     family of its own those two labels were BOXES, and the reader they were boxes for is exactly the
+     one who needed to read them. Found in a screenshot of the admin preview, which frames a real page.
+
+     No preload here: on a Hindi page the face is the whole page and arrives with the document; on an
+     English page it is two words in the header, and a 61 KB preload on every English page view to
+     typeset them would cost far more than it buys. The face still sits last in the stack and is
+     fetched only by a device whose own Devanagari families are all missing. #}
+  {% if lang == "en" %}
+  <link rel="stylesheet" href="/static/css/fonts-devanagari.css?v={{ static_version }}">
+  {% endif %}
+  {% if lang in ("hi", "mr") %}
+  {# PRELOADED, AND THAT IS WHAT MAKES `block` AFFORDABLE. Without the preload the face is discovered
+     only when the stylesheet has parsed and the first Devanagari glyph is needed, which on a throttled
+     connection is late enough that `block` would hold the text invisible for a noticeable beat.
+     With it, the fetch starts with the document.
+     The config this replaced was `optional`, which does not reflow for a late face - it simply declines
+     to use it - so a reader with no Devanagari font of their own saw BOXES on their first page and
+     correct text only from the second. CLS 0 is not worth that on the two trees these readers use.
+     It costs 61 KB on the Hindi and Marathi trees for readers who already have the family and would
+     otherwise have downloaded nothing. That is the trade and it was taken deliberately.
+
+     NO ?v= HERE, AND THAT IS NOT AN OVERSIGHT. A preload only satisfies a later request when the URL
+     matches it exactly, and fonts-devanagari.css asks for this file with no query - it is a static file
+     that Jinja never sees, so it cannot carry a version. With `?v=` on this tag the two were different
+     URLs and therefore different cache entries: the 61 KB subset was fetched TWICE on every Hindi and
+     Marathi page, and the preload satisfied nothing. Chromium said so in the console the whole time
+     ("preloaded using link preload but not used"), and the measurements that chose this configuration
+     were taken on the double-downloading page.
+     The consequence to remember: a changed subset needs a NEW FILENAME, because neither URL carries a
+     version any more. #}
+  <link rel="preload" as="font" type="font/woff2" crossorigin
+        href="/static/fonts/NotoSansDevanagari-Regular.subset.woff2">
+  <link rel="stylesheet" href="/static/css/fonts-devanagari.css?v={{ static_version }}">
+  {% endif %}
+  {# Google Analytics 4, one property for all three language trees. It is here in base.html and nowhere else,
+     so every page carries it exactly once. The measurement ID is spelled once, on the first tag, and reaches
+     static/js/analytics.js through the data attribute; that file holds what Google's own snippet puts inline,
+     because the CSP forbids inline scripts (see the comment at the top of it). Both tags are async, so neither
+     costs any render time and their order does not matter: window.dataLayer is a queue, and whichever runs
+     first either fills it or drains it. The loader is the only third-party request in the site's HTML, and
+     its host is named in the CSP in app/hardening.py. #}
+  {% set ga_measurement_id = "G-FYQ4092WMP" %}
+  {# ONE TAG, NOT TWO. Google's loader is no longer discovered here: analytics.js fetches it after load,
+     when the browser is idle or at the reader's first interaction. It is 526 KB, which on the rashifal
+     page was 75% of the page's entire weight, and nothing a reader came for should queue behind it. No
+     event is lost by waiting - dataLayer is a queue until the loader drains it. #}
+  <script src="/static/js/analytics.js?v={{ static_version }}" async data-ga-id="{{ ga_measurement_id }}"></script>
+  {% for block in json_ld|default([]) %}
+  <script type="application/ld+json">
+{{ block }}
+  </script>
+  {% endfor %}
+  {% block head_extra %}{% endblock %}
+</head>
+{# `body_class` emits a whole ` class="..."` attribute or nothing at all, so a page that does not use it
+   renders `<body>` exactly as before rather than `<body class="">`. #}
+{# `data-signed-in` is read by keep-details.js, which asks a question held from before the sign-in only
+   once there is a session to ask it with. A class would have done, but this is state rather than style. #}
+<body{% block body_class %}{% endblock %} data-signed-in="{{ '1' if signed_in else '0' }}">
+  <a class="skip-link" href="#main">{{ ui.skip }}</a>
+  <header class="site-header">
+    <div class="wrap site-header__inner">
+      <div class="site-header__top">
+        {# The lockup holds the wordmark alone now: the poetic brand line used to sit under it on every page
+           and, stacked above the trust line, it made the chrome read as two competing subtitles. It is a
+           one-time flourish in the home hero instead. The lockup stays because it is what keeps the language
+           switcher on the wordmark's row rather than on a row of its own. #}
+        <div class="brand-lockup">
+        <a class="brand" href="{{ home_path }}">
+          {# The EMBLEM, not the full logo: the full artwork has a kundali lattice inside the planet, and at
+             32 CSS px on a 1x screen that lattice does not read as a faint chart - it reads as dirt on the
+             gold. The emblem is the same mark without it and is clean at every density, so one asset serves
+             all of them. The full logo belongs on surfaces with the pixels to show the grid.
+             alt="" on purpose: the wordmark beside it already names the link, and a screen reader should not
+             hear the site name twice. Width and height are set so the row reserves its space before the image
+             loads and the header cannot jump. #}
+          {# The emblem, and around it an orbit ring drawn here rather than baked into the artwork, so it
+             can turn - once a minute, and only where motion is welcome. The ring is positioned over the
+             image inside a box of the image's own size, so the header reserves exactly what it did. #}
+          <span class="brand__orbit">
+            <img class="brand__mark" src="/static/brand/emblem-96.png?v={{ static_version }}" alt=""
+                 width="32" height="32" decoding="async">
+            {# ONE ARC, not a dashed ring. The emblem already has an orbit drawn into the artwork, so a
+               second broken ring around it read as speckle at 32px. This is a single short arc on a wider
+               orbit, which at one turn a minute reads as something travelling rather than as noise. #}
+            <svg class="site-logo__ring" width="32" height="32" viewBox="0 0 44 44"
+                 aria-hidden="true" focusable="false">
+              <circle class="site-logo__arc" cx="22" cy="22" r="21" fill="none" stroke="currentColor"
+                      stroke-width="1" stroke-linecap="round" stroke-dasharray="20 112" opacity=".5"/>
+            </svg>
+          </span>
+          <span>{{ site_name }}</span>
+        </a>
+        </div>
+        {# ACCOUNT, beside the language switcher on every page.
+           Until now the sign-in existed only inside the AI astrologer, so a visitor who had an account had
+           no way to reach it, and no way to reach their own orders, from anywhere else on the site.
+           It follows `CHAT_LOGIN`: with the sign-in turned off there is no account to reach, so nothing is
+           shown rather than a link to a page that would only turn the visitor away. #}
+        {% if account_menu %}
+        <nav class="site-account" aria-label="{{ auth.account_aria }}">
+          {% if account_menu.email %}
+          <details class="site-account__menu">
+            <summary>
+              <span class="site-account__who" title="{{ account_menu.email }}">{{ account_menu.short }}</span>
+            </summary>
+            <ul>
+              <li><a href="{{ account_menu.orders_path }}">{{ auth.orders_title }}</a></li>
+          {% if account_menu.admin_path %}<li><a href="{{ account_menu.admin_path }}">Dashboard</a></li>{% endif %}
+              <li><button type="button" id="sign-out" class="site-account__out">{{ auth.sign_out }}</button></li>
+            </ul>
+          </details>
+          {% else %}
+          {# `next` so the visitor lands back where they were, not on a page they never asked for. #}
+          <a class="site-account__in" href="{{ account_menu.login_path }}?next={{ account_menu.here }}">{{ auth.sign_in_short }}</a>
+          {% endif %}
+        </nav>
+        {% endif %}
+        {# Language switcher: one tap to the SAME page in the other languages (SEO map §2). #}
+        <nav class="lang-switch" aria-label="{{ ui.lang_aria }}">
+          <ul>
+            {% for item in switcher %}
+            <li><a href="{{ item.path }}" hreflang="{{ item.hreflang }}" lang="{{ item.hreflang }}" data-lang="{{ item.lang }}"{% if item.current %} aria-current="true"{% endif %}>{{ item.label }}</a></li>
+            {% endfor %}
+          </ul>
+        </nav>
+      </div>
+      {# Trust line (a trust requirement): the calculation engine is named in the chrome of every page,
+         so the nav's own "AI astrologer" entry is never the only thing a visitor reads about how this works. #}
+      <p class="site-tagline">{{ site_tagline }}</p>
+      {# The nav was a horizontal scroller, which put a visible bar under it on any desktop that does not use
+         overlay scrollbars. It is a wrapping list now, collapsed behind a disclosure on narrow screens by
+         static/js/nav.js. Without JavaScript the toggle stays hidden and the full list is simply visible and
+         wrapped - longer, never scrolling, never overflowing. #}
+      {# WITHOUT SCRIPTING, the full list and no button. A disclosure control that cannot open is worse
+         than no control, and this is the one state CSS cannot detect on its own. It is a <style> rather
+         than markup so it changes nothing for the ~99% of readers who do have scripting. #}
+      <noscript><style>
+        @media (max-width: 899px) { .site-nav > ul { display: flex !important; } }
+        .site-nav__toggle { display: none !important; }
+      </style></noscript>
+      <nav class="site-nav" aria-label="{{ ui.nav_aria }}">
+        {# NOT `hidden` ANY MORE. The button used to ship hidden and be revealed by nav.js, which meant
+           the header painted as a full wrapped list and collapsed a second later - the largest layout
+           shift on the site, on every page. A media query decides the state now, so it is correct in
+           the first frame, and the <noscript> block below keeps the no-JavaScript path honest. #}
+        <button type="button" class="site-nav__toggle" aria-expanded="false" aria-controls="site-nav-list">
+          <span class="site-nav__bars" aria-hidden="true"></span>{{ ui.menu }}
+        </button>
+        <ul id="site-nav-list">
+          {% for item in nav %}
+          <li><a href="{{ item.path }}"{% if item.current %} aria-current="page"{% endif %}>{{ item.label }}</a></li>
+          {% endfor %}
+          {# The muhurta finder, when its flag is on. It is outside the URL registry, so it cannot come
+             from `nav` - but a tool with no way in is a tool nobody opens, which is exactly the gap the
+             sign-in had until this week. #}
+          {% if muhurta_link %}
+          <li class="site-nav__extra"><a href="{{ muhurta_link.path }}">{{ muhurta_link.label }}</a></li>
+          {% endif %}
+        </ul>
+        {% if account_menu %}
+        <ul class="site-nav__accountlist">
+            {# THE ACCOUNT, INSIDE THE MENU ON A PHONE. The chip in the header costs a whole extra row at
+               phone width - measured at 158px against a 140px budget that
+               tests/test_layout_widths.py::test_the_logo_does_not_cost_the_header_a_row sets deliberately,
+               with a note that it is not a target to grow into. The menu disclosure already exists and costs
+               nothing, so on a phone the account lives there and the chip is hidden; above the breakpoint the
+               chip shows and these two entries are hidden. One route either way, never both. #}
+            
+            {% if account_menu.email %}
+            <li class="site-nav__account"><a href="{{ account_menu.orders_path }}">{{ auth.orders_title }}</a></li>
+            {% if account_menu.admin_path %}<li class="site-nav__account"><a href="{{ account_menu.admin_path }}">Dashboard</a></li>{% endif %}
+            <li class="site-nav__account"><button type="button" id="sign-out-nav" class="site-nav__out">{{ auth.sign_out }}</button></li>
+            {% else %}
+            <li class="site-nav__account"><a href="{{ account_menu.login_path }}?next={{ account_menu.here }}">{{ auth.sign_in_short }}</a></li>
+            {% endif %}
+        </ul>
+        {% endif %}
+      </nav>
+    </div>
+  </header>
+
+  <main id="main">
+    {% block main %}{% endblock %}
+  </main>
+
+  <footer class="site-footer">
+    <div class="wrap">
+      <nav aria-label="{{ ui.footer_aria }}">
+        <ul class="site-footer__links">
+          <li><a href="{{ home_path }}">{{ ui.home }}</a></li>
+          {% for item in nav %}
+          <li><a href="{{ item.path }}">{{ item.label }}</a></li>
+          {% endfor %}
+          <li><a href="{{ href('rashifal-weekly') }}">{{ weekly_label }}</a></li>
+          {% for item in extra_links %}
+          <li><a href="{{ item.path }}">{{ item.label }}</a></li>
+          {% endfor %}
+        </ul>
+        <ul class="site-footer__links site-footer__links--policies"{% if lang != "en" %} lang="en"{% endif %}>
+          {% for policy in policy_links %}
+          <li><a href="{{ policy.path }}"{% if lang != "en" %} hreflang="en"{% endif %}>{{ policy.label }}</a></li>
+          {% endfor %}
+        </ul>
+      </nav>
+      <p class="site-footer__trust">{{ ui.footer_trust }}</p>
+      <p class="disclaimer"><strong>{{ ui.disclaimer_label }}</strong> {{ disclaimer }}</p>
+      {# AGPL §13: the site links pyswisseph, so network users are offered its source. #}
+      <p class="site-footer__meta">{{ ui.footer_meta }} &copy; {{ site_name }} &middot;
+        <a href="{{ source_path }}"{% if lang != "en" %} hreflang="en"{% endif %}>{{ ui.source_link }}</a></p>
+    </div>
+  </footer>
+  <script src="/static/js/nav.js?v={{ static_version }}" defer></script>
+  {# Only when there is an account menu to drive. auth.js is three handlers and no dependency. #}
+  {% if account_menu %}<script src="/static/js/auth.js?v={{ static_version }}" defer></script>{% endif %}
+  {% block scripts %}{% endblock %}
+  {# A HANDFUL OF STARS, and no more. Decoration in the background layer: aria-hidden, dropped in print,
+     and unable to shift anything because it is fixed and occupies nothing in the flow. They twinkle only
+     where `prefers-reduced-motion` is not set; otherwise they are six still points of gold. #}
+  <svg class="v2-starfield" width="100" height="100" aria-hidden="true" focusable="false"
+       viewBox="0 0 100 100" preserveAspectRatio="none">
+    <g fill="#E0A526">
+      <circle class="v2-star--slow" cx="8" cy="14" r=".45"/>
+      <circle class="v2-star--slow" cx="27" cy="7" r=".32"/>
+      <circle class="v2-star--slow" cx="71" cy="11" r=".4"/>
+      <circle class="v2-star--slow" cx="92" cy="26" r=".3"/>
+      <circle class="v2-star--slow" cx="16" cy="63" r=".35"/>
+      <circle class="v2-star--slow" cx="86" cy="74" r=".42"/>
+    </g>
+  </svg>
+</body>
+</html>

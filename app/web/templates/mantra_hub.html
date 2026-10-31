@@ -1,0 +1,28 @@
+{# The hub: every released text, grouped by what kind it is. #}
+{% extends "base.html" %}
+{% block title %}{{ title }}{% endblock %}
+{% block meta_description %}{{ meta_description }}{% endblock %}
+{% block main %}
+<section class="hero">
+  <div class="wrap">
+    <h1>{{ h1 }}</h1>
+    <p class="hero__sub">{{ lede }}</p>
+  </div>
+</section>
+<article class="wrap content">
+  {% for group in groups %}
+  <section>
+    <h2>{{ group.label }}</h2>
+    <ul class="mn-hub">
+      {% for item in group.texts %}
+      <li><a href="{{ item.path }}">{{ item.name }}</a>
+        <span class="mn-meta">{{ item.verses }}</span></li>
+      {% endfor %}
+    </ul>
+  </section>
+  {% endfor %}
+  {% if not groups %}
+  <section><p>{{ words.hub_lede }}</p></section>
+  {% endif %}
+</article>
+{% endblock %}

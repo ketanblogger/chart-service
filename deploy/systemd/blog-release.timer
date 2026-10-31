@@ -1,0 +1,15 @@
+# Once a day, 09:30 IST - after the 08:00 digest, so a post published today is reported in tomorrow
+# morning's summary rather than appearing in one that was written before it existed.
+#
+# Persistent=true so a box that was asleep at 09:30 still runs it on waking: a missed day would push
+# the whole queue back a day, silently.
+[Unit]
+Description=Daily blog queue release at 09:30 IST
+
+[Timer]
+OnCalendar=*-*-* 09:30:00 Asia/Kolkata
+Persistent=true
+Unit=blog-release.service
+
+[Install]
+WantedBy=timers.target

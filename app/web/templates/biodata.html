@@ -1,0 +1,155 @@
+{# The marriage biodata maker. The form posts to itself and the result comes back with the sheet
+   rendered inline plus the two download buttons, so the page works with script blocked - which
+   matters more here than anywhere else on the site, because this one is used on a borrowed phone
+   as often as not. #}
+{% extends "base.html" %}
+
+{% block title %}{{ title }}{% endblock %}
+{% block meta_description %}{{ meta_description }}{% endblock %}
+
+{% block main %}
+<section class="hero">
+  <div class="wrap">
+    <h1>{{ h1 }}</h1>
+    <p class="hero__sub">{{ words.lede }}</p>
+  </div>
+</section>
+
+<article class="wrap content">
+
+{% if sheet_html %}
+  <section class="bd-result">
+    <h2>{{ words.preview_heading }}</h2>
+    <div class="bd-preview">{{ sheet_html }}</div>
+
+    {# The same fields again, hidden, so a download is one POST and nothing was stored in between. #}
+    <form method="post" class="bd-downloads">
+      {% for key, value in submitted.items() %}<input type="hidden" name="{{ key }}" value="{{ value }}">{% endfor %}
+      <button type="submit" name="want" value="pdf" class="button button--primary">{{ words.download_pdf }}</button>
+      <button type="submit" name="want" value="docx" class="button">{{ words.download_word }}</button>
+      <button type="submit" name="want" value="edit" class="button button--quiet">{{ words.form_heading }}</button>
+    </form>
+
+    {% if qr_link %}
+    <p class="bd-qr-link">{{ words.qr_note }}<br>
+      <a href="{{ qr_off }}" rel="nofollow">{{ words.qr_label }} &mdash; off</a></p>
+    {% endif %}
+  </section>
+{% endif %}
+
+  <form method="post" class="bd-form"{% if sheet_html %} hidden{% endif %}>
+    <h2>{{ words.form_heading }}</h2>
+
+    {% for section in form_sections %}
+    <fieldset class="bd-fieldset">
+      <legend>{{ section.title }}</legend>
+      {% for field in section.fields %}
+      <p class="field">
+        <label for="bd-{{ field.key }}">{{ field.label }}</label>
+        {% if field.kind == 'long' %}
+        <textarea id="bd-{{ field.key }}" name="{{ field.key }}" rows="3" maxlength="400">{{ field.value }}</textarea>
+        {% else %}
+        <input type="text" id="bd-{{ field.key }}" name="{{ field.key }}" maxlength="120"
+               autocomplete="off" value="{{ field.value }}">
+        {% endif %}
+      </p>
+      {% endfor %}
+    </fieldset>
+    {% endfor %}
+
+    <fieldset class="bd-fieldset">
+      <legend>{{ words.birth_heading }}</legend>
+      <p class="field__help">{{ words.birth_note }}</p>
+      {# DAY / MONTH NAME / YEAR, never a native date input: a browser renders one in its own
+         locale, so 1991-04-03 shows as "04/03/1991" and reads as 4 March to somebody in India -
+         which would put the wrong rashi on a document that gets shown to another family. #}
+      <p class="field field--date">
+        <label for="bd-day">{{ labels.date_of_birth }}</label>
+        <span class="field__row">
+          <select id="bd-day" name="birth_day">
+            <option value="">--</option>
+            {% for day in range(1, 32) %}<option value="{{ day }}"{% if entered.birth_day == day|string %} selected{% endif %}>{{ day }}</option>{% endfor %}
+          </select>
+          <select name="birth_month">
+            <option value="">--</option>
+            {% for number, name in months %}<option value="{{ number }}"{% if entered.birth_month == number|string %} selected{% endif %}>{{ name }}</option>{% endfor %}
+          </select>
+          <select name="birth_year">
+            <option value="">--</option>
+            {% for year in years %}<option value="{{ year }}"{% if entered.birth_year == year|string %} selected{% endif %}>{{ year }}</option>{% endfor %}
+          </select>
+        </span>
+      </p>
+      <p class="field">
+        <label for="bd-time">{{ labels.birth_time }} <span class="field__tag">{{ words.optional }}</span></label>
+        <input type="text" id="bd-time" name="birth_time_text" maxlength="12" placeholder="14:25"
+               autocomplete="off" value="{{ entered.birth_time_text }}">
+      </p>
+      <p class="field">
+        <label for="bd-city">{{ labels.birth_place }} <span class="field__tag">{{ words.optional }}</span></label>
+        <input type="text" id="bd-city" name="birth_city" maxlength="60" autocomplete="off"
+               value="{{ entered.birth_city }}">
+      </p>
+    </fieldset>
+
+    <fieldset class="bd-fieldset">
+      <legend>{{ words.design_heading }}</legend>
+      <p class="bd-designs">
+        {% for item in designs %}
+        <label class="bd-design{% if not item.usable %} bd-design--locked{% endif %}">
+          <input type="radio" name="design" value="{{ item.key }}"
+                 {% if not item.usable %}disabled{% endif %}
+                 {% if item.key == chosen_design %} checked{% endif %}>
+          <span class="bd-design__swatch" style="--swatch-ink: {{ item.tokens.ink }};
+                --swatch-accent: {{ item.tokens.accent }}; --swatch-band: {{ item.tokens.band }}"></span>
+          <span class="bd-design__name">{{ item.name }}</span>
+        </label>
+        {% endfor %}
+      </p>
+      {% if not paid %}
+      <aside class="bd-unlock">
+        <h3>{{ words.unlock_heading }}</h3>
+        <p>{{ words.unlock_line }}</p>
+        <button type="button" class="button button--primary" data-purchase="biodata-premium"
+                data-amount="{{ premium_amount }}">{{ words.unlock_button }}</button>
+      </aside>
+      {% else %}
+      <p class="bd-unlocked">{{ words.unlocked }}</p>
+      {% endif %}
+    </fieldset>
+
+    {% if qr_offered %}
+    <fieldset class="bd-fieldset">
+      <legend>{{ words.qr_label }}</legend>
+      <p class="field field--check">
+        <label><input type="checkbox" name="qr" value="1"{% if entered.qr %} checked{% endif %}>
+          {{ words.qr_label }}</label>
+        <span class="field__help">{{ words.qr_note }}</span>
+      </p>
+    </fieldset>
+    {% endif %}
+
+    <p class="bd-actions">
+      <button type="submit" name="want" value="preview" class="button button--primary">{{ words.make }}</button>
+    </p>
+  </form>
+
+  <section class="bd-privacy">
+    <h2>{{ words.privacy_heading }}</h2>
+    <ul>{% for line in words.privacy %}<li>{{ line }}</li>{% endfor %}</ul>
+  </section>
+
+  {% if guides %}{% include "_copy_blocks.html" %}{% endif %}
+
+  <nav class="bd-next">
+    {# The word page's HEADING, not its download button's label: this link opens that page, it does
+       not hand over a file, and a button that says "Download" and then navigates is a small lie. #}
+    <a class="button" href="{{ word_path }}">{{ word_words.h1 }}</a>
+    <a class="button" href="{{ match_path }}">{{ words.cta_match }}</a>
+    {# Somebody making a marriage biodata is usually weeks away from needing a wedding date. It is
+       also the only way into the five muhurat pages that is not the sitemap. #}
+    <a class="button" href="{{ muhurat_path }}">{{ muhurat_label }}</a>
+    <a class="button button--quiet" href="{{ kundli_path }}">{{ words.cta_kundli }}</a>
+  </nav>
+</article>
+{% endblock %}

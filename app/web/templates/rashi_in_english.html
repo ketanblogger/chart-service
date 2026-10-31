@@ -1,0 +1,60 @@
+{# "makar rashi in english" - answered in the first sentence, then the thing worth knowing.
+
+   The reader has asked a one-word question and the one word is in the h1. Everything below it exists
+   because giving only the word would send them off to read a SUN-sign horoscope under the impression it
+   is theirs, which is the actual harm this page prevents. #}
+{% extends "base.html" %}
+{% block title %}{{ title }}{% endblock %}
+{% block meta_description %}{{ meta_description }}{% endblock %}
+
+{% block main %}
+<article class="wrap v2-body">
+  <nav class="breadcrumbs" aria-label="{{ ui.breadcrumb_aria }}">
+    {% for name, path in crumbs %}<a href="{{ path }}">{{ name }}</a>{% if not loop.last %} <span aria-hidden="true">›</span> {% endif %}{% endfor %}
+  </nav>
+  <h1>{{ h1 }}</h1>
+  <p class="lede">{{ copy.intro }}</p>
+
+  <section aria-labelledby="difference">
+    <h2 id="difference">{{ copy.extra.difference_heading }}</h2>
+    <p>{{ copy.extra.difference_text }}</p>
+  </section>
+
+  {# TODAY'S READING, from the same store the rashifal pages read - never written here, never a second
+     copy of the engine. Absent rather than invented when it has not been generated yet. #}
+  <section aria-labelledby="today">
+    <h2 id="today">{{ copy.extra.today_heading }}</h2>
+    {% if today and today.body %}
+      {% for paragraph in today.body.split("\n\n") if paragraph.strip() %}
+      <p>{{ paragraph }}</p>
+      {% endfor %}
+    {% else %}
+      <p class="muted">{{ copy.extra.today_missing }}</p>
+    {% endif %}
+    <p><a href="{{ rashifal_path }}">{{ copy.extra.more_link }}</a></p>
+  </section>
+
+  <section class="cta" aria-labelledby="cta-chart">
+    <h2 id="cta-chart">{{ copy.extra.chart_heading }}</h2>
+    <p>{{ copy.extra.chart_text }}</p>
+    <a class="btn btn--primary" href="{{ kundali_path }}">{{ copy.extra.chart_button }}</a>
+  </section>
+
+  <section class="cta" aria-labelledby="cta-chat">
+    <h2 id="cta-chat">{{ copy.extra.chat_heading }}</h2>
+    <p>{{ copy.extra.chat_text }}</p>
+    <a class="btn btn--ghost" href="{{ chat_path }}">{{ copy.extra.chat_button }}</a>
+  </section>
+
+  {% if copy.faqs %}
+  <section aria-labelledby="faq">
+    <h2 id="faq">FAQ</h2>
+    <dl>
+      {% for question, answer in copy.faqs %}
+      <dt>{{ question }}</dt><dd>{{ answer }}</dd>
+      {% endfor %}
+    </dl>
+  </section>
+  {% endif %}
+</article>
+{% endblock %}

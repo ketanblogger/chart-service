@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% block title %}Generation and quality{% endblock %}
+{% block sub %}Last {{ view.days }} days of paid orders ({{ view.orders }}), and the checker's findings across
+  {{ view.reports_cached }} cached report file(s).{% endblock %}
+{% block body %}
+<div class="tiles">
+  <div class="tile"><div class="k">First-attempt pass rate</div><div class="v">{{ view.pass_rate|pct }}</div>
+    <div class="n">{{ view.pass_first }} of {{ view.calls }} AI call(s)</div></div>
+  <div class="tile"><div class="k">p50 generation</div><div class="v">{{ view.durations.p50|minutes }}</div>
+    <div class="n">p90 {{ view.durations.p90|minutes }}, max {{ view.durations.longest|minutes }}</div></div>
+  <div class="tile"><div class="k">Measured</div><div class="v">{{ view.durations.measured }}</div>
+    <div class="n">{{ view.durations.missing }} order(s) have no usable duration (not ready, or no paid_at)</div></div>
+</div>
+
+<div class="card">
+  <div class="k quiet">First-attempt pass rate per day (%) &mdash; a day with no calls is a gap, not a zero</div>
+  {{ pass_chart|safe }}
+</div>
+
+<h2>Generation time by product and language</h2>
+<div class="card scroll">
+  <table>
+    <thead><tr><th>Product</th><th>Lang</th><th class="n">Orders</th><th class="n">Measured</th>
+      <th class="n">p50</th><th class="n">p90</th><th class="n">Max</th><th></th></tr></thead>
+    <tbody>
+    {% for row in view.by_product_language %}
+      <tr><td>{{ row.product }}</td><td>{{ row.language }}</td><td class="n">{{ row.orders }}</td>
+        <td class="n">{{ row.measured }}</td><td class="n">{{ row.p50|minutes }}</td>
+        <td class="n">{{ row.p90|minutes }}</td><td class="n">{{ row.longest|minutes }}</td>
+        <td>{{ bar(row.p50, longest_p50, row.product ~ ' ' ~ row.language)|safe }}</td></tr>
+    {% else %}<tr><td colspan="8" class="quiet">No paid order in this window.</td></tr>{% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<div class="two">
+  <div class="card">
+    <h2 style="margin-top:0">Attempts per call</h2>
+    <table>
+      <thead><tr><th class="n">Attempts</th><th class="n">Calls</th><th class="n">Share</th><th></th></tr></thead>
+      <tbody>{% for row in view.attempts %}<tr><td class="n">{{ row.attempts }}</td><td class="n">{{ row.calls }}</td>
+        <td class="n">{{ row.share|pct }}</td><td>{{ bar(row.share, 100, row.attempts ~ ' attempt(s)')|safe }}</td></tr>
+      {% else %}<tr><td colspan="4" class="quiet">No AI call recorded in this window.</td></tr>{% endfor %}</tbody>
+    </table>
+  </div>
+  <div class="card">
+    <h2 style="margin-top:0">Paragraphs cut, by chapter</h2>
+    <table>
+      <thead><tr><th>Chapter</th><th class="n">Cut</th></tr></thead>
+      <tbody>{% for row in view.redactions %}<tr><td class="mono">{{ row.chapter }}</td><td class="n">{{ row.cut }}</td></tr>
+      {% else %}<tr><td colspan="2" class="quiet">Nothing was cut from a sale in this window.</td></tr>{% endfor %}</tbody>
+    </table>
+  </div>
+</div>
+
+<h2>Top failure kinds, with the checker's own words</h2>
+<div class="card">
+  {% for row in view.failure_kinds %}
+    <p style="margin:.2rem 0 .1rem"><span class="pill no">{{ row.kind }}</span> <b>{{ row.count }}</b>
+      {% for code, count in row.languages.items() %}<span class="pill">{{ code }} {{ count }}</span>{% endfor %}</p>
+    <ul class="sub" style="margin:.1rem 0 .8rem">
+      {% for example in row.examples %}<li class="mono">{{ example }}</li>{% endfor %}
+    </ul>
+  {% else %}
+    <p class="quiet">No rejected draft in the cached reports. That is either a very clean run of sales or an
+      empty report cache - {{ view.reports_cached }} file(s) were read from <code>{{ view.reports_dir_note }}</code>.</p>
+  {% endfor %}
+  <p class="sub">These come from each report file's <code>meta.checks.rejected_drafts</code>, which is the only
+    place the offending sentence is kept - it is not copied onto the order row. Examples are generated
+    astrology prose plus the checker's reason, never a customer's data, and are truncated.</p>
+</div>
+
+<h2>Most expensive calls</h2>
+<div class="card scroll">
+  <table>
+    <thead><tr><th>Order</th><th>Call</th><th>Product</th><th>Lang</th><th class="n">Attempts</th><th class="n">Cost</th></tr></thead>
+    <tbody>{% for call in view.expensive %}
+      <tr><td><a class="mono" href="/admin/orders/{{ call.order_id }}">{{ call.order_id }}</a></td>
+        <td>{{ call.call }}</td><td>{{ call.product }}</td><td>{{ call.language }}</td>
+        <td class="n">{{ call.attempts }}</td><td class="n">{{ call.cost_inr|rupees }}</td></tr>
+    {% else %}<tr><td colspan="6" class="quiet">No costed call in this window.</td></tr>{% endfor %}</tbody>
+  </table>
+</div>
+{% endblock %}

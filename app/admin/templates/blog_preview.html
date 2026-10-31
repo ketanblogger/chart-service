@@ -1,0 +1,158 @@
+{% extends "base.html" %}
+{% block title %}{{ post.title }}{% endblock %}
+{% block heading %}{{ post.title }}{% endblock %}
+{% block sub %}<a href="/admin/blog">Blog</a> &middot; <code>{{ post.slug }}</code> &middot;
+  {{ view.words }} words &middot; {% if post.is_published %}live at
+  <a href="{{ public_path }}">{{ public_path }}</a>{% else %}draft (the public URL answers 404){% endif %}
+{% endblock %}
+{% block body %}
+
+{% if done == 'published' %}<div class="note"><b>Published.</b> The engines were told through IndexNow,
+  which answers "not submitted" anywhere but production - that is by design, not a failure.</div>
+{% elif done == 'blocked' %}<div class="note warn"><b>Not published.</b> The re-check below still has
+  blocking problems, so nothing was written. Fix them at the writer's end and resubmit.</div>
+{% elif done == 'unpublished' %}<div class="note"><b>Taken down.</b> The URL now answers 404.</div>
+{% elif done == 'held' %}<div class="note"><b>Held.</b> The autopublish queue will skip this post until
+  it is released. Publishing it from this page still works.</div>
+{% elif done == 'released' %}<div class="note"><b>Released.</b> It is back in the autopublish queue,
+  which takes the oldest waiting post first.</div>
+{% elif done == 'still-published' %}<div class="note warn"><b>Not deleted.</b> This post is published.
+  Take it down first - then the URL is already answering 404 and deleting it changes nothing a reader
+  can see.</div>
+{% endif %}
+
+<h2>Checks</h2>
+<div class="card">
+  {% if report.blocking %}
+  <p class="unknown">{{ report.blocking|length }} blocking problem(s). This post cannot be published
+    until every one of them is gone.</p>
+  <ul>{% for problem in report.blocking %}<li>{{ problem }}</li>{% endfor %}</ul>
+  {% else %}
+  <p><span class="pill ok">nothing blocking</span> Every check passes against the body as it stands now.</p>
+  {% endif %}
+  {% if report.warnings %}
+  <p class="quiet">{{ report.warnings|length }} warning(s) - worth reading, not blocking:</p>
+  <ul class="quiet">{% for problem in report.warnings %}<li>{{ problem }}</li>{% endfor %}</ul>
+  {% endif %}
+  <p class="sub">Re-run on every view of this page rather than read from the row: a check added after the
+    post arrived has to be able to catch it. Publishing re-runs them again and refuses on any blocking
+    problem, so the button below is a decision and not a bypass.</p>
+</div>
+
+{# WHAT THE WRITER COULD NOT VERIFY. Shown above the repairs because it is the one thing here that no
+   check of ours produced - it is about the world rather than about the text - and it is what stops a
+   post publishing itself however clean everything else is. #}
+{% if post.fact_check_warnings %}
+<div class="card">
+  <p class="unknown">{{ post.fact_check_warnings|length }} fact-check warning(s) from the writer.
+    While any of these is attached the post will not publish itself, whatever its checks say - somebody
+    has to read it.</p>
+  <ul>{% for warning in post.fact_check_warnings %}<li>{{ warning }}</li>{% endfor %}</ul>
+</div>
+{% endif %}
+
+{# WHAT WE CHANGED TO SOMEBODY ELSE'S PROSE, before and after, every one of them. A post that arrives
+   wrong and goes live right with no record of the difference is a post nobody can audit. #}
+{% if post.fixes %}
+<div class="card">
+  <p>{{ post.fixes|length }} automatic repair(s) were made on the way in.</p>
+  <table>
+    <thead><tr><th>What</th><th>Before</th><th>After</th><th>By</th></tr></thead>
+    <tbody>
+      {% for fix in post.fixes %}
+      <tr>
+        <td>{{ fix.what }}</td>
+        <td><code>{{ fix.before }}</code></td>
+        <td><code>{{ fix.after }}</code></td>
+        <td>{{ fix.by }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  <p class="sub">Deterministic rules run first and the model only sees what they could not fix, at most
+    twice. Anything it quoted that was not in the body exactly once was refused rather than guessed at.</p>
+</div>
+{% endif %}
+
+<div class="card">
+  <form method="post" action="/admin/blog/{{ post.slug }}/publish" style="display:inline">
+    <input type="hidden" name="token" value="{{ publish_token }}">
+    <button type="submit"{% if report.blocking %} disabled{% endif %}>
+      {% if post.is_published %}Re-publish and tell the engines{% else %}Publish this post{% endif %}</button>
+  </form>
+  {% if post.is_published %}
+  <form method="post" action="/admin/blog/{{ post.slug }}/unpublish" style="display:inline">
+    <input type="hidden" name="token" value="{{ unpublish_token }}">
+    <button type="submit">Take it down</button>
+  </form>
+  {% endif %}
+  <p class="sub">The button is disabled while anything is blocking, and the route refuses as well - the
+    disabled attribute is a courtesy, never the protection.</p>
+</div>
+
+{# HOLD AND DELETE, FOR A DRAFT ONLY. Holding is about the 09:30 queue running unattended; it is not a
+   verdict on the post, which is why publishing from the button above still works while it is held. #}
+{% if not post.is_published %}
+<h2>Keep it back</h2>
+<div class="card">
+  {% if post.is_held %}
+  <p><b>Held out of the autopublish queue</b>{% if post.held_by %} by {{ post.held_by }}{% endif %}{% if post.held_on %} on {{ post.held_on }}{% endif %}.</p>
+  {% else %}
+  <p>This draft is in the autopublish queue, which publishes the oldest waiting post first.</p>
+  {% endif %}
+  <form method="post" action="/admin/blog/{{ post.slug }}/hold" style="display:inline">
+    <input type="hidden" name="token" value="{{ hold_token }}">
+    <button type="submit">{% if post.is_held %}Release it into the queue{% else %}Hold it out of the queue{% endif %}</button>
+  </form>
+  <a href="/admin/blog/{{ post.slug }}/delete">Delete this draft</a>
+  <p class="sub">Holding is reversible and changes nothing about the post. Deleting is not reversible
+    and asks again on the next page.</p>
+</div>
+{% endif %}
+
+{# EDIT, FOR A DRAFT ONLY. A published post is a URL somebody may have shared and a page a crawler has
+   read; changing it from here would alter what is live with no record. Unpublish first - one click,
+   and it leaves a trail. #}
+{% if not post.is_published %}
+<h2>Edit</h2>
+<div class="card">
+  <p class="quiet">The Markdown, exactly as it arrived. Checks re-run as you type - the SAME checker the
+    publish button uses, so the two can never disagree about whether this is publishable.</p>
+  <form method="post" action="/admin/blog/{{ post.slug }}/edit" id="edit-form">
+    <input type="hidden" name="token" value="{{ edit_token }}">
+    <textarea name="body_md" id="body-md" rows="22" spellcheck="false"
+              style="width:100%;font:13px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace"
+              data-check-url="/admin/blog/{{ post.slug }}/check">{{ post.body_md }}</textarea>
+    <p><button type="submit">Save draft</button>
+       <span class="quiet" id="edit-state"></span></p>
+  </form>
+  <div id="live-checks" aria-live="polite"></div>
+</div>
+
+{# THE EDITOR'S SCRIPT IS A FILE, NOT INLINE. The site's Content-Security-Policy is `script-src
+   'self'`, which blocks inline scripts - so an inline version of this silently did nothing and the
+   live checks never ran. Loading it from /static keeps the policy intact. #}
+<script src="/static/js/blog-editor.js" defer></script>
+{% endif %}
+
+<h2>How it will read</h2>
+<div class="card">
+  <p class="quiet">Meta description ({{ post.summary|length }} chars): {{ post.summary }}</p>
+  <p class="quiet">Tool link: {% if view.tool %}<a href="{{ view.tool.path }}">{{ view.tool.label }}</a>
+    {% else %}<span class="unknown">none - `tool` is not a usable registry key</span>{% endif %}
+    {% if view.categories %}&middot; {{ view.categories|join(', ') }}{% endif %}</p>
+
+  {# THE PUBLIC PAGE ITSELF, in an iframe. This used to be the body's HTML dropped into the admin
+     layout, which meant the preview and the published page were two different renderings and the
+     preview was the one being trusted. The frame loads /admin/blog/<slug>/rendered, which builds the
+     public context and renders blog_post.html - the same file the public route renders. #}
+  <p class="quiet">Below is the real page, rendered by the public template at 390px and full width.
+    <a href="/admin/blog/{{ post.slug }}/rendered" target="_blank" rel="noopener">Open it on its own</a>.</p>
+  <div style="display:flex;gap:1rem;flex-wrap:wrap">
+    <iframe src="/admin/blog/{{ post.slug }}/rendered" title="Mobile preview"
+            style="width:390px;height:680px;border:1px solid #3a3360;border-radius:8px;background:#fff"></iframe>
+    <iframe src="/admin/blog/{{ post.slug }}/rendered" title="Desktop preview"
+            style="flex:1;min-width:520px;height:680px;border:1px solid #3a3360;border-radius:8px;background:#fff"></iframe>
+  </div>
+</div>
+{% endblock %}

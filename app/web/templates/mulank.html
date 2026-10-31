@@ -1,0 +1,53 @@
+{# One mulank. The copy was written once under the site's checker and committed - no model on this
+   path, and nothing here costs anything per view. #}
+{% extends "base.html" %}
+
+{% block title %}{{ title }}{% endblock %}
+{% block meta_description %}{{ meta_description }}{% endblock %}
+
+{% block main %}
+<section class="hero">
+  <div class="wrap">
+    <h1>{{ h1 }}</h1>
+    <p class="hero__sub">{{ page.intro }}</p>
+  </div>
+</section>
+
+<article class="wrap content">
+  <p class="quiet">{{ days|join(', ') }} &middot; {{ ruler }}</p>
+
+  {# The h1 is in the hero; repeating it here was a heading that said nothing new. #}
+  <p>{{ page.traits }}</p>
+  <p>{{ page.strengths }}</p>
+  <p>{{ page.work }}</p>
+  <p>{{ page.compatible }}</p>
+  <p>{{ page.lucky }}</p>
+  <p>{{ page.bhagyank }}</p>
+
+  {% if ask %}
+  <section class="ask-box" aria-labelledby="ask-heading">
+    <h2 id="ask-heading">{{ ask.heading }}</h2>
+    <p>{{ ask.lead }}</p>
+    <ul class="ask-box__chips">
+      {% for chip in ask.chips %}<li><a href="{{ ask.path }}">{{ chip }}</a></li>{% endfor %}
+    </ul>
+    <p><a class="btn btn--cta" href="{{ ask.path }}">{{ ask.cta }} <span aria-hidden="true">&rarr;</span></a></p>
+    <p class="quiet">{{ ask.note }}</p>
+  </section>
+  {% endif %}
+  {# THE PAID REPORT, beside the consultation and never instead of it. It links to the report's own
+     page rather than buying from here: somebody should see what is in a thing before buying it. #}
+  {% if report_cta %}
+  <section class="ask-box ask-box--report" aria-labelledby="report-cta-heading">
+    <h2 id="report-cta-heading">{{ report_cta.heading }}</h2>
+    <p>{{ report_cta.body }}</p>
+    <p><a class="btn btn--cta" href="{{ report_cta.path }}">{{ report_cta.button }} <span aria-hidden="true">&rarr;</span></a></p>
+  </section>
+  {% endif %}
+
+  <p><a class="btn btn--cta" href="{{ numerology_path }}">{{ back_label }} <span aria-hidden="true">&rarr;</span></a></p>
+  <nav class="mulank-others" aria-label="1-9">
+    {% for other in others %}<a href="{{ other.path }}">{{ other.number }}</a>{% endfor %}
+  </nav>
+</article>
+{% endblock %}

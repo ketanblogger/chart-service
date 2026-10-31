@@ -1,0 +1,75 @@
+{# The paid report's own page: what is inside, a sample of each section, the price, and the only
+   button that buys it. Nobody should buy a report without seeing what is in it. #}
+{% extends "base.html" %}
+
+{% block title %}{{ words.title }}{% endblock %}
+{% block meta_description %}{{ words.meta }}{% endblock %}
+
+{% block main %}
+<section class="hero">
+  <div class="wrap">
+    <h1>{{ words.h1 }}</h1>
+    <p class="hero__sub">{{ words.lead }}</p>
+  </div>
+</section>
+
+<article class="wrap content">
+  <h2>{{ words.whats_inside }}</h2>
+  <ol class="report-sections">
+    {% for heading, what, sample in words.sections %}
+    <li>
+      <h3>{{ heading }}</h3>
+      <p>{{ what }}</p>
+      <p class="report-sections__sample">{{ sample }}</p>
+    </li>
+    {% endfor %}
+  </ol>
+
+  <p class="fact__sub">{{ words.price_line }}</p>
+
+  <h2 id="order">{{ words.order_heading }}</h2>
+  <p>{{ words.order_note }}</p>
+  <form method="post" action="#order" class="numerology-form">
+    <p class="field">
+      <label for="rep-name">{{ name_label }}</label>
+      <input type="text" id="rep-name" name="name" maxlength="60" autocomplete="off"
+             value="{{ entered_name }}" required>
+    </p>
+    <fieldset class="field date-parts">
+      <legend>{{ words.order_note[:0] }}{{ day_label }} / {{ month_label }} / {{ year_label }}</legend>
+      <select name="day" aria-label="{{ day_label }}" required>
+        <option value="">{{ day_label }}</option>
+        {% for d in range(1, 32) %}<option value="{{ d }}"{% if entered_day == d|string %} selected{% endif %}>{{ d }}</option>{% endfor %}
+      </select>
+      <select name="month" aria-label="{{ month_label }}" required>
+        <option value="">{{ month_label }}</option>
+        {% for name in month_names %}<option value="{{ loop.index }}"{% if entered_month == loop.index|string %} selected{% endif %}>{{ name }}</option>{% endfor %}
+      </select>
+      <select name="year" aria-label="{{ year_label }}" required>
+        <option value="">{{ year_label }}</option>
+        {% for y in years %}<option value="{{ y }}"{% if entered_year == y|string %} selected{% endif %}>{{ y }}</option>{% endfor %}
+      </select>
+    </fieldset>
+    <p><button class="btn" type="submit">{{ words.change if order else words.continue }}</button></p>
+  </form>
+
+  {% if order %}
+  {# THE BUY BUTTON, only once there is a name and a date to buy with. `data-numerology` carries
+     them to the payment panel the way the muhurta search does - this page makes no API call of its
+     own, so there is no request for the panel to inherit. #}
+  <p>
+    <button type="button" class="btn btn--cta" data-product="{{ order.product }}"
+            data-price-inr="{{ order.price }}"
+            data-numerology='{{ order.payload }}'>{{ words.buy }}</button>
+  </p>
+  <p id="cta-notice" class="quiet" hidden></p>
+  {% endif %}
+
+  <p><a href="{{ numerology_path }}">{{ words.back_to_free }}</a></p>
+</article>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/js/app.js?v={{ static_version }}" defer></script>
+<script src="/static/js/pay.js?v={{ static_version }}" defer></script>
+{% endblock %}

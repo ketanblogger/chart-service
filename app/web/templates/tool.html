@@ -1,0 +1,63 @@
+{# The one reusable tool landing page: hero + form + result + SEO content + FAQ, in any language.
+   Words: `copy` (app/web/content/<lang>.py via pages.get). Wiring: `spec` (pages.TOOLS). Price: the catalogue. #}
+{% extends "base.html" %}
+
+{% from "_person_fields.html" import person_fields with context %}
+{% import "_copy_blocks.html" as blocks %}
+
+{% block title %}{{ copy.title }} | {{ site_name }}{% endblock %}
+{% block meta_description %}{{ copy.meta_description }}{% endblock %}
+
+{% block main %}
+<section class="hero">
+  <div class="wrap">
+    <h1>{{ copy.h1 }}</h1>
+    <p class="hero__intro">{{ copy.intro }}</p>
+  </div>
+</section>
+
+<div class="wrap tool">
+  {% include "_wedding_season.html" %}
+
+  {% include "_tool_form.html" %}
+
+  {% include "_tool_result.html" %}
+  {% if example_chart %}{% include "_example_chart.html" %}{% endif %}
+  {% if koot_table %}{% include "_koot_table.html" %}{% endif %}
+<article class="wrap content">
+  {{ blocks.sections(copy) }}
+  {{ blocks.faq(copy, ui.faq_heading) }}
+  {# The same "Related guides" block the v2 template carries. This file is the rollback path, so it
+     has to show the same page - a rollback that silently drops a section is a rollback that changes
+     the site rather than restoring it. #}
+  {# The long-form guide behind this tool, where one exists. It sits above the blog guides because
+     it is about this page's own subject rather than near it. #}
+  {% if dosha_guide_link %}
+  <p class="reading__ask"><a href="{{ dosha_guide_link.href }}">{{ dosha_guide_link.label }}</a></p>
+  {% endif %}
+  {% if related_guides %}
+  <section id="related-guides" aria-labelledby="guides-heading">
+    <h2 id="guides-heading">{{ ui.guides_heading }}</h2>
+    <ul class="guide-links">
+      {% for guide in related_guides %}
+      <li><a href="{{ guide.path }}">{{ guide.title }}</a>
+        <span class="quiet">{{ guide.summary }}</span></li>
+      {% endfor %}
+    </ul>
+  </section>
+  {% endif %}
+  {{ blocks.tool_links(more_tools, ui.more_heading) }}
+</article>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/js/render.js?v={{ static_version }}" defer></script>
+<script src="/static/js/app.js?v={{ static_version }}" defer></script>
+{# The match card is drawn in the browser so the two names never reach a server. Only loaded where a
+   match can happen. #}
+{% if koot_table %}<script src="/static/js/match-card.js?v={{ static_version }}" defer></script>{% endif %}
+{# Measurement only, and deliberately AFTER app.js: it observes the DOM that file produces and changes
+   nothing. If it fails to load, the form is exactly as it was. #}
+<script src="/static/js/kundli-funnel.js?v={{ static_version }}" defer></script>
+<script src="/static/js/pay.js?v={{ static_version }}" defer data-pay data-enabled="{{ '1' if payments_enabled else '0' }}"></script>
+{% endblock %}

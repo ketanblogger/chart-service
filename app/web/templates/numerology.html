@@ -1,0 +1,141 @@
+{# The numerology calculator. No JavaScript: the arithmetic is addition, and a script would mean the
+   page stopped working where script is blocked for no gain a reader could name. #}
+{% extends "base.html" %}
+
+{% block title %}{{ title }}{% endblock %}
+{% block meta_description %}{{ meta_description }}{% endblock %}
+
+{% block main %}
+<section class="hero">
+  <div class="wrap">
+    <h1>{{ h1 }}</h1>
+    <p class="hero__sub">{{ words.lead }}</p>
+  </div>
+</section>
+
+<article class="wrap content">
+  <form method="post" class="numerology-form">
+    <p class="field">
+      <label for="num-name">{{ words.name_label }}</label>
+      <input type="text" id="num-name" name="name" maxlength="60" autocomplete="off"
+             value="{{ entered_name }}">
+      <span class="field__help">{{ words.name_help }}</span>
+    </p>
+    {# DAY / MONTH NAME / YEAR, never a native date input. A browser renders one in its own locale,
+       so 1991-04-03 shows as "04/03/1991" and reads as 4 March to somebody in India. Every other
+       form on this site was changed away from native date inputs for that reason. #}
+    <fieldset class="field date-parts">
+      <legend>{{ words.dob_label }}</legend>
+      <select name="day" aria-label="{{ words.day_label }}" required>
+        <option value="">{{ words.day_label }}</option>
+        {% for d in range(1, 32) %}
+        <option value="{{ d }}"{% if entered_day == d|string %} selected{% endif %}>{{ d }}</option>
+        {% endfor %}
+      </select>
+      <select name="month" aria-label="{{ words.month_label }}" required>
+        <option value="">{{ words.month_label }}</option>
+        {% for name in month_names %}
+        <option value="{{ loop.index }}"{% if entered_month == loop.index|string %} selected{% endif %}>{{ name }}</option>
+        {% endfor %}
+      </select>
+      <select name="year" aria-label="{{ words.year_label }}" required>
+        <option value="">{{ words.year_label }}</option>
+        {% for y in years %}
+        <option value="{{ y }}"{% if entered_year == y|string %} selected{% endif %}>{{ y }}</option>
+        {% endfor %}
+      </select>
+    </fieldset>
+    <p><button class="btn btn--cta" type="submit">{{ words.submit }}</button></p>
+  </form>
+
+  {% if result %}
+  <div class="numerology-result">
+    <div class="num-cards">
+      <div class="num-card">
+        <h2>{{ words.mulank_heading }}</h2>
+        <p class="num-card__value">{{ result.mulank }}</p>
+      </div>
+      <div class="num-card">
+        <h2>{{ words.bhagyank_heading }}</h2>
+        <p class="num-card__value">{{ result.bhagyank }}</p>
+      </div>
+      <div class="num-card">
+        <h2>{{ words.name_heading }}</h2>
+        {% if result.name_number.usable %}
+        <p class="num-card__value">{{ result.name_number.number }}</p>
+        <p class="quiet">{{ result.name_number.total }}
+          {%- for item in result.name_number.letters %} &middot; {{ item.letter }}={{ item.value }}{% endfor %}</p>
+        {% else %}
+        <p class="quiet">{{ words.unusable_name }}</p>
+        {% endif %}
+      </div>
+    </div>
+
+    <h2>{{ words.loshu_heading }}</h2>
+    <table class="lo-shu">
+      <tbody>
+        {% for row in result.lo_shu.rows %}
+        <tr>
+          {% for cell in row %}
+          <td class="lo-shu__cell{% if not cell.count %} lo-shu__cell--empty{% endif %}">
+            <span class="lo-shu__n">{{ cell.number }}</span>
+            {% if cell.count %}<span class="lo-shu__count">{{ cell.number|string * cell.count }}</span>{% endif %}
+          </td>
+          {% endfor %}
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    <p class="quiet">
+      {{ words.repeated_label }}: {{ result.lo_shu.repeated|join(', ') or words.none }} &middot;
+      {{ words.missing_label }}: {{ result.lo_shu.missing|join(', ') or words.none }} &middot;
+      {{ words.planes_label }}: {{ (result.lo_shu.planes.items()|selectattr('1')|map(attribute='0')|list)|join(', ') or words.none }}
+    </p>
+
+    <p class="fact__sub">{{ words.disclaimer }}</p>
+
+    {# THE ONE PAID THING ON THIS PAGE, and the price is on it before anybody starts. #}
+    {% if ask %}
+    <section class="ask-box" aria-labelledby="ask-heading">
+      <h2 id="ask-heading">{{ ask.heading }}</h2>
+      <p>{{ ask.lead }}</p>
+      <ul class="ask-box__chips">
+        {% for chip in ask.chips %}<li><a href="{{ ask.path }}">{{ chip }}</a></li>{% endfor %}
+      </ul>
+      <p><a class="btn btn--cta" href="{{ ask.path }}">{{ ask.cta }} <span aria-hidden="true">&rarr;</span></a></p>
+      <p class="quiet">{{ ask.note }}</p>
+    </section>
+    {% endif %}
+  {# THE PAID REPORT, beside the consultation and never instead of it. It links to the report's own
+     page rather than buying from here: somebody should see what is in a thing before buying it. #}
+  {% if report_cta %}
+  <section class="ask-box ask-box--report" aria-labelledby="report-cta-heading">
+    <h2 id="report-cta-heading">{{ report_cta.heading }}</h2>
+    <p>{{ report_cta.body }}</p>
+    <p><a class="btn btn--cta" href="{{ report_cta.path }}">{{ report_cta.button }} <span aria-hidden="true">&rarr;</span></a></p>
+  </section>
+  {% endif %}
+  </div>
+  {% endif %}
+
+  {# THE NINE MULANK PAGES. Also the only thing linking them: without this they are orphans, which
+     the site's own guard has caught three times this week. #}
+  {% if mulank_links %}
+  <nav class="mulank-others" aria-label="1-9">
+    {% for link in mulank_links %}<a href="{{ link.path }}">{{ link.number }}</a>{% endfor %}
+  </nav>
+  {% endif %}
+
+  <h2>{{ words.method_heading }}</h2>
+  {# THE METHOD IS ON THE PAGE, so a reader can check the arithmetic rather than trust it - which is
+     also the only honest way to publish a calculation whose school other sites disagree with. #}
+  {% for line in words.method %}<p>{{ line }}</p>{% endfor %}
+  <table class="chaldean">
+    <tbody>
+      {% for value, letters in chaldean.items() %}
+      <tr><th scope="row">{{ value }}</th><td>{{ letters|join(' ') }}</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</article>
+{% endblock %}

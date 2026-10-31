@@ -1,0 +1,100 @@
+{# The admin layout. Deliberately NOT extending app/web/templates/base.html.
+
+   That template is the public site's: it carries Google Analytics, a canonical URL, the hreflang set, the
+   three-language switcher and the customer navigation. None of that belongs on a page behind a password -
+   the analytics tag would measure the operator as a visitor and pollute the funnel the public pages are
+   read against, and a canonical plus hreflang on a noindex page is a contradiction a crawler is entitled
+   to act on. So this is a second, self-contained layout, and it adds no file to app/static: the CSP allows
+   inline styles ('unsafe-inline' in style-src, already needed by the guna meter), and it allows no inline
+   script at all, which is why there is not a line of JavaScript on any of these pages. #}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title>{% block title %}Admin{% endblock %} &middot; {{ site_name }}</title>
+  <link rel="icon" href="/static/icons/favicon-32.png" sizes="32x32" type="image/png">
+  <style>
+    :root {
+      --ink: #1E1B2E; --muted: #5C5875; --line: #E3DEF0; --bg: #FBF8F1; --surface: #FFFFFF;
+      --primary: #241B54; --accent: #E0A526; --good: #1F6E3F; --good-bg: #E8F5EC;
+      --bad: #A13D2B; --bad-bg: #FBEDE9; --quiet-bg: #EEEBF5;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+    a { color: #3A2E86; }
+    header.bar { background: var(--primary); color: #E7E4F4; padding: .6rem 1rem; }
+    header.bar .row { display: flex; flex-wrap: wrap; gap: .5rem 1.2rem; align-items: baseline; max-width: 1200px; margin: 0 auto; }
+    header.bar strong { font-size: 1.05rem; }
+    header.bar nav { display: flex; flex-wrap: wrap; gap: .1rem .9rem; }
+    header.bar nav a { color: #C2BBE0; text-decoration: none; padding: .15rem 0; border-bottom: 2px solid transparent; }
+    header.bar nav a.on { color: #FFF; border-bottom-color: var(--accent); }
+    header.bar .who { margin-left: auto; color: #C2BBE0; font-size: .82rem; }
+    main { max-width: 1200px; margin: 0 auto; padding: 1rem 1rem 4rem; }
+    h1 { font-size: 1.35rem; margin: .8rem 0 .2rem; }
+    h2 { font-size: 1.05rem; margin: 1.8rem 0 .5rem; }
+    .sub { color: var(--muted); font-size: .86rem; margin: 0 0 1rem; }
+    .card { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: .9rem 1rem; margin: 0 0 1rem; }
+    .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: .7rem; margin: 0 0 1rem; }
+    .tile { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: .7rem .8rem; }
+    .tile .k { color: var(--muted); font-size: .76rem; text-transform: uppercase; letter-spacing: .04em; }
+    .tile .v { font-size: 1.5rem; font-weight: 650; font-variant-numeric: tabular-nums; margin: .15rem 0 0; }
+    .tile .n { color: var(--muted); font-size: .78rem; }
+    .unknown { color: var(--bad); font-weight: 600; font-size: .95rem; }
+    table { border-collapse: collapse; width: 100%; font-size: .88rem; }
+    th, td { text-align: left; padding: .38rem .5rem; border-bottom: 1px solid var(--line); vertical-align: top; }
+    th { color: var(--muted); font-weight: 600; font-size: .78rem; text-transform: uppercase; letter-spacing: .03em; }
+    td.n, th.n { text-align: right; font-variant-numeric: tabular-nums; }
+    .scroll { overflow-x: auto; }
+    .pill { display: inline-block; padding: .05rem .4rem; border-radius: 10px; font-size: .74rem; font-weight: 600; background: var(--quiet-bg); color: #585470; }
+    .pill.ok { background: var(--good-bg); color: var(--good); }
+    .pill.no { background: var(--bad-bg); color: var(--bad); }
+    .alerts { margin: 0 0 1rem; }
+    .alert { border-left: 4px solid var(--bad); background: var(--bad-bg); padding: .5rem .7rem; border-radius: 0 6px 6px 0; margin: 0 0 .4rem; font-size: .9rem; }
+    .alert.warn { border-left-color: var(--accent); background: #FCF4E3; }
+    .alert.calm { border-left-color: var(--good); background: var(--good-bg); }
+    .alert b { display: block; }
+    .note { background: var(--quiet-bg); border-radius: 6px; padding: .5rem .7rem; color: #4A4663; font-size: .84rem; margin: 0 0 1rem; }
+    .note.warn { background: #FCF4E3; }
+    form.filters { display: flex; flex-wrap: wrap; gap: .5rem; align-items: end; margin: 0 0 1rem; }
+    form.filters label { display: flex; flex-direction: column; font-size: .76rem; color: var(--muted); gap: .15rem; }
+    select, input[type=submit], button { font: inherit; padding: .3rem .45rem; border: 1px solid #8E86A8; border-radius: 6px; background: var(--surface); color: var(--ink); }
+    input[type=submit], button { background: var(--primary); color: #FFF; border-color: var(--primary); cursor: pointer; }
+    .legend { display: flex; flex-wrap: wrap; gap: .1rem .9rem; font-size: .8rem; color: var(--muted); margin: .3rem 0 0; }
+    .legend__item { display: inline-flex; align-items: center; gap: .3rem; }
+    .legend__swatch { width: 10px; height: 10px; border-radius: 2px; display: inline-block; }
+    .chart { display: block; max-width: 100%; }
+    .chart-bar { vertical-align: middle; }
+    .two { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1rem; }
+    code, .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .86em; }
+    .quiet { color: var(--muted); }
+    footer.foot { max-width: 1200px; margin: 0 auto; padding: 0 1rem 2rem; color: var(--muted); font-size: .78rem; }
+  </style>
+</head>
+<body>
+<header class="bar">
+  <div class="row">
+    <strong>{{ site_name }} admin</strong>
+    <nav>
+      {% for item in admin_nav %}<a href="{{ item.path }}" {% if item.current %}class="on"{% endif %}>{{ item.label }}</a>{% endfor %}
+    </nav>
+    <span class="who">{{ actor }} &middot; {{ now_ist.strftime('%d %b %Y %H:%M') }} IST</span>
+  </div>
+</header>
+<main>
+  {% if insecure %}
+  <div class="note warn"><b>BASE_URL is not https.</b> HTTP basic auth sends this password on every request,
+    reversibly encoded. Do not open this page over http on a network you do not own.</div>
+  {% endif %}
+  <h1>{% block heading %}{{ self.title() }}{% endblock %}</h1>
+  <p class="sub">{% block sub %}{% endblock %}</p>
+  {% block body %}{% endblock %}
+</main>
+<footer class="foot">
+  All times IST. Figures are defined once in <code>app/admin/metrics.py</code> and every page, export and
+  alert reads them from there. &ldquo;not recorded&rdquo; means the underlying column is NULL - it never means zero.
+  The payment fee is modelled ({{ '%.2f'|format(fee_percent) }}% of the charge, GST on the fee included), not read from a settlement report.
+</footer>
+</body>
+</html>
