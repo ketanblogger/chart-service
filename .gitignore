@@ -1,0 +1,27 @@
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.env
+# generated PDFs and other runtime output
+var/
+
+# Built libswe (Astrodienst source, built by deploy/build-libswe.sh). A build artefact, and
+# licensed separately - it must never be committed or reach a publish candidate.
+lib/
+
+# THE PROPRIETOR'S OWN WORKING DOCUMENTS AT THE TOP LEVEL, and the scratch scripts beside them.
+#
+# MATCHED BY SHAPE, NEVER BY NAME. Some of these documents are on the publication exclusion list, and
+# published code may not name one - a pointer to a document a stranger cannot open tells them
+# something is being withheld and gives them nothing. This file is published like any other, so the
+# first version of this block, which listed all eight by filename, was itself the violation: twenty-
+# five pointers, found by the proof run over the publish candidate rather than by the suite, because
+# the guard read only files with a known text extension and .gitignore has none. Both are fixed.
+#
+# What this is for: these files were untracked by intention and nothing more, until a bare
+# `git add -A` swept six of them into a commit. Untracked-by-intention is a weaker guarantee than it
+# sounds, and a test run is too late to be the only thing that notices.
+/*.md
+!/README.md
+/*.sh

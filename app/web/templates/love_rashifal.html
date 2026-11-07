@@ -1,0 +1,21 @@
+{# Love rashifal: the relationships section the reading already has. No new AI call. #}
+{% extends "base.html" %}
+{% block title %}{{ words.title }} | {{ site_name }}{% endblock %}
+{% block meta_description %}{{ words.intro[:230] }}{% endblock %}
+{% block main %}
+<section class="hero"><div class="wrap">
+  <h1>{{ words.h1 }}</h1><p class="hero__sub">{{ words.intro }}</p>
+</div></section>
+<div class="wrap">
+  <section class="card" id="relationships">
+    <h2>{{ words.heading }}</h2>
+    {% if love %}{% for paragraph in love.paragraphs %}<p>{{ paragraph }}</p>{% endfor %}
+    {% else %}<p class="muted">{{ words.none }}</p>{% endif %}
+    <p class="reading__ask"><a href="{{ ask_href }}">{{ words.ask }}</a></p>
+  </section>
+  <p class="reading__ask"><a href="{{ full_href }}">{{ words.full }}</a></p>
+  {# TO THE MATCHING TOOL. A love-horoscope reader is the closest thing this site has to a matching
+     visitor, and the only route from here used to be the nav - the same on every page. #}
+  {% if match_href %}<p class="reading__ask"><a href="{{ match_href }}">{{ words.match }}</a></p>{% endif %}
+</div>
+{% endblock %}

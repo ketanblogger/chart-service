@@ -1,0 +1,17 @@
+{# THE WEDDING SEASON, and only when there is a season to mention. `wedding_season` is None outside
+   the weeks before the Sun enters Dhanu and the month it spends there, and this renders nothing then -
+   a seasonal block that is on the page all year is furniture, not a season.
+
+   What it states is a TRANSIT: the Sun's sidereal ingress, computed by the same ephemeris as every
+   other date here, so it moves correctly each year with nobody editing a list. It does not say a
+   wedding is auspicious, which is not a thing a transit can say, and it says nothing about Chaturmas -
+   those are tithi dates and in 2026 the Kartika shukla Ekadashi is kshaya, so which day the vrata
+   falls on is a matter of observance rather than arithmetic, and not ours to settle in a template. #}
+{% if wedding_season %}
+<aside class="card season" id="wedding-season" aria-labelledby="season-heading">
+  <h2 id="season-heading">{{ wedding_season.heading }}</h2>
+  <p>{{ wedding_season.text }}</p>
+  <p><a class="btn btn--cta" href="#tool-form">{{ wedding_season.cta }}</a></p>
+</aside>
+{% endif %}
+

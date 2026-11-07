@@ -1,0 +1,19 @@
+# Every fifteen minutes, all day.
+#
+# A PAID ORDER THAT FAILED IS WORTH A QUARTER-HOUR, not a day. The customer is already waiting, and
+# the whole value of the alert is reaching somebody while the order can still be rescued by hand.
+# Deduplication lives in the database, so a frequent timer costs nothing but a database read when
+# there is nothing wrong.
+#
+# Persistent=true so a run missed to a reboot happens once on the next start.
+[Unit]
+Description=Admin alerts, every 15 minutes
+
+[Timer]
+OnBootSec=5min
+OnUnitActiveSec=15min
+Persistent=true
+RandomizedDelaySec=60
+
+[Install]
+WantedBy=timers.target

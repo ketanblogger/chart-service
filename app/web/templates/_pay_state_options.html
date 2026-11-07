@@ -1,0 +1,9 @@
+{# The state list pay.js clones into its GST field, in ONE place.
+   pay.js builds the panel's "State (for GST)" select with only a placeholder and then copies the
+   options out of #pay-state-options. A page that sells something and omits this template gets a
+   REQUIRED select with nothing in it, so the panel can never be submitted - which is one of the
+   four reasons the Rs 199 numerology report could not be bought. It was inline in two templates
+   when a third page needed it; two copies of one list is how they drift. #}
+<template id="pay-state-options">
+  {% for code, state_name in ui.states %}<option value="{{ code }}">{{ state_name }}</option>{% endfor %}
+</template>

@@ -1,0 +1,56 @@
+{# Free PDF vs paid report, side by side, with the honest line about what the money buys. #}
+{% extends "base.html" %}
+{% block title %}{{ words.title }} | {{ site_name }}{% endblock %}
+{% block meta_description %}{{ words.intro[:230] }}{% endblock %}
+{% block main %}
+<section class="hero"><div class="wrap">
+  <h1>{{ words.h1 }}</h1><p class="hero__sub">{{ words.intro }}</p>
+</div></section>
+<div class="wrap">
+  <div class="panchang__times">
+    <section class="card" id="free">
+      <h2>{{ words.free_heading }}</h2>
+      <p class="pill">{{ words.free_price }}</p>
+      <ul>{% for point in words.free_points %}<li>{{ point }}</li>{% endfor %}</ul>
+      <p class="reading__ask"><a href="{{ free_href }}">{{ words.cta_free }}</a></p>
+    </section>
+    <section class="card" id="paid">
+      <h2>{{ words.paid_heading }}</h2>
+      <p class="pill">{{ words.paid_price }}</p>
+      <ul>{% for point in words.paid_points %}<li>{{ point }}</li>{% endfor %}</ul>
+      <p class="reading__ask"><a href="{{ paid_href }}">{{ words.cta_paid }}</a></p>
+    </section>
+  </div>
+  {# THE SAMPLE. The registry comment for this page has promised "with a sample of each" since the page
+     was written, and until now there were two bullet lists and a price. Somebody deciding whether to pay
+     Rs 299 for a document wants to SEE A PAGE OF IT.
+
+     The pages are the real document, rendered by scripts/sample_preview.py through the same endpoint
+     that serves a reader's own PDF - not a mock-up built for the picture. They are NOT cropped to look
+     denser than the document is; the white space on page 2 is the white space a buyer gets.
+
+     The birth is invented and the page says so. No real birth detail and no real person's name goes into
+     this repository, and an image published here is cached and indexed by people we will never hear from.
+
+     `width`/`height` are on every image because this block sits above the fold on a phone: without them
+     the page reflows when the first picture decodes, which is the CLS the rest of this batch has been
+     measuring. loading="lazy" on all but the first, which is the one a reader sees immediately. #}
+  <section class="card" id="sample" aria-labelledby="sample-heading">
+    <h2 id="sample-heading">{{ words.sample_heading }}</h2>
+    <p class="small muted">{{ words.sample_note }}</p>
+    <div class="sample-pages">
+      {% for page in sample_pages %}
+      <figure class="sample-pages__page">
+        <img src="{{ page.src }}" width="{{ page.width }}" height="{{ page.height }}"
+             alt="{{ words.sample_alt.format(n=page.number) }}"
+             {% if not loop.first %}loading="lazy" decoding="async"{% endif %}>
+      </figure>
+      {% endfor %}
+    </div>
+    <p class="reading__ask"><a href="{{ sample_pdf }}" download>{{ words.sample_download }}</a></p>
+  </section>
+
+  {# The line that stops this being a page that cripples the free thing to sell the paid one. #}
+  <p class="banner banner--info" id="honest">{{ words.honest }}</p>
+</div>
+{% endblock %}

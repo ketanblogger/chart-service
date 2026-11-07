@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="{{ lang }}">
+<head><meta charset="utf-8"><title>{{ title }}</title>
+<style>{{ css }}
+/* A4, explicitly. @page sets the paper; the body still needs the width or the columns lay
+   themselves out against whatever the renderer's viewport happens to be. */
+html, body { margin: 0; }
+/* WIDTH 100%, NOT 210mm. @page already makes the page box A4 with no margin, so the body fills it;
+   naming the millimetres again and leaving the browser's own 8px body margin in place put the
+   content 333px over the edge and Chromium shrank the whole sheet to fit. */
+.cal { box-sizing: border-box; width: 100%; min-height: 297mm; padding: 14mm;
+       font-family: Report Devanagari, Report Sans; color: #1a1a1a; }
+.cal h1 { font-size: 18pt; margin: 0 0 6mm; text-align: center; }
+.cal__grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5mm; }
+.cal__month { break-inside: avoid; }
+.cal__month h2 { font-size: 10.5pt; margin: 0 0 1.5mm; border-bottom: .4mm solid #7a5c1e;
+                 padding-bottom: 1mm; }
+.cal__month ul { margin: 0; padding: 0; list-style: none; }
+.cal__month li { font-size: 8.5pt; line-height: 1.5; }
+.cal__day { display: inline-block; min-width: 6mm; font-weight: 700; }
+.cal__note { margin: 7mm 0 0; font-size: 7.5pt; line-height: 1.5; color: #555; }
+</style></head>
+<body class="cal">
+  <h1>{{ title }}</h1>
+  <div class="cal__grid">
+    {% for month in months %}
+    <section class="cal__month">
+      <h2>{{ month.name }}</h2>
+      <ul>{% for item in month.festivals %}<li><span class="cal__day">{{ item.day }}</span> {{ item.name }}</li>{% endfor %}</ul>
+    </section>
+    {% endfor %}
+  </div>
+  <p class="cal__note">{{ words.convention }}</p>
+</body>
+</html>

@@ -1,0 +1,28 @@
+# Rashifal refresh. Installed in Phase 8:
+#   sudo cp deploy/systemd/rashifal-refresh.* /etc/systemd/system/
+#   sudo systemctl daemon-reload && sudo systemctl enable --now rashifal-refresh.timer
+#   systemctl list-timers rashifal-refresh.timer ; journalctl -u rashifal-refresh.service -n 100
+# Adjust User / WorkingDirectory to the deploy location. Do NOT also set RASHIFAL_SCHEDULER=1 (harmless - the
+# database lease prevents a double run - but pointless).
+[Unit]
+Description=Rashifal refresh: regenerate the pages whose period window has rolled over
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=astro
+Group=astro
+WorkingDirectory=/srv/astrology
+# .env is read by the app itself (python-dotenv); nothing secret lives in this unit.
+ExecStart=/srv/astrology/.venv/bin/python scripts/rashifal_refresh.py --period all
+# Exit 1 = some pages failed and kept their old content; the unit shows as failed so monitoring can alert.
+TimeoutStartSec=8h
+Nice=10
+# Same sandbox as astrology.service: the job only writes to var/ (app.db).
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=/srv/astrology/var
+UMask=0027

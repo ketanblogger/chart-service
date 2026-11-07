@@ -1,0 +1,90 @@
+{# Sade Sati for one Moon sign. Three things, in this order: is it running now, when are the cycles, what
+   are the phases. Somebody arriving here has usually been told this is a disaster, so the page gives dates
+   and says what Saturn's transit actually is, without embroidering it into ruin.
+
+   Every date is `cycles`, straight from Saturn's sidereal ingresses. The template formats; it never
+   calculates, and it never fills a gap with a guess. #}
+{% extends "base.html" %}
+{% block title %}{{ title }}{% endblock %}
+{% block meta_description %}{{ meta_description }}{% endblock %}
+
+{% macro cycle_table(cycle, heading) %}
+<section class="sadesati__cycle" aria-labelledby="c-{{ heading | replace(' ', '-') | lower }}">
+  <h3 id="c-{{ heading | replace(' ', '-') | lower }}">{{ heading }}</h3>
+  <p class="sadesati__span"><strong>{{ cycle.start }}</strong> &ndash; <strong>{{ cycle.end }}</strong></p>
+  <div class="table-wrap">
+  <table class="sadesati__phases">
+    <thead><tr><th>{{ copy.extra.th_phase }}</th><th>{{ copy.extra.th_from }}</th><th>{{ copy.extra.th_to }}</th></tr></thead>
+    <tbody>
+    {% for phase in cycle.phases %}
+    <tr>
+      <td>{{ copy.extra["phase_" + phase.phase] }}</td>
+      <td>{{ phase.start }}</td>
+      <td>{{ phase.end }}
+        {# WHY A PHASE RUNS LONGER THAN 2.5 YEARS. Saturn crosses the boundary, turns retrograde, comes
+           back, and crosses again. Counted rather than hidden: it is the reason two published tables give
+           different dates for the same cycle. #}
+        {% if phase.returns %}<span class="small sadesati__returns">{{ copy.extra.returns_note_one if phase.returns == 1 else copy.extra.returns_note | replace("{n}", phase.returns | string) }}</span>{% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</section>
+{% endmacro %}
+
+{% block main %}
+<article class="wrap v2-body">
+  <nav class="breadcrumbs" aria-label="{{ ui.breadcrumb_aria }}">
+    {% for name, path in crumbs %}<a href="{{ path }}">{{ name }}</a>{% if not loop.last %} <span aria-hidden="true">›</span> {% endif %}{% endfor %}
+  </nav>
+  <h1>{{ h1 }}</h1>
+
+  {# THE ANSWER FIRST. "Is it running for me right now" is the question, and it is answered before
+     anything is explained. #}
+  <p class="lede sadesati__status">
+    {% if cycles.running %}
+      {{ copy.extra.status_running | replace("{phase}", copy.extra["phase_" + cycles.phase] if cycles.phase else copy.extra.phase_between) }}
+    {% else %}
+      {{ copy.extra.status_clear }}
+    {% endif %}
+  </p>
+  <p>{{ copy.intro }}</p>
+
+  {% if cycles.current %}{{ cycle_table(cycles.current, copy.extra.heading_current) }}{% endif %}
+  {% if cycles.next %}{{ cycle_table(cycles.next, copy.extra.heading_next) }}{% endif %}
+  {% if cycles.previous %}{{ cycle_table(cycles.previous, copy.extra.heading_previous) }}{% endif %}
+
+  <section aria-labelledby="what">
+    <h2 id="what">{{ copy.extra.what_heading }}</h2>
+    <p>{{ copy.extra.what_text }}</p>
+    <p class="small">{{ copy.extra.source_note }}</p>
+  </section>
+
+  <section class="cta" aria-labelledby="cta-calc">
+    <h2 id="cta-calc">{{ copy.extra.calc_heading }}</h2>
+    <p>{{ copy.extra.calc_text }}</p>
+    <a class="btn btn--primary" href="{{ calculator_path }}">{{ copy.extra.calc_button }}</a>
+  </section>
+
+  <section class="cta" aria-labelledby="cta-chat">
+    <h2 id="cta-chat">{{ copy.extra.chat_heading }}</h2>
+    <p>{{ copy.extra.chat_text }}</p>
+    <a class="btn btn--ghost" href="{{ chat_path }}">{{ copy.extra.chat_button }}</a>
+  </section>
+
+  <p><a href="{{ rashifal_path }}">{{ copy.extra.rashifal_link }}</a></p>
+
+  {% if copy.faqs %}
+  <section aria-labelledby="faq">
+    <h2 id="faq">FAQ</h2>
+    <dl>
+      {% for question, answer in copy.faqs %}
+      <dt>{{ question }}</dt><dd>{{ answer }}</dd>
+      {% endfor %}
+    </dl>
+  </section>
+  {% endif %}
+</article>
+{% endblock %}

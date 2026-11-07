@@ -1,0 +1,34 @@
+{# Rashi from a name: the traditional namakshar method, said to be exactly that. #}
+{% extends "base.html" %}
+{% block title %}{{ words.title }} | {{ site_name }}{% endblock %}
+{% block meta_description %}{{ words.intro[:230] }}{% endblock %}
+{% block main %}
+<section class="hero"><div class="wrap">
+  <h1>{{ words.h1 }}</h1><p class="hero__sub">{{ words.intro }}</p>
+</div></section>
+<div class="wrap">
+  {# The honest line ABOVE the form, as on the marriage-timing page. #}
+  <p class="banner banner--info">{{ words.honest }}</p>
+  <form class="card" method="post" action="">
+    <label>{{ words.label }}
+      <input type="text" name="name" required autocomplete="off"
+             value="{{ found.name if found else '' }}">
+    </label>
+    <button type="submit" class="btn btn--primary">{{ words.submit }}</button>
+  </form>
+  {% if found %}
+  <section class="card" id="result">
+    <h2>{{ words.result }}</h2>
+    <dl class="nakshatra__facts">
+      <dt>{{ words.syllable }}</dt><dd>{{ found.syllable }}</dd>
+      <dt>{{ words.nakshatra }}</dt><dd>{{ found.nakshatra }}</dd>
+      <dt>{{ words.pada }}</dt><dd>{{ found.pada }}</dd>
+      <dt>{{ words.rashi }}</dt><dd>{{ found.rashi }}</dd>
+    </dl>
+    <p class="reading__ask"><a href="{{ href('kundali') }}">{{ words.real }}</a></p>
+  </section>
+  {% elif asked %}
+  <p class="banner banner--warn">{{ words.unknown }}</p>
+  {% endif %}
+</div>
+{% endblock %}

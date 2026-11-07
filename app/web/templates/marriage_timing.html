@@ -1,0 +1,70 @@
+{# "shaadi kab hogi" - the chart's indications and the supportive periods, never a date.
+   Words: `words` (app/web/marriage_timing.py COPY). The result is rendered client-side from /api/chart. #}
+{% extends "base.html" %}
+{% from "_person_fields.html" import person_fields with context %}
+
+{% block title %}{{ words.title }} | {{ site_name }}{% endblock %}
+{% block meta_description %}{{ words.intro }}{% endblock %}
+
+{% block main %}
+<section class="hero">
+  <div class="wrap">
+    <h1>{{ words.h1 }}</h1>
+    <p class="hero__sub">{{ words.intro }}</p>
+  </div>
+</section>
+
+<div class="wrap">
+  {# THE HONEST LINE GOES FIRST, above the form, not in a footnote. Somebody who came here for a date
+     should read that there isn't one before they type their birth details in, not after. #}
+  <p class="banner banner--info" id="honest">{{ words.honest }}</p>
+
+  <section class="card" id="chart-form" aria-labelledby="form-heading">
+    <h2 id="form-heading">{{ words.form_heading }}</h2>
+    {# POST: a birth date, a time and a city in a query string would reach the server log, the browser
+       history and the Referer header of the next link the reader clicks. #}
+    <form id="marriage-form" method="post" action="">
+      {{ person_fields() }}
+      <button type="submit" class="btn btn--primary">{{ words.h1 }}</button>
+    </form>
+  </section>
+
+  {% if result %}
+  <section class="card" id="result" aria-labelledby="result-heading">
+    <h2 id="result-heading">{{ words.what_chart_says }}</h2>
+    <dl class="marriage__facts">
+      <dt>{{ words.seventh }}</dt><dd>{{ result.seventh }}</dd>
+      <dt>{{ words.lord }}</dt>
+      <dd>{{ result.lord }}{% if result.lord_house %} — {{ words.in_house }} {{ result.lord_house }}{% endif %}</dd>
+      <dt>{{ words.karaka }}</dt>
+      <dd>{% for k in result.karakas %}{{ k.graha }}{% if k.house %} ({{ words.in_house }} {{ k.house }}){% endif %}{% if not loop.last %}, {% endif %}{% endfor %}</dd>
+      <dt>{{ words.occupants }}</dt>
+      <dd>{{ result.occupants | join(', ') if result.occupants else '—' }}</dd>
+    </dl>
+
+    <h3>{{ words.windows }}</h3>
+    {% if result.windows %}
+    <ul class="marriage__windows">
+      {% for w in result.windows %}
+      <li><strong>{{ w.from }} – {{ w.to }}</strong> <span class="pill">{{ w.strength }}</span>
+        <span class="muted">{{ words.because }} {{ w.why }}</span></li>
+      {% endfor %}
+    </ul>
+    {% else %}<p class="muted">{{ words.none }}</p>{% endif %}
+
+    <h3>{{ words.transits }}</h3>
+    {% if result.openings %}
+    <ul class="marriage__transits">
+      {% for o in result.openings %}<li>{{ o.text }}</li>{% endfor %}
+    </ul>
+    {% else %}<p class="muted">{{ words.no_transit }}</p>{% endif %}
+
+    <p class="fact__sub">{{ words.caveat }}</p>
+  </section>
+  {% endif %}
+
+  {# OUTSIDE the result block: somebody who has not submitted anything still wants to ask, and a CTA that
+     only exists after a form is one most readers never see. #}
+  <p class="reading__ask"><a href="{{ href('consultation') }}?topic=marriage">{{ words.ask }}</a></p>
+</div>
+{% endblock %}

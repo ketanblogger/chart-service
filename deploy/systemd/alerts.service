@@ -1,0 +1,33 @@
+# The alert run: anything critical that has happened since the last one, e-mailed once.
+#
+#   sudo cp deploy/systemd/alerts.* /etc/systemd/system/
+#   sudo systemctl daemon-reload && sudo systemctl enable --now alerts.timer
+#   systemctl list-timers alerts.timer ; journalctl -u alerts.service -n 50
+#
+# WHY THIS UNIT EXISTS. app/admin/alerts.py has raised "Paid order ... FAILED" at critical severity
+# since it was written, and NOTHING EVER RAN IT on a schedule. The only alert-adjacent timer was the
+# daily digest, which reports yesterday's failure COUNT rather than naming an order. So when a real
+# paid numerology order failed five times on 5 November, the alert existed, was correct, and was
+# never delivered: the proprietor found out from the customer's order page three hours later.
+#
+# `fire_due` deduplicates by (kind, subject) inside the database, so running this every fifteen
+# minutes cannot mail the same failure twice.
+[Unit]
+Description=Fire due admin alerts (failed paid orders, outages, spend)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=astro
+Group=astro
+WorkingDirectory=/srv/astrology
+ExecStart=/srv/astrology/.venv/bin/python -m app.admin.alerts
+TimeoutStartSec=10m
+Nice=10
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=/srv/astrology/var
+UMask=0027

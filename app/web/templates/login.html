@@ -1,0 +1,123 @@
+{# Sign in with an e-mail code. A NEW page, so there is no previous design to fall back to - it carries the
+   full-width design unconditionally, and `?design=v1` on this URL renders this same page.
+
+   noindex, and not in the sitemap: it is a form, not a destination, and an indexed sign-in page competes
+   with the pages that actually answer a search. #}
+{% extends "base.html" %}
+
+{% block body_class %} class="design-v2"{% endblock %}
+{% block title %}{{ auth.title }} | {{ site_name }}{% endblock %}
+{% block meta_description %}{{ auth.intro }}{% endblock %}
+{% block head_extra %}
+  <meta name="robots" content="noindex, nofollow">
+  <link rel="stylesheet" href="/static/css/design-v2.css?v={{ static_version }}">
+{% endblock %}
+
+{% block main %}
+<div id="design-v2" class="v2">
+<div class="wrap v2-auth">
+  <section class="v2-authcard" aria-labelledby="login-heading">
+    <h1 id="login-heading">{{ auth.h1 }}</h1>
+    {# ONE LINE, AND IT IS THE ONE THAT ANSWERS "why am I being asked for this". The page used to open
+       with three paragraphs - intro, "new here?", and a consent block - before the reader reached
+       anything they could act on. #}
+    <p class="v2-auth__intro">{{ auth.promise }}</p>
+    {# SIGNING IN AND REGISTERING ARE ONE THING, and the page has to say so. The first version of this
+       redesign dropped this line; tests/test_account_header.py caught it, and its reason is the right
+       one - a form headed "Sign in" with no mention of creating an account reads, to somebody who has
+       never been here, as a door they do not have the key to. Kept to one clause so it sits under the
+       promise instead of becoming a third paragraph above the form. #}
+    <p class="v2-auth__new small muted">{{ auth.new_here_short }}</p>
+
+    {% if google_signin %}
+    {# GOOGLE FIRST, FULL WIDTH. It is one tap and it is what most people will use; the e-mail code is the
+       door for somebody with no Google session, which is why it stays below rather than disappearing.
+       Both lead to the same account - the address is the identity. #}
+    <div class="login-google">
+      <div id="google-signin"
+           data-client-id="{{ google_client_id }}"
+           data-next="{{ next_path }}"
+           data-label="{{ auth.google_button }}"></div>
+      <p class="form-status form-status--error" id="google-error" role="alert" hidden>
+        {{ auth.google_failed }}</p>
+    </div>
+    <script src="/static/js/google-signin.js?v={{ static_version }}" defer></script>
+    <p class="login-divider"><span>{{ auth.or_email }}</span></p>
+    {% endif %}
+
+    <form id="login-form" novalidate data-request="/api/auth/request-code" data-verify="/api/auth/verify-code"
+          data-lang="{{ lang }}" data-next="{{ orders_path }}" data-chat="{{ chat_path }}"
+          {# The messages travel as data-* attributes rather than in an inline script element. The CSP here
+             is self-only and tests/test_seo.py allows no inline script of any type - a JSON data block is
+             inert, but the rule is the rule and a data attribute does the same job. (That test reads this
+             FILE, so the words above avoid spelling the tag.) The script must never decide what language the
+             page is in. #}
+          data-err-invalid="{{ auth.err_invalid }}" data-err-disposable="{{ auth.err_disposable }}"
+          data-err-rate="{{ auth.err_rate }}" data-err-code="{{ auth.err_code }}"
+          data-err-accounts="{{ auth.err_accounts }}" data-code-sent="{{ auth.code_sent }}">
+      {# STEP ONE: name + address. The name is asked once, on the first sign-in, and never again. #}
+      <div data-step="request">
+        <div class="field">
+          <label for="login-name">{{ auth.name }}</label>
+          <input type="text" id="login-name" name="name" maxlength="60" autocomplete="given-name">
+          <p class="field-hint">{{ auth.name_hint }}</p>
+        </div>
+        <div class="field">
+          <label for="login-email">{{ auth.email }}</label>
+          <input type="email" id="login-email" name="email" maxlength="254" required
+                 autocomplete="email" inputmode="email" autocapitalize="off" spellcheck="false">
+          <p class="field-hint">{{ auth.email_hint }}</p>
+        </div>
+        <button type="submit" class="btn btn--primary" id="login-send">{{ auth.send }}</button>
+      </div>
+
+      {# STEP TWO: the code. Same form, so a password manager sees one flow. #}
+      <div data-step="verify" hidden>
+        <p class="v2-auth__sent" id="login-sent"></p>
+        <div class="field">
+          <label for="login-code">{{ auth.code }}</label>
+          <input type="text" id="login-code" name="code" inputmode="numeric" pattern="[0-9]*" maxlength="6"
+                 autocomplete="one-time-code" spellcheck="false">
+        </div>
+        <button type="submit" class="btn btn--primary" id="login-verify">{{ auth.verify }}</button>
+        <p class="v2-auth__links">
+          <button type="button" class="btn btn--ghost" data-resend>{{ auth.resend }}</button>
+          <button type="button" class="btn btn--ghost" data-change>{{ auth.change }}</button>
+        </p>
+      </div>
+
+      <p class="form-status" id="login-status" role="alert" hidden></p>
+      <noscript><p class="form-status form-status--error">{{ ui.noscript }}</p></noscript>
+    </form>
+
+
+    {# ONE SHORT PRIVACY LINE at the point of collection, with the two links in it. DPDP asks for notice
+       here, and the long version lives behind the toggle below rather than between the reader and the
+       button. #}
+    {# THE POLICY PAGES ARE ENGLISH-ONLY, by the same decision base.html encodes when it marks the footer
+       policy links hreflang="en". href() resolves in the PAGE's language, so href('terms') raises a
+       KeyError on the Hindi and Marathi trees - which is exactly what it did, 500ing both. #}
+    <p class="v2-auth__consent small">{{ auth.privacy_short }}
+      <a href="{{ terms_path }}"{% if lang != "en" %} hreflang="en"{% endif %}>{{ auth.terms_word }}</a> ·
+      <a href="{{ privacy_path }}"{% if lang != "en" %} hreflang="en"{% endif %}>{{ auth.privacy_word }}</a></p>
+
+    {# SAID ONCE. It used to appear here AND again in a card to the right of an otherwise empty page. #}
+    <p class="v2-auth__free small muted">{{ auth.free_tools }}</p>
+
+    {# The reasons, for the reader who wants them - and out of the way of the one who does not. This is a
+       <details>, which works with no script at all. #}
+    <details class="login-why">
+      <summary>{{ auth.why_toggle }}</summary>
+      <p>{{ auth.why }}</p>
+      <p>{{ auth.consent }}</p>
+      <p class="muted">{{ auth.counting_note }}</p>
+      <p class="muted">{{ auth.trouble }}</p>
+    </details>
+  </section>
+</div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/js/auth.js?v={{ static_version }}" defer></script>
+{% endblock %}

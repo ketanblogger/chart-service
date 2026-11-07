@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" width="96" height="96"
+     role="img" aria-labelledby="t-makara" fill="none">
+  <title id="t-makara">makara</title>
+  <!-- The orbit, at the logo's proportion: favicon.svg is r=13 of 32, which is r=39 of 96. -->
+  <circle cx="48" cy="48" r="39" stroke="#E0A526" stroke-width="2.6"/>
+  <!-- The small disc on the orbit, kept so these read as one family with the mark. -->
+  <circle cx="79.5" cy="27.6" r="5.1" fill="#E0A526"/>
+  <!-- The rashi's own symbol, from glyphs.svg, scaled 24 -> 44 and centred. -->
+  <g transform="translate(26 26) scale(1.8333)" stroke="#E0A526" stroke-width="1.6"
+     stroke-linecap="round" stroke-linejoin="round">
+    <path class="s" d="M4.2 6.6c2.6 0 3.4 2.4 3.4 5v4.6M7.6 11.6c0-3 1.6-5 4-5s3.6 2 3.6 4.4c0 2-1 3.4-2.6 3.4-1.2 0-2-.8-2-1.8 0-1.6 2.2-2 3.8-.6 1.6 1.4 1.8 4.6-.8 6"/>
+  </g>
+</svg>

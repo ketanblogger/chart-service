@@ -1,0 +1,50 @@
+{# The Rs 199 numerology report, as the primary offer on a numerology page.
+
+   WHY A FORM AND NOT A LINK. It used to be an <a> carrying ?name=...&day=...&month=...&year=...,
+   which put a reader's name and date of birth into the access log of every hop, into the Referer
+   sent to third parties, into browser history, and into any link they shared. Those two together
+   identify a person. The fields post in a body now. The form still works with JavaScript off,
+   which a link-plus-script would not.
+
+   On a mulank page there is no calculator, so `carry` is empty and this renders a plain link -
+   a form with no fields to post is just a slower link. #}
+<section class="report-card" aria-labelledby="report-cta-heading">
+  <h2 id="report-cta-heading" class="report-card__heading">{{ report_cta.heading }}</h2>
+
+  {% if report_cta.preview %}
+  {# ONE REAL PAGE of the report, rendered from a document generated for an invented person - see
+     scripts/sample_preview.py. Not a mock-up and not a stock image: the thing being sold. #}
+  <img class="report-card__preview" src="{{ report_cta.preview.src }}"
+       width="{{ report_cta.preview.width }}" height="{{ report_cta.preview.height }}"
+       loading="lazy" decoding="async" alt="{{ report_cta.preview.alt }}">
+  {% endif %}
+
+  <div class="report-card__words">
+    {% if report_cta.personal %}
+    {# WHAT THIS READER'S OWN GRID SAYS, read back to them. Built from the calculation above, so it
+       cannot promise a section about something their report will not contain.
+
+       IT REPLACES THE GENERIC LINE rather than sitting above it. Both named the Lo Shu reading and
+       the spelling alternatives, so the card said the same thing twice - once about this reader and
+       once about nobody. The generic line is still what a mulank page shows, where there is no
+       calculation to be specific about. #}
+    <p class="report-card__personal">{{ report_cta.personal }}</p>
+    {% else %}
+    <p>{{ report_cta.body }}</p>
+    {% endif %}
+
+    {% if report_cta.carry %}
+    <form class="report-card__form" method="post" action="{{ report_cta.path }}">
+      {% for field, value in report_cta.carry.items() %}
+      <input type="hidden" name="{{ field }}" value="{{ value }}">
+      {% endfor %}
+      <button class="btn btn--cta btn--report" type="submit">
+        {{ report_cta.button }} <span aria-hidden="true">&rarr;</span>
+      </button>
+    </form>
+    {% else %}
+    <p><a class="btn btn--cta btn--report" href="{{ report_cta.path }}">
+      {{ report_cta.button }} <span aria-hidden="true">&rarr;</span></a></p>
+    {% endif %}
+  </div>
+</section>

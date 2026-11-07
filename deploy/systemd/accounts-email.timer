@@ -1,0 +1,15 @@
+# The 1st of each month at 09:00 IST, reporting the month that just ended.
+#
+# Persistent=true because this one genuinely must not be skipped: a server down over midnight on the 1st
+# would otherwise lose the month's message entirely, and the next one is thirty days away. Catching up
+# is safe - the send is deduplicated per month in the database.
+[Unit]
+Description=Month-end accounts e-mail, 1st of the month at 09:00 IST
+
+[Timer]
+OnCalendar=*-*-01 09:00:00 Asia/Kolkata
+Persistent=true
+RandomizedDelaySec=0
+
+[Install]
+WantedBy=timers.target

@@ -1,0 +1,81 @@
+<!doctype html>
+{# One social card, 1080x1920. Rendered by scripts/social_cards.py in the SAME Chromium the PDFs use, so the
+   Devanagari shaping on a card is the shaping the reports already ship with.
+
+   The brand tokens are the site's own hex values, copied rather than imported: this file is loaded from the
+   filesystem with no server, so a <link> to /static would not resolve - and a card that silently rendered
+   unstyled would still be a 1080x1920 PNG somebody could post. #}
+<html lang="{{ card.lang }}">
+<head>
+<meta charset="utf-8">
+<style>
+  /* NO @font-face HERE. A card is rendered from a string with `set_content`, so the page has an opaque
+     origin and Chromium refuses to load a `file://` font into it - the first version of this did exactly
+     that and produced 39 cards of tofu boxes, which is what a card of Devanagari looks like when the font
+     silently does not arrive. The bundled Noto faces are offered to the browser through fontconfig instead
+     (scripts/social_cards.py), so these are plain family names and resolve the way they do in the PDFs. */
+
+  :root { --primary: #241B54; --accent: #E0A526; --ink: #1E1B2E; --bg: #FBF8F1; --muted: #5C5875; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 1080px; height: 1920px; }
+  body {
+    font-family: "Noto Sans Devanagari", "Noto Sans", sans-serif;
+    background: var(--bg); color: var(--ink);
+    display: flex; flex-direction: column;
+  }
+
+  .top { background: var(--primary); color: #fff; padding: 90px 80px 70px; }
+  .brand { display: flex; align-items: center; gap: 20px; font-size: 38px; font-weight: 700; letter-spacing: .5px; }
+  .dot { width: 44px; height: 44px; border-radius: 50%; background: var(--accent); flex: none; }
+  .kicker { margin-top: 56px; font-size: 34px; color: var(--accent); font-weight: 700; letter-spacing: 2px; text-transform: uppercase; }
+  .title { margin-top: 16px; font-size: 128px; font-weight: 700; line-height: 1.04; }
+  .latin { margin-top: 10px; font-size: 44px; color: rgba(255,255,255,.72); }
+  .date { margin-top: 30px; font-size: 40px; color: rgba(255,255,255,.88); }
+
+  .body { flex: 1; padding: 80px; display: flex; flex-direction: column; gap: 56px; }
+
+  /* The one or two lines that ARE the card. Large, because this is read at arm's length on a phone. */
+  .lines { display: flex; flex-direction: column; gap: 34px; }
+  .line {
+    font-size: 54px; line-height: 1.34; font-weight: 700;
+    border-left: 12px solid var(--accent); padding-left: 34px;
+  }
+
+  .facts { display: flex; flex-direction: column; gap: 26px; }
+  .fact { display: flex; justify-content: space-between; align-items: baseline; gap: 30px;
+          border-bottom: 2px solid #E6E1D6; padding-bottom: 22px; }
+  .fact dt { font-size: 36px; color: var(--muted); }
+  .fact dd { font-size: 42px; font-weight: 700; text-align: right; }
+
+  .foot { background: var(--primary); color: rgba(255,255,255,.9); padding: 54px 80px 64px;
+          display: flex; justify-content: space-between; align-items: center; gap: 30px; }
+  .calc { font-size: 30px; }
+  .site { font-size: 34px; font-weight: 700; color: var(--accent); }
+</style>
+</head>
+<body>
+  <header class="top">
+    <div class="brand"><span class="dot"></span> RashiKundli</div>
+    <div class="kicker">{{ card.get("headline") or card.labels.today }}</div>
+    <div class="title">{{ card.title }}</div>
+    <div class="latin">{{ card.latin }}</div>
+    <div class="date">{{ card.date }}</div>
+  </header>
+
+  <main class="body">
+    <div class="lines">
+      {% for line in card.lines %}<p class="line">{{ line }}</p>{% endfor %}
+    </div>
+    <dl class="facts">
+      {% for name, value in card.facts %}
+      <div class="fact"><dt>{{ name }}</dt><dd>{{ value }}</dd></div>
+      {% endfor %}
+    </dl>
+  </main>
+
+  <footer class="foot">
+    <span class="calc">{{ card.calc }}</span>
+    <span class="site">rashikundli.com</span>
+  </footer>
+</body>
+</html>

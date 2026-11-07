@@ -1,0 +1,117 @@
+{# The FREE Basic Chart PDF (app/pdf/basic.py). A separate document from the paid book on purpose.
+
+   This template knows how to draw SEVEN block types, all of them engine data or our own labels:
+   facts, table, chart, banner, note, trust, caveats, excluded. It knows nothing about `prose`,
+   `bullets`, `subsections`, `windows`, `remedies` or `highlights` - the block types that carry AI
+   prose in templates/report.html. That is the guarantee, and it is structural rather than a
+   convention: if a future edit ever hands this page an AI-written field, there is no macro that
+   could print it, and tests/test_pdf.py asserts the rendered output contains none of those fields.
+
+   Every heading carries an id, in document order, like the book's - app/pdf/render.py:heading_ids()
+   is asserted against this document too, so the PDF outline stays usable. There is no contents page,
+   so this document is rendered ONCE (app/pdf/browser.py:html_to_pdf), not twice. #}
+{% macro cell(value) -%}
+  {%- if value is mapping -%}
+    {%- for line in value.lines %}<span class="line">{{ line }}</span>{% endfor -%}
+  {%- elif value is string -%}
+    {{ value }}
+  {%- else -%}
+    {{ value[0] }}{% if value[1] %}<span class="cell-sub">{{ value[1] }}</span>{% endif %}
+  {%- endif -%}
+{%- endmacro %}
+
+{% macro render_block(block) %}
+  {% if block.type == "facts" %}
+    <dl class="facts">
+    {% for label, value, sub in block['items'] %}
+      <div class="fact"><dt>{{ label }}</dt><dd>{{ value }}{% if sub %}<span class="fact-sub">{{ sub }}</span>{% endif %}</dd></div>
+    {% endfor %}
+    </dl>
+  {% elif block.type == "table" %}
+    <figure class="data-table {{ 'keep' if block.keep else '' }}">
+      {% if block.title %}<p class="figure-title">{{ block.title }}</p>{% endif %}
+      <table class="{{ block.cls }}">
+        <thead><tr>{% for column in block.columns %}<th scope="col">{{ column }}</th>{% endfor %}</tr></thead>
+        <tbody>
+        {% for row in block.rows %}
+          <tr class="{{ row.cls }}">{% for value in row.cells %}{% if loop.first %}<th scope="row">{{ cell(value) }}</th>{% else %}<td>{{ cell(value) }}</td>{% endif %}{% endfor %}</tr>
+        {% endfor %}
+        </tbody>
+      </table>
+      {% if block.note %}<p class="note">{{ block.note }}</p>{% endif %}
+    </figure>
+  {% elif block.type == "chart" %}
+    <figure class="chart {{ 'chart--small' if block.small else '' }}">
+      {% if block.title %}<p class="figure-title figure-title--center">{{ block.title }}</p>{% endif %}
+      {{ block.svg }}
+      <p class="legend">{% for abbr, name in block.legend %}<span><b>{{ abbr }}</b> {{ name }}</span> {% endfor %}<span><b class="retro-key">R</b> {{ block.retro }}</span></p>
+      {% if block.note %}<p class="note">{{ block.note }}</p>{% endif %}
+    </figure>
+  {% elif block.type == "banner" %}
+    <div class="banner banner--{{ block.tone }}"><p class="banner-title">{{ block.title }}</p>{% if block.text %}<p>{{ block.text }}</p>{% endif %}</div>
+  {% elif block.type == "note" %}
+    <p class="note">{{ block.text }}</p>
+  {% elif block.type == "trust" %}
+    <section class="trust">
+      <p class="trust-title">{{ block.title }}</p>
+      {% for paragraph in block.paragraphs %}<p>{{ paragraph }}</p>{% endfor %}
+    </section>
+  {% elif block.type == "caveats" %}
+    <section class="caveats">
+      <p class="caveats-title">{{ block.title }}</p>
+      {% for paragraph in block.paragraphs %}<p>{{ paragraph }}</p>{% endfor %}
+    </section>
+  {% elif block.type == "excluded" %}
+    <section class="excluded">
+      <p class="excluded-title">{{ block.title }}</p>
+      <ul>{% for item in block['items'] %}<li>{{ item }}</li>{% endfor %}</ul>
+      <p class="excluded-note">{{ block.note }}</p>
+    </section>
+  {% endif %}
+{% endmacro %}
+<!DOCTYPE html>
+<html lang="{{ lang }}">
+<head>
+<meta charset="utf-8">
+<title>{{ title }}</title>
+<meta name="generator" content="{{ L.site_name }}">
+<style>{{ css }}
+{{ page_css }}</style>
+</head>
+<body class="size-{{ page_size }} basic">
+
+<header class="sheet-head">
+  <span class="sheet-corner">{{ corner }}</span>
+  <p class="sheet-site">{{ head.site }}</p>
+  <h1 class="sheet-title" id="{{ head.anchor }}">{{ head.title }}</h1>
+  <p class="sheet-product">{{ head.product_name }}</p>
+  {% if head.name %}<p class="sheet-name">{{ head.name }}</p>{% endif %}
+  <p class="sheet-tagline">{{ head.tagline }}</p>
+</header>
+
+<dl class="birth">
+  {% for label, value in head.rows %}<div><dt>{{ label }}</dt><dd>{{ value }}</dd></div>{% endfor %}
+</dl>
+
+{% for section in sections %}
+<section class="sheet-section {{ 'pagebreak-before' if section.new_page else '' }}">
+  {% if section.heading %}<h2 id="{{ section.anchor }}">{{ section.heading }}</h2>{% endif %}
+  {% for block in section.blocks %}{{ render_block(block) }}{% endfor %}
+</section>
+{% endfor %}
+
+<section class="closing closing--basic">
+  <h2 id="{{ closing.anchor }}">{{ L.disclaimer }}</h2>
+  <div class="disclaimer"><p>{{ disclaimer }}</p></div>
+  <p class="note">{{ calc_note }}</p>
+  <p class="note">{{ head.note }}</p>
+  {# The verse, its meaning and OUR application, in three elements. Never one string: see labels.py. #}
+  <p class="philosophy">
+    <span class="philosophy__verse" lang="sa">{{ L.verse }}</span>
+    {% if L.verse_translit %}<span class="philosophy__translit">{{ L.verse_translit }}</span>{% endif %}
+    <span class="philosophy__gloss">{{ L.verse_gloss }}</span>
+    <span class="philosophy__ours">{{ L.verse_ours }}</span>
+  </p>
+</section>
+</body>
+</html>

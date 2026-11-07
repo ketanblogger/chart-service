@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="RashiKundli">
+  <!-- The brand mark, drawn flat rather than traced from the 3D render: at 16px the render's shading turns
+       to mud and its soft edges alias, where flat shapes stay crisp at any size. Gold is --color-accent and
+       the ground is transparent on purpose, so the mark sits on a light or a dark browser chrome equally.
+       The orbit stroke is 2 units of 32 - deliberately heavier than the artwork's proportion, because the
+       source ring is 27px of 1254 and would be a third of a pixel here. -->
+  <g fill="none" stroke="#E0A526" stroke-width="2">
+    <circle cx="16" cy="16" r="13"/>
+  </g>
+  <circle cx="16" cy="16" r="7.5" fill="#E0A526"/>
+  <circle cx="26.5" cy="9.2" r="3.4" fill="#E0A526"/>
+</svg>

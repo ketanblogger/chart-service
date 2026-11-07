@@ -1,0 +1,39 @@
+{# The blocks that FOLLOW a reading: the two calls to action, the other periods for this rashi, the other
+   rashis for this period, the last ad slot and the about/disclaimer block. Extracted from
+   rashifal_page.html so the full-width prototype can put them in a rail beside the reading instead of in a
+   column under it - the same markup in a different place, not a second copy. #}
+  <div class="cta-pair">
+    <aside class="cta" aria-labelledby="cta-kundali">
+      <h3 id="cta-kundali">{{ labels.cta_kundali_title }}</h3>
+      <p>{{ labels.cta_kundali_text }}</p>
+      <a class="btn btn--cta" href="{{ href('kundali') }}">{{ labels.cta_kundali_button }}</a>
+    </aside>
+    <aside class="cta" aria-labelledby="cta-chat">
+      <h3 id="cta-chat">{{ labels.cta_chat_title }}</h3>
+      <p>{{ labels.cta_chat_text }}</p>
+      <a class="btn btn--cta" href="{{ href('consultation') }}">{{ labels.cta_chat_button }}</a>
+    </aside>
+  </div>
+
+  <nav class="block" aria-labelledby="other-periods-heading">
+    <h2 id="other-periods-heading">{{ labels.periods_heading }}</h2>
+    <ul class="link-grid">
+      {% for link in other_periods %}<li><a href="{{ link.path }}">{{ rashi_label }} · {{ link.label }}</a></li>{% endfor %}
+    </ul>
+  </nav>
+
+  <nav class="block" aria-labelledby="other-rashis-heading">
+    <h2 id="other-rashis-heading">{{ labels.others_period_heading|replace('{period}', period_label) }}</h2>
+    <ul class="link-grid">
+      {% for link in other_rashis %}<li><a href="{{ link.path }}">{{ link.label }} <span class="muted small">{{ link.sub }}</span></a></li>{% endfor %}
+    </ul>
+    <p><a href="{{ all_signs.path }}">{{ all_signs.label }}</a></p>
+  </nav>
+
+  <div class="ad-slot" data-ad-slot="{{ ad_slots[2] }}" hidden></div>
+
+  <section class="block content" aria-labelledby="about-heading">
+    <h2 id="about-heading">{{ labels.about_heading }}</h2>
+    <p>{{ labels.about_text }}</p>
+    <p class="disclaimer" id="rashifal-disclaimer">{{ labels.reading_disclaimer }}</p>
+  </section>

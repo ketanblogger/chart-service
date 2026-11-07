@@ -1,0 +1,18 @@
+# Every morning at 08:00 IST, reporting the day that just ended.
+#
+# Persistent=true: a server down overnight would otherwise lose that day's summary entirely, and the
+# figures it carries are the only daily record anybody reads. Catching up is safe because the send is
+# deduplicated per day.
+#
+# No randomised delay. This one is read at a particular time of the morning, and a message that arrives
+# somewhere in a five-minute window is slightly harder to expect than one that does not.
+[Unit]
+Description=Daily business summary, 08:00 IST
+
+[Timer]
+OnCalendar=*-*-* 08:00:00 Asia/Kolkata
+Persistent=true
+RandomizedDelaySec=0
+
+[Install]
+WantedBy=timers.target

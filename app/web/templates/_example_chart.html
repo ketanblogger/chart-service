@@ -1,0 +1,15 @@
+{# The labelled example chart, on the two tools whose output IS a chart.
+
+   The diagram is inline SVG rather than an <img>: an SVG loaded through <img> cannot reach the site's
+   webfont and draws Devanagari as boxes on a device without its own. Inline, it costs no request,
+   shifts nothing, and stays crisp at any zoom. The labels below it are ordinary page text. #}
+<section class="card example-chart" aria-labelledby="example-chart-heading">
+  <h2 id="example-chart-heading">{{ ui.example_chart_heading }}</h2>
+  <div class="example-chart__body">
+    <div class="example-chart__art">{{ example_chart }}</div>
+    <ul class="example-chart__notes">
+      {% for note in ui.example_chart_notes %}<li>{{ note }}</li>{% endfor %}
+    </ul>
+  </div>
+  <p class="fact__sub">{{ ui.example_chart_note }}</p>
+</section>

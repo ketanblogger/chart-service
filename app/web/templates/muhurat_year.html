@@ -1,0 +1,74 @@
+{# A year's muhurat dates for one purpose, month by month. Every date is computed at render time by
+   app/engine/muhurta.py - there is no stored content here and nothing written by a model. #}
+{% extends "base.html" %}
+
+{% block title %}{{ title }}{% endblock %}
+{% block meta_description %}{{ meta_description }}{% endblock %}
+
+{% block main %}
+<section class="hero">
+  <div class="wrap">
+    <h1>{{ h1 }}</h1>
+    <p class="hero__sub">{{ lede }}</p>
+    <p class="hero__meta">{{ count_line }}</p>
+  </div>
+</section>
+
+<article class="wrap content">
+  <div class="mu-months">
+    {% for month in months %}
+    <section class="mu-month{% if not month.days %} mu-month--empty{% endif %}">
+      <h2>{{ month.name }}</h2>
+      {% if month.days %}
+      <table class="mu-table">
+        <thead>
+          <tr>{% for column in words.columns %}<th scope="col">{{ column }}</th>{% endfor %}</tr>
+        </thead>
+        <tbody>
+          {% for day in month.days %}
+          <tr>
+            <td class="mu-date">{{ day.day }}</td>
+            <td>{{ day.vara }}</td>
+            <td>{{ day.nakshatra }}</td>
+            <td>{{ day.tithi }} ({{ day.paksha }})</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {# A MONTH WITH NOTHING IN IT STILL APPEARS. A month simply missing from the list reads as an
+         oversight; "no date this month" is a thing the reader wanted to know. #}
+      {% else %}
+      <p class="mu-none">{{ words.nothing }}</p>
+      {% endif %}
+    </section>
+    {% endfor %}
+  </div>
+
+  <section class="mu-rule">
+    <h2>{{ words.basis_heading }}</h2>
+    <p>{{ rule_note }}</p>
+    <p class="mu-nakshatras">{{ nakshatras | join(' · ') }}</p>
+  </section>
+
+  <section class="mu-limits">
+    <h2>{{ words.limits_heading }}</h2>
+    <p>{{ words.limits }}</p>
+  </section>
+
+  <nav class="mu-others">
+    <h2>{{ words.others_heading.format(year=year) }}</h2>
+    <ul>{% for other in siblings %}<li><a href="{{ other.path }}">{{ other.label }}</a></li>{% endfor %}</ul>
+  </nav>
+
+  <nav class="mu-next">
+    {% if is_vivah %}
+    <a class="button button--primary" href="{{ match_path }}">{{ words.cta_match }}</a>
+    <a class="button" href="{{ biodata_path }}">{{ words.cta_biodata }}</a>
+    {% else %}
+    <a class="button" href="{{ match_path }}">{{ words.cta_match }}</a>
+    {% endif %}
+  </nav>
+
+  {% if guides %}{% include "_copy_blocks.html" %}{% endif %}
+</article>
+{% endblock %}
